@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>リコホテル三国 営業管理システム</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css" />
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      :root {
+        --navy: #1F3864;
+        --navy-light: #2E5FA3;
+        --navy-dark: #162847;
+        --gold: #C9A84C;
+        --gold-light: #FFF8E1;
+        --white: #FFFFFF;
+        --bg: #F5F7FA;
+        --surface: #FFFFFF;
+        --border: #ECEFF1;
+        --text: #1A2332;
+        --text-mid: #455A64;
+        --text-muted: #90A4AE;
+        --green: #4CAF50;
+        --green-bg: #E8F5E9;
+        --green-text: #1B5E20;
+        --red: #F44336;
+        --red-bg: #FFEBEE;
+        --red-text: #C62828;
+        --orange: #FF9800;
+        --orange-bg: #FFF3E0;
+        --yellow-bg: #FFF9C4;
+        --input-bg: #FFFDE7;
+        --auto-bg: #E3F2FD;
+        --radius: 6px;
+        --shadow-sm: 0 1px 3px rgba(0,0,0,.08);
+        --shadow: 0 2px 8px rgba(0,0,0,.12);
+      }
+      body {
+        font-family: 'Segoe UI', Meiryo, 'Yu Gothic', sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100dvh;
+        -webkit-font-smoothing: antialiased;
+      }
+      #root { min-height: 100dvh; display: flex; flex-direction: column; }
+      input, select, textarea, button {
+        font-family: inherit;
+        font-size: inherit;
+      }
+      a { color: inherit; text-decoration: none; }
+      ::-webkit-scrollbar { width: 5px; height: 5px; }
+      ::-webkit-scrollbar-track { background: #F5F5F5; }
+      ::-webkit-scrollbar-thumb { background: #BDBDBD; border-radius: 3px; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+      .animate-in { animation: fadeIn .2s ease-out; }
+      @media print {
+        .no-print { display: none !important; }
+        body { background: #fff; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
