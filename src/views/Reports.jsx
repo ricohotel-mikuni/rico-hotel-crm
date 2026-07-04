@@ -27,7 +27,7 @@ export default function Reports() {
     if (error) { showToast('保存に失敗しました','error'); return }
     showToast(form.id ? '更新しました' : '日報を追加しました'); setModal(false)
   }
-    const openEdit = (r) => { setEd({...r}); setModal(true) }
+    const openEdit = (r) => { setForm({...r}); setModal(true) }
 const del = async id => {
     if (!confirm('削除しますか？')) return
     const { error } = await softDelete(id)
