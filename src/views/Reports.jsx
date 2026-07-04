@@ -25,9 +25,9 @@ export default function Reports() {
     const { error } = form.id ? await update(form.id, form) : await add(form)
     setSaving(false)
     if (error) { showToast('保存に失敗しました','error'); return }
-    showToast('日報を追加しました'); setModal(false)
+    showToast(form.id ? '更新しました' : '日報を追加しました'); setModal(false)
   }
-    const openEdit = (r) => { setEd({...r}); setModal('r') }
+    const openEdit = (r) => { setEd({...r}); setModal(true) }
 const del = async id => {
     if (!confirm('削除しますか？')) return
     const { error } = await softDelete(id)
@@ -73,7 +73,7 @@ const del = async id => {
         ))
       }
       {modal && (
-        <Modal title="営業日報を追加" icon="ti-file-text" onClose={()=>setModal(false)} onSave={save} saving={saving} width={540}>
+        <Modal title={form.id ? '営業日報を編集' : '営業日報を追加'} icon="ti-file-text" onClose={()=>setModal(false)} onSave={save} saving={saving} width={540}>
           <G2>
             <FI label="日付" value={form.report_date} onChange={set('report_date')} type="date" required />
             <FS label="担当営業" value={form.salesperson} onChange={set('salesperson')} options={PERSONS} />
