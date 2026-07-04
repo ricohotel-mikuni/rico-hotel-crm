@@ -9,7 +9,7 @@ const EMPTY_CLIENT = {
   company: '', contact: '', dept: '', phone: '', email: '',
   address: '', prefecture: '大阪府', client_type: '旅行会社',
   rank: 'B', status: '未訪問', contract_status: '未着手',
-  last_visit_date: '', next_follow_date: '', revenue: 0, stays: 0,
+  last_visit_date: null, next_follow_date: null, revenue: 0, stays: 0,
   notes: '', card_link: '', building_link: '', contract_link: '', photo_link: '',
 }
 
@@ -50,7 +50,8 @@ export default function Clients() {
     if (!form.company) return showToast('会社名は必須です', 'error')
     setSaving(true)
     const isNew = !form.id
-    const { error } = isNew ? await add(form) : await update(form.id, form)
+    const { error } = isNew ? await add(form) : await update(form.id, {...form, client_history: undefined})
+
     setSaving(false)
     if (error) { showToast('保存に失敗しました: ' + error, 'error'); return }
     showToast(isNew ? '営業先を登録しました' : '更新しました')
