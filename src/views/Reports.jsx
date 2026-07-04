@@ -57,8 +57,7 @@ const del = async id => {
               </div>
               <div style={{ display:'flex', gap:6, alignItems:'center' }}>
                 <Badge status={r.booking_status} />
-                {permissions.canWrite && <button onClick={()=>openEdit(r)} style={{ background:'none', border:'none', cursor:'pointer', color:'#90A4AE', fontSize:15 }}><i className="ti ti-edit"/></button>}
-
+                {permissions.canWrite && <button onClick={()=>openEdit(r)} style={{ background:'none', border:'none', cursor:'pointer', color:'#90A4AE', fontSize:15, padding:'0 3px' }}><i className="ti ti-edit" /></button>}
                 {permissions.canDelete && <button onClick={()=>del(r.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'#BDBDBD', fontSize:15 }}><i className="ti ti-trash" /></button>}
               </div>
             </div>
