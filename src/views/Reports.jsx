@@ -27,7 +27,8 @@ export default function Reports() {
     if (error) { showToast('保存に失敗しました','error'); return }
     showToast('日報を追加しました'); setModal(false)
   }
-  const del = async id => {
+    const openEdit = (r) => { setEd({...r}); setModal('r') }
+const del = async id => {
     if (!confirm('削除しますか？')) return
     const { error } = await softDelete(id)
     if (error) showToast('削除に失敗しました','error')
@@ -56,6 +57,8 @@ export default function Reports() {
               </div>
               <div style={{ display:'flex', gap:6, alignItems:'center' }}>
                 <Badge status={r.booking_status} />
+                {permissions.canWrite && <button onClick={()=>openEdit(r)} style={{ background:'none', border:'none', cursor:'pointer', color:'#90A4AE', fontSize:15 }}><i className="ti ti-edit"/></button>}
+
                 {permissions.canDelete && <button onClick={()=>del(r.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'#BDBDBD', fontSize:15 }}><i className="ti ti-trash" /></button>}
               </div>
             </div>
