@@ -8,7 +8,7 @@ import { C, PERSONS, PURPOSES, today } from '../lib/constants'
 const EMPTY = { report_date: today(), client_id: '', contact_person: '', purpose: 'フォロー', card_exchanged: 'なし', proposal: '', reaction: '', estimate_requested: 'なし', booking_status: 'なし', next_action: '', next_visit_date: '', salesperson: PERSONS[0], memo: '' }
 
 export default function Reports() {
-  const { reports, loading, add, softDelete } = useReports()
+  const { reports, loading, add, update, softDelete } = useReports()
   const { clients } = useClients()
   const { permissions } = useAuth()
   const [modal, setModal] = useState(false)
