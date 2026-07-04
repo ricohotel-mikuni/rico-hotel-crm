@@ -30,7 +30,7 @@ export default function Reports() {
     const openEdit = (r) => { setEd({...r}); setModal('r') }
 const del = async id => {
     if (!confirm('削除しますか？')) return
-    const { error } = form.id ? await update(form.id, form) : await add(form)
+    const { error } = await softDelete(id)
     if (error) showToast('削除に失敗しました','error')
     else showToast('削除しました')
   }
