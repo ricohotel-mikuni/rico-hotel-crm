@@ -22,7 +22,7 @@ export default function Reports() {
   const save = async () => {
     if (!form.report_date) return showToast('日付は必須です','error')
     setSaving(true)
-    const { error } = await add(form)
+    const { error } = form.id ? await update(form.id, form) : await add(form)
     setSaving(false)
     if (error) { showToast('保存に失敗しました','error'); return }
     showToast('日報を追加しました'); setModal(false)
@@ -30,7 +30,7 @@ export default function Reports() {
     const openEdit = (r) => { setEd({...r}); setModal('r') }
 const del = async id => {
     if (!confirm('削除しますか？')) return
-    const { error } = await softDelete(id)
+    const { error } = form.id ? await update(form.id, form) : await add(form)
     if (error) showToast('削除に失敗しました','error')
     else showToast('削除しました')
   }
