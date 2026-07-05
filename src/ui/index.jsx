@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useBrand } from '../branding/BrandContext'
 import { BADGE_STYLES, C } from '../lib/constants'
 import { downloadFile, fileNameFromUrl } from '../lib/storage'
 
@@ -335,11 +336,12 @@ export function Empty({ icon, title, action }) {
 // gets "stuck" after a tap on touch devices.
 export function HomeButton({ compact, full }) {
   const navigate = useNavigate()
+  const brand = useBrand()
   return (
     <>
       <button
         type="button"
-        onClick={() => navigate('/')}
+        onClick={() => navigate(brand.homePath)}
         className="home-btn"
         style={{
           padding: compact ? '10px 14px' : '12px 18px',

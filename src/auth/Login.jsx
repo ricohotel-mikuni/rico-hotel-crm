@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useBrand } from '../branding/BrandContext'
 import { Spinner } from '../ui'
 import { C } from '../lib/constants'
 
 export default function Login() {
   const { signIn, error } = useAuth()
+  const brand = useBrand()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -39,12 +41,19 @@ export default function Login() {
         padding: 40, color: '#fff',
         display: 'none',  /* hidden on mobile */
       }} className="login-brand">
-        <img src="/logo.png" alt="RICO HOTEL MIKUNI" style={{ width: 120, height: 120, objectFit: 'contain', marginBottom: 16 }} />
-        <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: 2 }}>RICO HOTEL</div>
-        <div style={{ fontSize: 18, opacity: .8, letterSpacing: 4 }}>MIKUNI</div>
+        <img src={brand.logo} alt={brand.name} style={{ width: 120, height: 120, objectFit: 'contain', marginBottom: 16 }} />
+        {brand.nameLines ? (
+          brand.nameLines.map((line, i) => (
+            <div key={i} style={{ fontSize: i === 0 ? 28 : 18, fontWeight: i === 0 ? 700 : 400, opacity: i === 0 ? 1 : .8, letterSpacing: i === 0 ? 2 : 4 }}>
+              {line}
+            </div>
+          ))
+        ) : (
+          <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: 2, textAlign: 'center' }}>{brand.name}</div>
+        )}
         <div style={{ width: 60, height: 2, background: C.gold, margin: '20px 0' }} />
         <div style={{ fontSize: 13, opacity: .6, textAlign: 'center', lineHeight: 1.8 }}>
-          営業管理システム<br />Sales Management System
+          {brand.subtitle}<br />{brand.tagline}
         </div>
       </div>
 
@@ -67,13 +76,13 @@ export default function Login() {
               background: C.navy, marginBottom: 14,
               boxShadow: '0 4px 16px rgba(31,56,100,.3)',
             }}>
-              <img src="/logo.png" alt="RICO HOTEL MIKUNI" style={{ width: 44, height: 44, objectFit: 'contain' }} />
+              <img src={brand.logo} alt={brand.name} style={{ width: 44, height: 44, objectFit: 'contain' }} />
             </div>
             <div style={{ fontSize: 18, fontWeight: 700, color: C.navy, letterSpacing: 1 }}>
-              RICO HOTEL MIKUNI
+              {brand.name}
             </div>
             <div style={{ fontSize: 12, color: '#90A4AE', marginTop: 4, letterSpacing: 2 }}>
-              SALES MANAGEMENT SYSTEM
+              {brand.tagline}
             </div>
             <div style={{
               width: 48, height: 2, background: C.gold,
@@ -148,7 +157,7 @@ export default function Login() {
           </form>
 
           <div style={{ textAlign: 'center', marginTop: 24, fontSize: 11, color: '#BDBDBD' }}>
-            © 2026 Rico Hotel Mikuni — 営業管理システム v5.0
+            © 2026 {brand.name} — {brand.subtitle}
           </div>
         </div>
       </div>

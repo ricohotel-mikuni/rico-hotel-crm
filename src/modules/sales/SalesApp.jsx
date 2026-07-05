@@ -9,9 +9,12 @@ import Dashboard from './views/Dashboard'
 import Contracts from './views/Contracts'
 import Settings from './views/Settings'
 
-// Sales module — mounted at /sales/* by the top-level App router.
-// Keeps its own shell/sidebar/routes so it behaves exactly like the
-// original standalone 営業管理システム.
+// Sales module — mounted under a property's base path (today
+// /hotels/rico-mikuni/sales/*) by that property's router. Keeps its
+// own shell/sidebar/routes so it behaves exactly like the original
+// standalone 営業管理システム, and doesn't hardcode its own mount
+// point anywhere (the catch-all below resolves relative to wherever
+// it's actually mounted).
 export default function SalesApp() {
   return (
     <AppShell>
@@ -24,7 +27,7 @@ export default function SalesApp() {
         <Route path="dashboard"    element={<Dashboard />} />
         <Route path="contracts"    element={<Contracts />} />
         <Route path="settings"     element={<Settings />} />
-        <Route path="*"            element={<Navigate to="/sales" replace />} />
+        <Route path="*"            element={<Navigate to="." replace />} />
       </Routes>
     </AppShell>
   )

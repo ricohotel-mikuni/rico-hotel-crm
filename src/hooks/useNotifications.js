@@ -11,14 +11,21 @@ export function useUnreadCounts() {
 
   const fetchCounts = useCallback(async () => {
     if (!user) return
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('module')
-      .eq('is_read', false)
-    if (error) { setCounts({}); return }
-    const next = {}
-    for (const row of data ?? []) next[row.module] = (next[row.module] || 0) + 1
-    setCounts(next)
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('module')
+        .eq('is_read', false)
+      if (error) { setCounts({}); return }
+      const next = {}
+      for (const row of data ?? []) next[row.module] = (next[row.module] || 0) + 1
+      setCounts(next)
+    } catch {
+      // Table not migrated yet, or a flaky connection dropped the
+      // request entirely (WebKit can reject rather than resolve with
+      // an error field) — badges just stay hidden either way.
+      setCounts({})
+    }
   }, [user])
 
   useEffect(() => {

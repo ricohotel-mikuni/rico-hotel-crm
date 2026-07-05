@@ -1,10 +1,12 @@
 import { useNavigate } from 'react-router-dom'
 import HubShell from '../layout/HubShell'
+import { useBrand } from '../branding/BrandContext'
 import { Btn } from '../ui'
 import { C } from '../lib/constants'
 
 export default function ComingSoon({ module }) {
   const navigate = useNavigate()
+  const brand = useBrand()
 
   return (
     <HubShell>
@@ -22,7 +24,7 @@ export default function ComingSoon({ module }) {
           この機能は現在準備中です。<br />
           今後のアップデートで順次公開いたします。
         </div>
-        <Btn onClick={() => navigate('/')} icon="ti-arrow-left" label="ホームへ戻る" color={C.navy} />
+        <Btn onClick={() => navigate(brand.homePath)} icon="ti-arrow-left" label="ホームへ戻る" color={C.navy} />
       </div>
     </HubShell>
   )

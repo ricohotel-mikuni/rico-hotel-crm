@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useBrand } from '../branding/BrandContext'
 import { HomeButton } from '../ui'
 import { C, ROLES } from '../lib/constants'
 
@@ -7,7 +8,8 @@ export default function HubShell({ children }) {
   const navigate = useNavigate()
   const location = useLocation()
   const { profile, role, signOut } = useAuth()
-  const isHome = location.pathname === '/'
+  const brand = useBrand()
+  const isHome = location.pathname === brand.homePath
 
   return (
     <div style={{ minHeight: '100dvh', background: '#F5F7FA', display: 'flex', flexDirection: 'column' }}>
@@ -23,21 +25,21 @@ export default function HubShell({ children }) {
         }}
       >
         <div
-          onClick={() => navigate('/')}
+          onClick={() => navigate(brand.homePath)}
           style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
         >
           <div style={{
             width: 38, height: 38, borderRadius: 9, background: 'rgba(201,168,76,.18)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
           }}>
-            <img src="/logo.png" alt="RICO HOTEL MIKUNI" style={{ width: 24, height: 24, objectFit: 'contain' }} />
+            <img src={brand.logo} alt={brand.name} style={{ width: 24, height: 24, objectFit: 'contain' }} />
           </div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.gold, letterSpacing: 1.5, lineHeight: 1.25 }}>
-              RICO HOTEL MIKUNI
+              {brand.name}
             </div>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,.55)', letterSpacing: 1 }}>
-              統合管理システム
+              {brand.subtitle}
             </div>
           </div>
         </div>

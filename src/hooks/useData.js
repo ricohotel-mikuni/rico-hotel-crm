@@ -17,8 +17,12 @@ function withTimeout(promise, ms) {
   ])
 }
 
-// Generic hook for Supabase table with realtime
-function useTable(table, query = null) {
+// Generic hook for a Supabase table (or view) with realtime.
+// `table` is what gets SELECTed from. Realtime `postgres_changes` only
+// fires on real tables — pass `realtimeTable` when `table` is a VIEW
+// (e.g. v_employee_directory) so it still refreshes live off the
+// underlying table's changes.
+export function useTable(table, query = null, realtimeTable = table) {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -47,13 +51,13 @@ function useTable(table, query = null) {
 
     // Realtime subscription
     const channel = supabase
-      .channel(`realtime:${table}:${user.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table }, () => load())
+      .channel(`realtime:${realtimeTable}:${user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: realtimeTable }, () => load())
       .subscribe()
 
     channelRef.current = channel
     return () => { supabase.removeChannel(channel) }
-  }, [user?.id, table]) // eslint-disable-line
+  }, [user?.id, table, realtimeTable]) // eslint-disable-line
 
   return { data, loading, error, refresh: load }
 }

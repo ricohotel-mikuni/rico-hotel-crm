@@ -1,8 +1,8 @@
 {
   "name": "rico-hotel-crm",
   "private": true,
-  "version": "5.0.0",
-  "description": "リコホテル三国 統合管理システム",
+  "version": "6.0.0",
+  "description": "大栄商事株式会社 統合管理システム",
   "type": "module",
   "scripts": {
     "dev": "vite",

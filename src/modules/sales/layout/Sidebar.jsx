@@ -1,23 +1,29 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../../contexts/AuthContext'
+import { useBrand } from '../../../branding/BrandContext'
 import { HomeButton } from '../../../ui'
 import { C } from '../../../lib/constants'
 
+// Segments relative to `${brand.homePath}/sales` — composed at render
+// time so this sidebar works unchanged if a future property reuses the
+// sales module under a different homePath.
 const NAV_ITEMS = [
-  { path: '/sales',             icon: 'ti-home',           label: 'ホーム' },
-  { path: '/sales/clients',     icon: 'ti-building-store',  label: '営業先管理' },
-  { path: '/sales/reports',     icon: 'ti-file-text',       label: '営業日報' },
-  { path: '/sales/cases',       icon: 'ti-clipboard-list',  label: '案件管理' },
-  { path: '/sales/commissions', icon: 'ti-currency-yen',    label: '成果報酬' },
-  { path: '/sales/dashboard',   icon: 'ti-chart-bar',       label: 'ダッシュボード' },
-  { path: '/sales/contracts',   icon: 'ti-file-check',      label: '契約管理' },
-  { path: '/sales/settings',    icon: 'ti-settings',        label: '設定' },
+  { seg: '',             icon: 'ti-home',           label: 'ホーム' },
+  { seg: '/clients',     icon: 'ti-building-store',  label: '営業先管理' },
+  { seg: '/reports',     icon: 'ti-file-text',       label: '営業日報' },
+  { seg: '/cases',       icon: 'ti-clipboard-list',  label: '案件管理' },
+  { seg: '/commissions', icon: 'ti-currency-yen',    label: '成果報酬' },
+  { seg: '/dashboard',   icon: 'ti-chart-bar',       label: 'ダッシュボード' },
+  { seg: '/contracts',   icon: 'ti-file-check',      label: '契約管理' },
+  { seg: '/settings',    icon: 'ti-settings',        label: '設定' },
 ]
 
 export default function Sidebar({ open, onClose }) {
   const navigate = useNavigate()
   const location = useLocation()
   const { profile, role, signOut } = useAuth()
+  const brand = useBrand()
+  const salesBase = `${brand.homePath}/sales`
 
   const goto = (path) => {
     navigate(path)
@@ -60,11 +66,18 @@ export default function Sidebar({ open, onClose }) {
               width: 36, height: 36, background: 'rgba(201,168,76,.2)',
               borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <img src="/logo.png" alt="RICO HOTEL MIKUNI" style={{ width: 24, height: 24, objectFit: 'contain' }} />
+              <img src={brand.logo} alt={brand.name} style={{ width: 24, height: 24, objectFit: 'contain' }} />
             </div>
             <div>
-              <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.5 }}>RICO HOTEL</div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,.5)' }}>MIKUNI</div>
+              {brand.nameLines ? (
+                brand.nameLines.map((line, i) => (
+                  <div key={i} style={{ fontSize: i === 0 ? 11 : 10, color: i === 0 ? C.gold : 'rgba(255,255,255,.5)', fontWeight: i === 0 ? 700 : 400, letterSpacing: 1.5 }}>
+                    {line}
+                  </div>
+                ))
+              ) : (
+                <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1 }}>{brand.name}</div>
+              )}
             </div>
           </div>
         </div>
@@ -77,11 +90,12 @@ export default function Sidebar({ open, onClose }) {
         {/* Navigation */}
         <nav style={{ flex: 1, paddingTop: 6 }}>
           {NAV_ITEMS.map(item => {
-            const active = location.pathname === item.path
+            const path = `${salesBase}${item.seg}`
+            const active = location.pathname === path
             return (
               <button
-                key={item.path}
-                onClick={() => goto(item.path)}
+                key={item.seg}
+                onClick={() => goto(path)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 10,
                   width: '100%', padding: '11px 16px',

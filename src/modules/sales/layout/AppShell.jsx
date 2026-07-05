@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import Sidebar from './Sidebar'
+import { useBrand } from '../../../branding/BrandContext'
 import { HomeButton } from '../../../ui'
 import { C } from '../../../lib/constants'
 
 export default function AppShell({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const brand = useBrand()
 
   return (
     <div style={{ display: 'flex', minHeight: '100dvh' }}>
@@ -29,13 +31,13 @@ export default function AppShell({ children }) {
               width: 26, height: 26, borderRadius: 6, background: 'rgba(201,168,76,.2)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
-              <img src="/logo.png" alt="RICO HOTEL MIKUNI" style={{ width: 17, height: 17, objectFit: 'contain' }} />
+              <img src={brand.logo} alt={brand.name} style={{ width: 17, height: 17, objectFit: 'contain' }} />
             </div>
             <span style={{
               fontSize: 13, fontWeight: 600, color: C.gold,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
-              RICO HOTEL MIKUNI
+              {brand.name}
             </span>
           </div>
           <HomeButton compact />
