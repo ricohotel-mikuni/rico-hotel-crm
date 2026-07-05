@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -44,12 +44,23 @@ export function useUnreadCounts() {
 }
 
 // Call from feature code whenever staff add data or something needs
-// approval, e.g. pushNotification({ module: 'purchase', title: '新規購入申請', link: '/purchase/123' }).
-export async function pushNotification({ module, title, body = '', link = '' }) {
-  const { error } = await supabase.from('notifications').insert({ module, title, body, link })
+// approval, e.g.:
+//   pushNotification({ module: 'sales', title: '新しい営業先が登録されました' })                      // broadcast (today's Hub-badge behavior)
+//   pushNotification({ module: 'purchase', title: '承認待ちの購入申請があります', recipientRoleId })   // whoever holds that role
+//   pushNotification({ module: 'expenses', title: '経費申請が承認されました', recipientEmployeeId })   // one specific person
+export async function pushNotification({ module, title, body = '', link = '', recipientEmployeeId = null, recipientRoleId = null }) {
+  const { error } = await supabase.from('notifications').insert({
+    module, title, body, link,
+    recipient_employee_id: recipientEmployeeId,
+    recipient_role_id: recipientRoleId,
+  })
   return { error }
 }
 
+// Hub-badge use only — flips the shared `is_read` column for every row
+// of a module. Do NOT use this for the Notification Center: a role- or
+// broadcast-targeted row reaches multiple people, and this column is
+// shared across all of them (see markNotificationRead below instead).
 export async function markModuleRead(module) {
   const { error } = await supabase
     .from('notifications')
@@ -57,4 +68,95 @@ export async function markModuleRead(module) {
     .eq('module', module)
     .eq('is_read', false)
   return { error }
+}
+
+// Personal notification feed for the bell/Notification Center: mine +
+// anything targeted at a role I currently hold + full broadcasts
+// (both recipient columns null). Read state is tracked per-person in
+// `notification_reads`, independent of the shared `is_read` column
+// above, so one person reading a role/broadcast notification doesn't
+// hide it from everyone else who received it.
+export function useMyNotifications(limit = 50) {
+  const { user } = useAuth()
+  const [items, setItems] = useState([])
+  const [employeeId, setEmployeeId] = useState(null)
+  const [loading, setLoading] = useState(true)
+  // Unique per call site: this hook is legitimately called from more
+  // than one component on the same page at once (e.g. NotificationBell
+  // in the header + a dashboard "unread count" widget), and Supabase
+  // throws if a second `.channel()` with the same name gets `.on()`
+  // calls after the first one has already subscribed.
+  const instanceId = useRef(Math.random().toString(36).slice(2)).current
+
+  const load = useCallback(async () => {
+    if (!user) { setItems([]); setEmployeeId(null); setLoading(false); return }
+    try {
+      const { data: emp } = await supabase
+        .from('employees').select('id').eq('user_id', user.id).maybeSingle()
+      if (!emp) { setItems([]); setEmployeeId(null); setLoading(false); return }
+      setEmployeeId(emp.id)
+
+      const { data: roleRows } = await supabase
+        .from('employee_roles').select('role_id').eq('employee_id', emp.id)
+      const roleIds = (roleRows ?? []).map(r => r.role_id)
+
+      const orParts = [
+        `recipient_employee_id.eq.${emp.id}`,
+        'and(recipient_employee_id.is.null,recipient_role_id.is.null)',
+      ]
+      if (roleIds.length) orParts.push(`recipient_role_id.in.(${roleIds.join(',')})`)
+
+      const { data: notifs, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .or(orParts.join(','))
+        .order('created_at', { ascending: false })
+        .limit(limit)
+      if (error) { setItems([]); return }
+
+      const { data: reads } = await supabase
+        .from('notification_reads').select('notification_id').eq('employee_id', emp.id)
+      const readIds = new Set((reads ?? []).map(r => r.notification_id))
+
+      setItems((notifs ?? []).map(n => ({ ...n, readByMe: readIds.has(n.id) })))
+    } catch {
+      setItems([])
+    } finally {
+      setLoading(false)
+    }
+  }, [user?.id, limit]) // eslint-disable-line
+
+  useEffect(() => {
+    setLoading(true)
+    load()
+    if (!user) return
+
+    const channel = supabase
+      .channel(`realtime:my-notifications:${user.id}:${instanceId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notification_reads' }, () => load())
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [user?.id, load])
+
+  const markRead = useCallback(async (notificationId) => {
+    if (!employeeId) return
+    await supabase.from('notification_reads')
+      .upsert({ notification_id: notificationId, employee_id: employeeId }, { onConflict: 'notification_id,employee_id' })
+    load()
+  }, [employeeId, load])
+
+  const markAllRead = useCallback(async () => {
+    if (!employeeId) return
+    const unread = items.filter(n => !n.readByMe)
+    if (!unread.length) return
+    await supabase.from('notification_reads')
+      .upsert(unread.map(n => ({ notification_id: n.id, employee_id: employeeId })), { onConflict: 'notification_id,employee_id' })
+    load()
+  }, [employeeId, items, load])
+
+  const unreadCount = items.filter(n => !n.readByMe).length
+
+  return { items, unreadCount, loading, markRead, markAllRead, refresh: load }
 }

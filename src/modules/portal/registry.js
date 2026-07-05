@@ -14,6 +14,7 @@ export const COMPANY_MODULES = [
   { id: 'hotels',       label: 'ホテル事業',         icon: 'ti-building-store', path: '/hotels',    status: 'active', notifiable: true,  desc: 'ホテル各拠点の管理' },
   { id: 'rentals',      label: '賃貸事業',           icon: 'ti-home',          path: '/rentals',    status: 'soon',   notifiable: true,  desc: '賃貸物件の管理' },
   { id: 'employees',    label: '社員管理',           icon: 'ti-users',        path: '/employees',  status: 'active', notifiable: false, desc: '社員情報・配属の管理' },
+  { id: 'approvals',    label: '電子承認',           icon: 'ti-checkbox',     path: '/approvals',  status: 'active', notifiable: true,  desc: '購入・経費・休暇・稟議・契約の承認' },
   { id: 'hq-documents', label: '書類管理',           icon: 'ti-folder',       path: '/documents',  status: 'soon',   notifiable: true,  desc: '規程・契約書等の管理' },
   { id: 'banking',      label: '銀行・融資管理',     icon: 'ti-building-bank', path: '/banking',   status: 'soon',   notifiable: true,  desc: '銀行口座・融資の管理' },
   { id: 'ai-assistant', label: 'AIアシスタント',     icon: 'ti-sparkles',     path: '/ai',         status: 'soon',   notifiable: false, desc: '準備中' },

@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useBrand } from '../branding/BrandContext'
 import CompanyHomeButton from '../branding/CompanyHomeButton'
+import NotificationBell from '../notifications/NotificationBell'
 import { HomeButton } from '../ui'
 import { C, ROLES } from '../lib/constants'
 
@@ -53,6 +54,8 @@ export default function HubShell({ children }) {
             <div style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}>{profile?.full_name || '—'}</div>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,.5)' }}>{ROLES[role]?.label || '—'}</div>
           </div>
+
+          <NotificationBell compact />
 
           <button onClick={signOut} title="ログアウト" className="hub-logout-btn">
             <i className="ti ti-logout" style={{ fontSize: 14 }} />

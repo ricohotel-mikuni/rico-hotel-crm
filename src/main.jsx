@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
+import { PermissionProvider } from './permissions/PermissionContext'
 import { BrandProvider } from './branding/BrandContext'
 import { BRANDS } from './branding/brands'
 import ErrorBoundary from './ui/ErrorBoundary'
@@ -12,9 +13,11 @@ createRoot(document.getElementById('root')).render(
     <ErrorBoundary>
       <BrowserRouter>
         <AuthProvider>
-          <BrandProvider brand={BRANDS.daiei}>
-            <App />
-          </BrandProvider>
+          <PermissionProvider>
+            <BrandProvider brand={BRANDS.daiei}>
+              <App />
+            </BrandProvider>
+          </PermissionProvider>
         </AuthProvider>
       </BrowserRouter>
     </ErrorBoundary>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Sidebar from './Sidebar'
 import { useBrand } from '../../../branding/BrandContext'
 import CompanyHomeButton from '../../../branding/CompanyHomeButton'
+import NotificationBell from '../../../notifications/NotificationBell'
 import { HomeButton } from '../../../ui'
 import { C } from '../../../lib/constants'
 
@@ -49,6 +50,7 @@ export default function AppShell({ children }) {
             <HomeButton compact />
           </div>
           <CompanyHomeButton compact />
+          <NotificationBell compact />
         </header>
 
         {/* Main content */}

@@ -6,6 +6,8 @@ import Portal from './modules/portal/Portal'
 import { COMPANY_MODULES } from './modules/portal/registry'
 import HotelsApp from './modules/hotels/HotelsApp'
 import EmployeeDirectory from './modules/employees/EmployeeDirectory'
+import EmployeeProfile from './modules/employees/EmployeeProfile'
+import ApprovalCenter from './modules/approvals/ApprovalCenter'
 import ComingSoon from './modules/ComingSoon'
 
 export default function App() {
@@ -19,6 +21,8 @@ export default function App() {
       <Route path="/" element={<Portal />} />
       <Route path="/hotels/*" element={<HotelsApp />} />
       <Route path="/employees" element={<EmployeeDirectory />} />
+      <Route path="/employees/:id" element={<EmployeeProfile />} />
+      <Route path="/approvals" element={<ApprovalCenter />} />
       {COMPANY_MODULES.filter(m => m.status !== 'active').map(m => (
         <Route key={m.id} path={`${m.path}/*`} element={<ComingSoon module={m} />} />
       ))}

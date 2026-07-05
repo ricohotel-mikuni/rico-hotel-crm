@@ -1,18 +1,27 @@
 import { supabase } from './supabase'
 
 const BUCKET = 'client-files'
+const EMPLOYEE_BUCKET = 'employee-files'
 
-export async function uploadClientFile(file, folder) {
+async function uploadTo(bucket, file, folder) {
   const ext = (file.name.split('.').pop() || 'bin').toLowerCase()
   const path = `${folder}/${crypto.randomUUID()}.${ext}`
-  const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+  const { error } = await supabase.storage.from(bucket).upload(path, file, {
     cacheControl: '3600',
     upsert: false,
     contentType: file.type || undefined,
   })
   if (error) throw error
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path)
+  const { data } = supabase.storage.from(bucket).getPublicUrl(path)
   return data.publicUrl
+}
+
+export async function uploadClientFile(file, folder) {
+  return uploadTo(BUCKET, file, folder)
+}
+
+export async function uploadEmployeeFile(file, folder) {
+  return uploadTo(EMPLOYEE_BUCKET, file, folder)
 }
 
 export function fileNameFromUrl(url) {
