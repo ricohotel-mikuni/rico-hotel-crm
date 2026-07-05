@@ -1,0 +1,25 @@
+-- ============================================================
+-- 大栄商事株式会社 — 統合管理システム
+-- Migration 007: PostgREST schema cache reload (safety net)
+-- Created: 2026-07-06
+--
+-- Context: "Could not find the table public.v_employee_directory" was
+-- reported when opening 社員管理. That view was created in migration
+-- 005 and widened in 006 — no typo/mismatch was found anywhere in the
+-- code (src/hooks/useData.js and both migration files all agree on
+-- the name). The error is PostgREST's standard "this isn't in my
+-- schema cache" message, which happens when:
+--   1. Migrations 005/006 haven't been run against this Supabase
+--      project yet (most likely — every migration in this repo is a
+--      file only; someone has to paste it into the Supabase Studio
+--      SQL editor). 006 starts with `ALTER TABLE public.employees`,
+--      so if 005 was never run, 006 fails at its very first statement
+--      and never reaches the view redefinition either.
+--   2. Both ran, but PostgREST's cache didn't pick up the new/altered
+--      view.
+-- This migration only guards against case 2 — it is a no-op if 005/006
+-- haven't been applied, so it must still be run *after* them, not
+-- instead of them.
+-- ============================================================
+
+NOTIFY pgrst, 'reload schema';

@@ -34,7 +34,7 @@ export default function PropertyHub() {
           </div>
         </div>
 
-        <ModuleGrid modules={MODULES} unreadCounts={unread} onSelect={m => navigate(brand.homePath + m.path)} />
+        <ModuleGrid modules={MODULES} unreadCounts={unread} onSelect={m => navigate(m.absolute ? m.path : brand.homePath + m.path)} />
       </div>
     </HubShell>
   )

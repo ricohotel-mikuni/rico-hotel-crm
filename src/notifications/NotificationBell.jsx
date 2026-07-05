@@ -2,10 +2,9 @@ import { useState } from 'react'
 import { useMyNotifications } from '../hooks/useNotifications'
 import NotificationCenter from './NotificationCenter'
 
-// Common bell icon + unread badge, mounted in every shared header
-// (HubShell, the sales module's AppShell topbar) so any current or
-// future screen built on those shells gets it automatically — same
-// mounting strategy as CompanyHomeButton.
+// Common bell icon + unread badge, mounted once inside the shared
+// Header (src/layout/Header.jsx) so any current or future screen
+// built on HubShell/AppShell gets it automatically.
 export default function NotificationBell({ compact }) {
   const [open, setOpen] = useState(false)
   const { items, unreadCount, loading, markRead, markAllRead } = useMyNotifications()

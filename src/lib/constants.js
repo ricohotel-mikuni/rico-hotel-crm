@@ -2,6 +2,22 @@ export const C = {
   navy: '#1F3864', navyLight: '#2E5FA3', navyDark: '#162847',
   gold: '#C9A84C', goldLight: '#FFF8E1',
   green: '#4CAF50', red: '#F44336', orange: '#FF9800',
+
+  // Design tokens (v1.2.1) — the canonical scale for the shared
+  // header ecosystem (Header/BackButton/ProfileMenu/NotificationBell).
+  // Existing page-level UI (Btn, cards, etc. in individual views) is
+  // intentionally left on its own established sizing for this round —
+  // only the header family was reported as inconsistent, so only it
+  // was unified here rather than rewriting every screen.
+  radius: { sm: 6, md: 10, lg: 14, pill: 999 },
+  shadow: {
+    sm: '0 1px 4px rgba(0,0,0,.06)',
+    md: '0 4px 14px rgba(0,0,0,.12)',
+    lg: '0 12px 28px rgba(31,56,100,.14)',
+  },
+  headerHeight: 56,
+  sidebarWidth: 200,
+  breakpoint: { sm: 480, md: 768, lg: 1024 },
 }
 
 export const ROLES = {

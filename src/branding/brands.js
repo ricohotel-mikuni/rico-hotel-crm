@@ -1,6 +1,6 @@
 // Every screen renders under one of these brands. `homePath` is the
 // route each brand's "home"/back-to-hub actions resolve to — this is
-// what lets the exact same shared components (HubShell, HomeButton,
+// what lets the exact same shared components (Header, BackButton,
 // ComingSoon, the sales Sidebar) work correctly whether they're
 // rendered at the company level or nested inside a property, without
 // hardcoding a path anywhere. Add a brand here when a new business
