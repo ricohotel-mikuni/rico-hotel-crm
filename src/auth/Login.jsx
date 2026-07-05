@@ -69,16 +69,17 @@ export default function Login() {
           width: '100%', boxShadow: '0 24px 80px rgba(0,0,0,.3)',
         }}>
           {/* Logo */}
-          <div style={{ textAlign: 'center', marginBottom: 36 }}>
+          <div style={{ textAlign: 'center', marginBottom: 28 }}>
             <div style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              width: 64, height: 64, borderRadius: 16,
-              background: C.navy, marginBottom: 14,
-              boxShadow: '0 4px 16px rgba(31,56,100,.3)',
+              width: 192, height: 192, borderRadius: 32,
+              background: `linear-gradient(135deg, ${C.navy} 0%, ${C.navyDark} 100%)`,
+              marginBottom: 18,
+              boxShadow: '0 12px 32px rgba(31,56,100,.35)',
             }}>
-              <img src={brand.logo} alt={brand.name} style={{ width: 44, height: 44, objectFit: 'contain' }} />
+              <img src={brand.logo} alt={brand.name} style={{ width: 160, height: 160, objectFit: 'contain' }} />
             </div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: C.navy, letterSpacing: 1 }}>
+            <div style={{ fontSize: 19, fontWeight: 700, color: C.navy, letterSpacing: 1 }}>
               {brand.name}
             </div>
             <div style={{ fontSize: 12, color: '#90A4AE', marginTop: 4, letterSpacing: 2 }}>

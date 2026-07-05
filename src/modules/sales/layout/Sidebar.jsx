@@ -63,10 +63,10 @@ export default function Sidebar({ open, onClose }) {
         <div style={{ padding: '22px 16px 16px', borderBottom: '1px solid rgba(255,255,255,.08)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
-              width: 36, height: 36, background: 'rgba(201,168,76,.2)',
-              borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 42, height: 42, background: 'rgba(201,168,76,.2)',
+              borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
-              <img src={brand.logo} alt={brand.name} style={{ width: 24, height: 24, objectFit: 'contain' }} />
+              <img src={brand.logo} alt={brand.name} style={{ width: 34, height: 34, objectFit: 'contain' }} />
             </div>
             <div>
               {brand.nameLines ? (

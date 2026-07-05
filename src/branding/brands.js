@@ -12,7 +12,7 @@ export const BRANDS = {
     nameLines: null,
     tagline: 'DAIEI SHOJI CO., LTD.',
     subtitle: '統合管理システム',
-    logo: '/brand-daiei.png',
+    logo: '/brand-daiei-icon.png',
     homePath: '/',
   },
   ricoHotel: {

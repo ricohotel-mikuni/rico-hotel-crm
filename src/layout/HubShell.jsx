@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useBrand } from '../branding/BrandContext'
+import CompanyHomeButton from '../branding/CompanyHomeButton'
 import { HomeButton } from '../ui'
 import { C, ROLES } from '../lib/constants'
 
@@ -29,10 +30,10 @@ export default function HubShell({ children }) {
           style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
         >
           <div style={{
-            width: 38, height: 38, borderRadius: 9, background: 'rgba(201,168,76,.18)',
+            width: 44, height: 44, borderRadius: 10, background: 'rgba(201,168,76,.18)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
           }}>
-            <img src={brand.logo} alt={brand.name} style={{ width: 24, height: 24, objectFit: 'contain' }} />
+            <img src={brand.logo} alt={brand.name} style={{ width: 36, height: 36, objectFit: 'contain' }} />
           </div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.gold, letterSpacing: 1.5, lineHeight: 1.25 }}>
@@ -44,7 +45,8 @@ export default function HubShell({ children }) {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <CompanyHomeButton compact />
           {!isHome && <HomeButton compact />}
 
           <div style={{ textAlign: 'right', display: 'none' }} className="hub-user-info">
