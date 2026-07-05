@@ -1,16 +1,16 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
-import { C } from '../lib/constants'
+import { useAuth } from '../../../contexts/AuthContext'
+import { C } from '../../../lib/constants'
 
 const NAV_ITEMS = [
-  { path: '/',            icon: 'ti-home',           label: 'ホーム' },
-  { path: '/clients',     icon: 'ti-building-store',  label: '営業先管理' },
-  { path: '/reports',     icon: 'ti-file-text',       label: '営業日報' },
-  { path: '/cases',       icon: 'ti-clipboard-list',  label: '案件管理' },
-  { path: '/commissions', icon: 'ti-currency-yen',    label: '成果報酬' },
-  { path: '/dashboard',   icon: 'ti-chart-bar',       label: 'ダッシュボード' },
-  { path: '/contracts',   icon: 'ti-file-check',      label: '契約管理' },
-  { path: '/settings',    icon: 'ti-settings',        label: '設定' },
+  { path: '/sales',             icon: 'ti-home',           label: 'ホーム' },
+  { path: '/sales/clients',     icon: 'ti-building-store',  label: '営業先管理' },
+  { path: '/sales/reports',     icon: 'ti-file-text',       label: '営業日報' },
+  { path: '/sales/cases',       icon: 'ti-clipboard-list',  label: '案件管理' },
+  { path: '/sales/commissions', icon: 'ti-currency-yen',    label: '成果報酬' },
+  { path: '/sales/dashboard',   icon: 'ti-chart-bar',       label: 'ダッシュボード' },
+  { path: '/sales/contracts',   icon: 'ti-file-check',      label: '契約管理' },
+  { path: '/sales/settings',    icon: 'ti-settings',        label: '設定' },
 ]
 
 export default function Sidebar({ open, onClose }) {
@@ -51,7 +51,11 @@ export default function Sidebar({ open, onClose }) {
         className="sidebar-desktop"
       >
         {/* Branding */}
-        <div style={{ padding: '22px 16px 16px', borderBottom: '1px solid rgba(255,255,255,.08)' }}>
+        <div
+          onClick={() => goto('/')}
+          title="統合ホームへ戻る"
+          style={{ padding: '22px 16px 16px', borderBottom: '1px solid rgba(255,255,255,.08)', cursor: 'pointer' }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 36, height: 36, background: 'rgba(201,168,76,.2)',
@@ -64,8 +68,9 @@ export default function Sidebar({ open, onClose }) {
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,.5)' }}>MIKUNI</div>
             </div>
           </div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 8, letterSpacing: 1 }}>
-            営業管理システム
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 8, letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <i className="ti ti-arrow-back-up" style={{ fontSize: 11 }} />
+            統合ホームへ戻る
           </div>
         </div>
 

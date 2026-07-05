@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react'
-import { useClients, useCases } from '../hooks/useData'
-import { useAuth } from '../contexts/AuthContext'
-import { Btn, Badge, FI, FT, FS, FV, G2, Dvd, PageLoader, Empty, Toast, ImageUpload, DocUpload } from '../ui'
-import Modal from '../ui/Modal'
-import { uploadClientFile, fileNameFromUrl, downloadFile } from '../lib/storage'
-import { C, CLIENT_TYPES, RANKS, CLIENT_STATUS, CONTRACT_STATUS, PREFECTURES, PERSONS, today, fmt } from '../lib/constants'
+import { useClients, useCases } from '../../../hooks/useData'
+import { useAuth } from '../../../contexts/AuthContext'
+import { Btn, Badge, FI, FT, FS, FV, G2, Dvd, PageLoader, Empty, Toast, ImageUpload, DocUpload } from '../../../ui'
+import Modal from '../../../ui/Modal'
+import { uploadClientFile, fileNameFromUrl, downloadFile } from '../../../lib/storage'
+import { C, CLIENT_TYPES, RANKS, CLIENT_STATUS, CONTRACT_STATUS, PREFECTURES, PERSONS, today, fmt } from '../../../lib/constants'
 
 const FILE_FIELDS = [
   { key: 'card_link',     label: '名刺写真',   icon: 'ti-id',           color: '#3F51B5', kind: 'image', folder: 'business-cards' },

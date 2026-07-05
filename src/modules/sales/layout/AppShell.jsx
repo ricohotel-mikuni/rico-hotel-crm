@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Sidebar from './Sidebar'
-import { C } from '../lib/constants'
+import { C } from '../../../lib/constants'
 
 export default function AppShell({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)

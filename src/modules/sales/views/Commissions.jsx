@@ -1,7 +1,7 @@
-import { useCases, useClients } from '../hooks/useData'
-import { PageLoader } from '../ui'
-import { C, fmt } from '../lib/constants'
-import { Badge } from '../ui'
+import { useCases, useClients } from '../../../hooks/useData'
+import { PageLoader } from '../../../ui'
+import { C, fmt } from '../../../lib/constants'
+import { Badge } from '../../../ui'
 
 export default function Commissions() {
   const { cases, loading } = useCases()

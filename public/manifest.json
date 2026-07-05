@@ -1,0 +1,17 @@
+{
+  "name": "RICO HOTEL MIKUNI 統合管理システム",
+  "short_name": "リコホテル三国",
+  "description": "リコホテル三国 統合管理システム — 営業管理・フロント管理・入金管理・各種業務管理",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#1F3864",
+  "background_color": "#F5F7FA",
+  "lang": "ja",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ]
+}

@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { useUsers } from '../hooks/useData'
-import { useAuth } from '../contexts/AuthContext'
-import { supabase } from '../lib/supabase'
-import { Btn, Badge, FI, FS, PageLoader, Toast, Spinner } from '../ui'
-import { C, ROLES } from '../lib/constants'
+import { useUsers } from '../../../hooks/useData'
+import { useAuth } from '../../../contexts/AuthContext'
+import { supabase } from '../../../lib/supabase'
+import { Btn, Badge, FI, FS, PageLoader, Toast, Spinner } from '../../../ui'
+import { C, ROLES } from '../../../lib/constants'
 
 export default function Settings() {
   const { users, loading, updateRole } = useUsers()

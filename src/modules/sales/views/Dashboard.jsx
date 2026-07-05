@@ -1,6 +1,6 @@
-import { useClients, useCases } from '../hooks/useData'
-import { PageLoader } from '../ui'
-import { C, fmt } from '../lib/constants'
+import { useClients, useCases } from '../../../hooks/useData'
+import { PageLoader } from '../../../ui'
+import { C, fmt } from '../../../lib/constants'
 
 export default function Dashboard() {
   const { clients, loading: cl } = useClients()

@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom'
-import { useClients } from '../hooks/useData'
-import { useCases } from '../hooks/useData'
-import { useAuth } from '../contexts/AuthContext'
-import { Badge, PageLoader, Btn } from '../ui'
-import { C, fmt, today } from '../lib/constants'
+import { useClients } from '../../../hooks/useData'
+import { useCases } from '../../../hooks/useData'
+import { useAuth } from '../../../contexts/AuthContext'
+import { Badge, PageLoader, Btn } from '../../../ui'
+import { C, fmt, today } from '../../../lib/constants'
 
 function KPICard({ label, value, unit, color, icon, bg, onClick }) {
   return (

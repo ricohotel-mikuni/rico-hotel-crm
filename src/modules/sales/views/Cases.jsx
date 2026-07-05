@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { useCases, useClients } from '../hooks/useData'
-import { useAuth } from '../contexts/AuthContext'
-import { Btn, Badge, FI, FT, FS, G2, PageLoader, Empty, Toast } from '../ui'
-import Modal from '../ui/Modal'
-import { C, CASE_STATUS, COMM_RATES, PERSONS, fmt } from '../lib/constants'
+import { useCases, useClients } from '../../../hooks/useData'
+import { useAuth } from '../../../contexts/AuthContext'
+import { Btn, Badge, FI, FT, FS, G2, PageLoader, Empty, Toast } from '../../../ui'
+import Modal from '../../../ui/Modal'
+import { C, CASE_STATUS, COMM_RATES, PERSONS, fmt } from '../../../lib/constants'
 
 const EMPTY = { client_id:'', title:'', status:'営業中', probability:40, check_in_date:'', check_out_date:'', guests:0, rooms:0, revenue:0, commission_rate:'10%', source:PERSONS[0], notes:'' }
 const SC = {'成約':'#4CAF50','見積提出':'#FF9800','検討中':'#FFC107','営業中':'#2196F3','キャンセル':'#9E9E9E'}
