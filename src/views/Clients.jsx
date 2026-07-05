@@ -1,9 +1,17 @@
 import { useState, useMemo } from 'react'
 import { useClients, useCases } from '../hooks/useData'
 import { useAuth } from '../contexts/AuthContext'
-import { Btn, Badge, FI, FT, FS, FV, G2, Dvd, PageLoader, Empty, Toast } from '../ui'
+import { Btn, Badge, FI, FT, FS, FV, G2, Dvd, PageLoader, Empty, Toast, ImageUpload, DocUpload } from '../ui'
 import Modal from '../ui/Modal'
+import { uploadClientFile, fileNameFromUrl, downloadFile } from '../lib/storage'
 import { C, CLIENT_TYPES, RANKS, CLIENT_STATUS, CONTRACT_STATUS, PREFECTURES, PERSONS, today, fmt } from '../lib/constants'
+
+const FILE_FIELDS = [
+  { key: 'card_link',     label: '名刺写真',   icon: 'ti-id',           color: '#3F51B5', kind: 'image', folder: 'business-cards' },
+  { key: 'building_link', label: '会社外観',   icon: 'ti-building',     color: '#009688', kind: 'image', folder: 'buildings' },
+  { key: 'contract_link', label: '契約書',     icon: 'ti-file-check',   color: '#FF5722', kind: 'doc',   folder: 'contracts' },
+  { key: 'photo_link',    label: 'ホテル写真', icon: 'ti-camera',       color: '#607D8B', kind: 'image', folder: 'hotel-photos' },
+]
 
 const EMPTY_CLIENT = {
   company: '', contact: '', dept: '', phone: '', email: '',
@@ -26,11 +34,14 @@ export default function Clients() {
   const [listMode, setListMode] = useState(false)
   const [modal, setModal] = useState(null) // 'client' | 'history'
   const [form, setForm] = useState({})
+  const [pendingFiles, setPendingFiles] = useState({})
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(null)
+  const [lightbox, setLightbox] = useState(null)
 
   const sf = v => s => setForm(p => ({ ...p, ...v(p, s) }))
   const set = k => v => setForm(p => ({ ...p, [k]: v }))
+  const onFile = k => f => setPendingFiles(p => ({ ...p, [k]: f }))
   const showToast = (message, type = 'success') => { setToast({ message, type }); setTimeout(() => setToast(null), 3000) }
 
   const filtered = useMemo(() => clients.filter(c =>
@@ -43,19 +54,29 @@ export default function Clients() {
   const relCases = cur ? cases.filter(c => c.client_id === cur.id) : []
   const todayStr = today()
 
-  const openNew = () => { setForm(EMPTY_CLIENT); setModal('client') }
-  const openEdit = () => { if (cur) { setForm({ ...cur }); setModal('client') } }
+  const openNew = () => { setForm(EMPTY_CLIENT); setPendingFiles({}); setModal('client') }
+  const openEdit = () => { if (cur) { setForm({ ...cur }); setPendingFiles({}); setModal('client') } }
 
   const saveClient = async () => {
     if (!form.company) return showToast('会社名は必須です', 'error')
     setSaving(true)
-    const isNew = !form.id
-    const { error } = isNew ? await add(form) : await update(form.id, {...form, client_history: undefined})
-
-    setSaving(false)
-    if (error) { showToast('保存に失敗しました: ' + error, 'error'); return }
-    showToast(isNew ? '営業先を登録しました' : '更新しました')
-    setModal(null)
+    try {
+      const updates = { ...form }
+      for (const { key, folder } of FILE_FIELDS) {
+        const file = pendingFiles[key]
+        if (file) updates[key] = await uploadClientFile(file, folder)
+      }
+      const isNew = !form.id
+      const { error } = isNew ? await add(updates) : await update(updates.id, { ...updates, client_history: undefined })
+      if (error) { showToast('保存に失敗しました: ' + error, 'error'); return }
+      showToast(isNew ? '営業先を登録しました' : '更新しました')
+      setModal(null)
+      setPendingFiles({})
+    } catch (e) {
+      showToast('ファイルのアップロードに失敗しました: ' + e.message, 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const doDelete = async () => {
@@ -270,19 +291,33 @@ export default function Clients() {
             {ctab === 'photos' && (
               <div>
                 <div style={{ fontSize: 11, color: '#90A4AE', marginBottom: 10, padding: '6px 10px', background: '#F5F7FA', borderRadius: 5 }}>
-                  URLまたはファイルパスを登録すると「編集」ボタンから開けます
+                  画像はクリックすると拡大表示できます。ファイルの追加・変更は「編集」から行えます
                 </div>
-                {[['名刺写真', 'card_link', 'ti-id', '#3F51B5'], ['会社外観', 'building_link', 'ti-building', '#009688'], ['契約書', 'contract_link', 'ti-file-check', '#FF5722'], ['ホテル写真', 'photo_link', 'ti-camera', '#607D8B']].map(([l, k, ico, c]) => (
+                {FILE_FIELDS.map(({ key: k, label: l, icon: ico, color: c, kind }) => (
                   <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, padding: '10px 12px', background: '#F8F9FA', borderRadius: 7, border: '1px solid #ECEFF1' }}>
-                    <div style={{ width: 40, height: 40, background: `${c}18`, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <i className={`ti ${ico}`} style={{ fontSize: 18, color: c }} />
-                    </div>
-                    <div style={{ flex: 1 }}>
+                    {kind === 'image' && cur[k] ? (
+                      <img
+                        src={cur[k]} alt={l} onClick={() => setLightbox(cur[k])}
+                        style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 8, cursor: 'zoom-in', flexShrink: 0, border: '1px solid #ECEFF1' }}
+                      />
+                    ) : (
+                      <div style={{ width: 40, height: 40, background: `${c}18`, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <i className={`ti ${ico}`} style={{ fontSize: 18, color: c }} />
+                      </div>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 12, fontWeight: 600, color: '#455A64', marginBottom: 3 }}>{l}</div>
-                      {cur[k]
-                        ? <a href={cur[k]} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: C.navyLight, wordBreak: 'break-all' }}>{cur[k]}</a>
-                        : <span style={{ fontSize: 11, color: '#BDBDBD' }}>未登録（編集から追加）</span>
-                      }
+                      {!cur[k] ? (
+                        <span style={{ fontSize: 11, color: '#BDBDBD' }}>未登録（編集から追加）</span>
+                      ) : kind === 'image' ? (
+                        <span onClick={() => setLightbox(cur[k])} style={{ fontSize: 11, color: C.navyLight, cursor: 'pointer', fontWeight: 500 }}>クリックして拡大表示</span>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 12, color: '#455A64', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>{fileNameFromUrl(cur[k])}</span>
+                          <a href={cur[k]} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: C.navy, fontWeight: 700 }}>開く</a>
+                          <button type="button" onClick={() => downloadFile(cur[k], fileNameFromUrl(cur[k]))} style={{ fontSize: 11, color: C.navy, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>ダウンロード</button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -317,12 +352,22 @@ export default function Clients() {
           <FI label="住所" value={form.address} onChange={set('address')} />
           <FT label="メモ・備考" value={form.notes} onChange={set('notes')} />
           <Dvd />
-          <div style={{ fontSize: 11, color: '#90A4AE', marginBottom: 8, fontWeight: 500 }}>写真・資料リンク（URLまたはパス）</div>
+          <div style={{ fontSize: 11, color: '#90A4AE', marginBottom: 8, fontWeight: 500 }}>写真・資料のアップロード</div>
           <G2>
-            <FI label="名刺写真" value={form.card_link} onChange={set('card_link')} />
-            <FI label="会社外観" value={form.building_link} onChange={set('building_link')} />
-            <FI label="契約書" value={form.contract_link} onChange={set('contract_link')} />
-            <FI label="ホテル写真" value={form.photo_link} onChange={set('photo_link')} />
+            {FILE_FIELDS.map(({ key, label, icon, color, kind }) => {
+              const Comp = kind === 'image' ? ImageUpload : DocUpload
+              return (
+                <Comp
+                  key={key}
+                  label={label}
+                  icon={icon}
+                  color={color}
+                  value={form[key]}
+                  file={pendingFiles[key]}
+                  onFile={onFile(key)}
+                />
+              )
+            })}
           </G2>
         </Modal>
       )}
@@ -340,6 +385,27 @@ export default function Clients() {
       )}
 
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
+
+      {/* Image lightbox */}
+      {lightbox && (
+        <div
+          onClick={() => setLightbox(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9500,
+            background: 'rgba(0,0,0,.85)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 24, cursor: 'zoom-out',
+          }}
+        >
+          <img src={lightbox} alt="" style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 6, boxShadow: '0 10px 40px rgba(0,0,0,.5)' }} />
+          <button
+            onClick={() => setLightbox(null)}
+            style={{ position: 'fixed', top: 16, right: 20, background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', fontSize: 26, width: 40, height: 40, borderRadius: '50%', cursor: 'pointer', lineHeight: 1 }}
+          >
+            ×
+          </button>
+        </div>
+      )}
     </div>
   )
 }

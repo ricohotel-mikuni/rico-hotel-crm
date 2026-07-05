@@ -34,7 +34,7 @@ export default function Login() {
     }}>
       {/* Left panel — branding */}
       <div style={{
-        flex: 1, display: 'flex', flexDirection: 'column',
+        flex: 1, flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
         padding: 40, color: '#fff',
         display: 'none',  /* hidden on mobile */
