@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { useUsers } from '../../../hooks/useData'
 import { useAuth } from '../../../contexts/AuthContext'
 import { supabase } from '../../../lib/supabase'
-import { Btn, Badge, FI, FS, PageLoader, Toast, Spinner } from '../../../ui'
+import { Btn, Badge, FI, FS, PageLoader, Toast, Spinner, ErrorState } from '../../../ui'
 import { C, ROLES } from '../../../lib/constants'
 
 export default function Settings() {
-  const { users, loading, updateRole } = useUsers()
+  const { users, loading, error: loadError, refresh, updateRole } = useUsers()
   const { profile, permissions, refetchProfile } = useAuth()
   const [newUser, setNewUser] = useState({ email: '', full_name: '', password: '', role: 'sales' })
   const [saving, setSaving] = useState(false)
@@ -44,6 +44,7 @@ export default function Settings() {
   }
 
   if (loading) return <PageLoader />
+  if (loadError) return <ErrorState message={loadError} onRetry={refresh} />
 
   return (
     <div style={{ padding: '18px 16px', maxWidth: 800, margin: '0 auto' }}>

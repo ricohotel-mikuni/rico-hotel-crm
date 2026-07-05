@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { useContracts, useClients } from '../../../hooks/useData'
 import { useAuth } from '../../../contexts/AuthContext'
-import { Btn, Badge, FI, FT, FS, G2, PageLoader, Empty, Toast } from '../../../ui'
+import { Btn, Badge, FI, FT, FS, G2, PageLoader, Empty, Toast, ErrorState } from '../../../ui'
 import Modal from '../../../ui/Modal'
 import { C, COMM_RATES } from '../../../lib/constants'
 
 const EMPTY = {client_id:'',title:'',start_date:'',end_date:'',renewal_date:'',base_fee:0,commission_rate:'10%',car_loan:'なし',insurance_confirmed:'未確認',notes:'',file_location:''}
 
 export default function Contracts() {
-  const {contracts,loading,add,update,softDelete}=useContracts()
+  const {contracts,loading,error:loadError,refresh,add,update,softDelete}=useContracts()
   const {clients}=useClients()
   const {permissions}=useAuth()
   const [modal,setModal]=useState(false)
@@ -34,6 +34,7 @@ export default function Contracts() {
   }
 
   if(loading)return <PageLoader />
+  if(loadError)return <ErrorState message={loadError} onRetry={refresh} />
   return (
     <div style={{padding:'18px 16px',maxWidth:1000,margin:'0 auto'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>

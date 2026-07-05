@@ -2,41 +2,60 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 
+// Safari/WebKit takes far longer than Chromium to give up on a request over
+// a bad connection (observed 7s+ just to fail DNS resolution, vs near-instant
+// on Chromium) — on real flaky mobile networks it can take much longer still.
+// Without a bound, that leaves the "読み込み中…" spinner stuck indefinitely,
+// which is indistinguishable from the app being broken. This caps every
+// table load at 15s so a retry UI always appears instead.
+const FETCH_TIMEOUT_MS = 15000
+
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('通信がタイムアウトしました')), ms)),
+  ])
+}
+
 // Generic hook for Supabase table with realtime
-function useTable(table, query = null, realtimeFilter = null) {
+function useTable(table, query = null) {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const { user } = useAuth()
   const channelRef = useRef(null)
 
-  const fetch = useCallback(async () => {
+  const load = useCallback(async () => {
     if (!user) return
     setError(null)
-    const q = query
-      ? query(supabase.from(table))
-      : supabase.from(table).select('*').is('deleted_at', null).order('created_at', { ascending: false })
-    const { data: rows, error: err } = await q
-    if (err) { setError(err.message); return }
-    setData(rows ?? [])
+    try {
+      const q = query
+        ? query(supabase.from(table))
+        : supabase.from(table).select('*').is('deleted_at', null).order('created_at', { ascending: false })
+      const { data: rows, error: err } = await withTimeout(q, FETCH_TIMEOUT_MS)
+      if (err) { setError(err.message); return }
+      setData(rows ?? [])
+    } catch (e) {
+      setError(e?.message || '通信エラーが発生しました')
+    }
   }, [user, table]) // eslint-disable-line
 
   useEffect(() => {
     if (!user) return
     setLoading(true)
-    fetch().finally(() => setLoading(false))
+    load().finally(() => setLoading(false))
 
     // Realtime subscription
     const channel = supabase
       .channel(`realtime:${table}:${user.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table }, () => fetch())
+      .on('postgres_changes', { event: '*', schema: 'public', table }, () => load())
       .subscribe()
 
     channelRef.current = channel
     return () => { supabase.removeChannel(channel) }
   }, [user?.id, table]) // eslint-disable-line
 
-  return { data, loading, error, refresh: fetch }
+  return { data, loading, error, refresh: load }
 }
 
 // ── CLIENTS ──────────────────────────────────────────────

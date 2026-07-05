@@ -1,11 +1,12 @@
 import { useClients, useCases } from '../../../hooks/useData'
-import { PageLoader } from '../../../ui'
+import { PageLoader, ErrorState } from '../../../ui'
 import { C, fmt } from '../../../lib/constants'
 
 export default function Dashboard() {
-  const { clients, loading: cl } = useClients()
-  const { cases, loading: sl } = useCases()
+  const { clients, loading: cl, error: ce, refresh: cr } = useClients()
+  const { cases, loading: sl, error: se, refresh: sr } = useCases()
   if (cl||sl) return <PageLoader />
+  if (ce||se) return <ErrorState message={ce || se} onRetry={() => { cr(); sr() }} />
   const won = cases.filter(c=>c.status==='成約')
   const wonR = won.reduce((s,c)=>s+(c.revenue||0),0)
   const byT={};clients.forEach(c=>{byT[c.client_type]=(byT[c.client_type]||0)+1})

@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { useReports, useClients } from '../../../hooks/useData'
 import { useAuth } from '../../../contexts/AuthContext'
-import { Btn, Badge, FI, FT, FS, G2, PageLoader, Empty, Toast } from '../../../ui'
+import { Btn, Badge, FI, FT, FS, G2, PageLoader, Empty, Toast, ErrorState } from '../../../ui'
 import Modal from '../../../ui/Modal'
 import { C, PERSONS, PURPOSES, today } from '../../../lib/constants'
 
 const EMPTY = { report_date: today(), client_id: '', contact_person: '', purpose: 'フォロー', card_exchanged: 'なし', proposal: '', reaction: '', estimate_requested: 'なし', booking_status: 'なし', next_action: '', next_visit_date: '', salesperson: PERSONS[0], memo: '' }
 
 export default function Reports() {
-  const { reports, loading, add, update, softDelete } = useReports()
+  const { reports, loading, error: loadError, refresh, add, update, softDelete } = useReports()
   const { clients } = useClients()
   const { permissions } = useAuth()
   const [modal, setModal] = useState(false)
@@ -36,6 +36,7 @@ const del = async id => {
   }
 
   if (loading) return <PageLoader />
+  if (loadError) return <ErrorState message={loadError} onRetry={refresh} />
   return (
     <div style={{ padding:'18px 16px', maxWidth:1000, margin:'0 auto' }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>

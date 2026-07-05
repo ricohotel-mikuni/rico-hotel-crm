@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../../contexts/AuthContext'
+import { HomeButton } from '../../../ui'
 import { C } from '../../../lib/constants'
 
 const NAV_ITEMS = [
@@ -47,15 +48,13 @@ export default function Sidebar({ open, onClose }) {
           height: '100%', zIndex: 200,
           transition: 'left .25s ease',
           boxShadow: open ? '4px 0 20px rgba(0,0,0,.3)' : 'none',
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
         }}
         className="sidebar-desktop"
       >
         {/* Branding */}
-        <div
-          onClick={() => goto('/')}
-          title="統合ホームへ戻る"
-          style={{ padding: '22px 16px 16px', borderBottom: '1px solid rgba(255,255,255,.08)', cursor: 'pointer' }}
-        >
+        <div style={{ padding: '22px 16px 16px', borderBottom: '1px solid rgba(255,255,255,.08)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 36, height: 36, background: 'rgba(201,168,76,.2)',
@@ -68,10 +67,11 @@ export default function Sidebar({ open, onClose }) {
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,.5)' }}>MIKUNI</div>
             </div>
           </div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 8, letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <i className="ti ti-arrow-back-up" style={{ fontSize: 11 }} />
-            統合ホームへ戻る
-          </div>
+        </div>
+
+        {/* Back to integrated Hub */}
+        <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,.08)' }}>
+          <HomeButton full compact />
         </div>
 
         {/* Navigation */}
@@ -120,19 +120,7 @@ export default function Sidebar({ open, onClose }) {
               </div>
             </div>
           </div>
-          <button
-            onClick={signOut}
-            style={{
-              width: '100%', padding: '7px', borderRadius: 6,
-              background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)',
-              color: 'rgba(255,255,255,.6)', cursor: 'pointer',
-              fontSize: 12, fontFamily: 'inherit',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              transition: 'background .15s',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.12)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,.06)')}
-          >
+          <button onClick={signOut} className="sidebar-logout-btn">
             <i className="ti ti-logout" style={{ fontSize: 13 }} />
             ログアウト
           </button>
@@ -148,6 +136,18 @@ export default function Sidebar({ open, onClose }) {
             height: 100vh !important;
             box-shadow: none !important;
           }
+        }
+        .sidebar-logout-btn {
+          width: 100%; padding: 7px; border-radius: 6px;
+          background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+          color: rgba(255,255,255,.6); cursor: pointer;
+          font-size: 12px; font-family: inherit;
+          display: flex; align-items: center; justify-content: center; gap: 6px;
+          transition: background .15s;
+        }
+        .sidebar-logout-btn:active { background: rgba(255,255,255,.16); }
+        @media (hover: hover) and (pointer: fine) {
+          .sidebar-logout-btn:hover { background: rgba(255,255,255,.12); }
         }
       `}</style>
     </>

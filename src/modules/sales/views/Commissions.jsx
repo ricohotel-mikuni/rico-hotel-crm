@@ -1,10 +1,10 @@
 import { useCases, useClients } from '../../../hooks/useData'
-import { PageLoader } from '../../../ui'
+import { PageLoader, ErrorState } from '../../../ui'
 import { C, fmt } from '../../../lib/constants'
 import { Badge } from '../../../ui'
 
 export default function Commissions() {
-  const { cases, loading } = useCases()
+  const { cases, loading, error, refresh } = useCases()
   const { clients } = useClients()
   const getC = id => clients.find(c=>c.id===id)?.company||'—'
   const won = cases.filter(c=>c.status==='成約')
@@ -13,6 +13,7 @@ export default function Commissions() {
   const byP = {}; cases.forEach(c=>{ if(!byP[c.source])byP[c.source]={cnt:0,rev:0,comm:0}; byP[c.source].cnt++; byP[c.source].rev+=(c.revenue||0); byP[c.source].comm+=(c.commission||0) })
 
   if (loading) return <PageLoader />
+  if (error) return <ErrorState message={error} onRetry={refresh} />
   return (
     <div style={{ padding:'18px 16px', maxWidth:1000, margin:'0 auto' }}>
       <h1 style={{ fontSize:16, fontWeight:700, color:C.navy, margin:'0 0 14px' }}>成果報酬管理</h1>

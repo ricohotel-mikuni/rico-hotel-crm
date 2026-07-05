@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useClients, useCases } from '../../../hooks/useData'
 import { useAuth } from '../../../contexts/AuthContext'
-import { Btn, Badge, FI, FT, FS, FV, G2, Dvd, PageLoader, Empty, Toast, ImageUpload, DocUpload } from '../../../ui'
+import { Btn, Badge, FI, FT, FS, FV, G2, Dvd, PageLoader, Empty, Toast, ImageUpload, DocUpload, ErrorState } from '../../../ui'
 import Modal from '../../../ui/Modal'
 import { uploadClientFile, fileNameFromUrl, downloadFile } from '../../../lib/storage'
 import { C, CLIENT_TYPES, RANKS, CLIENT_STATUS, CONTRACT_STATUS, PREFECTURES, PERSONS, today, fmt } from '../../../lib/constants'
@@ -22,7 +22,7 @@ const EMPTY_CLIENT = {
 }
 
 export default function Clients() {
-  const { clients, loading, add, update, softDelete, addHistory } = useClients()
+  const { clients, loading, error, refresh, add, update, softDelete, addHistory } = useClients()
   const { cases } = useCases()
   const { permissions } = useAuth()
 
@@ -119,6 +119,7 @@ export default function Clients() {
   ]
 
   if (loading) return <PageLoader />
+  if (error) return <ErrorState message={error} onRetry={refresh} />
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden' }}>

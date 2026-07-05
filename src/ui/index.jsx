@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { BADGE_STYLES, C } from '../lib/constants'
 import { downloadFile, fileNameFromUrl } from '../lib/storage'
 
@@ -323,6 +324,77 @@ export function Empty({ icon, title, action }) {
       {icon && <i className={`ti ${icon}`} style={{ fontSize: 44, display: 'block', marginBottom: 12 }} />}
       <div style={{ fontSize: 14, marginBottom: action ? 16 : 0 }}>{title}</div>
       {action}
+    </div>
+  )
+}
+
+// ── Home Button (back to the integrated Hub) ───────────────
+// Shared across every module's header/sidebar so the way back to
+// 統合ホーム looks and behaves identically everywhere. Uses a CSS
+// class (not inline onMouseEnter/Leave) so the hover style never
+// gets "stuck" after a tap on touch devices.
+export function HomeButton({ compact, full }) {
+  const navigate = useNavigate()
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => navigate('/')}
+        className="home-btn"
+        style={{
+          padding: compact ? '10px 14px' : '12px 18px',
+          fontSize: compact ? 13 : 14,
+          width: full ? '100%' : 'auto',
+          justifyContent: full ? 'center' : 'flex-start',
+        }}
+      >
+        <span style={{ fontSize: compact ? 16 : 18, lineHeight: 1 }}>🏠</span>
+        統合ホームへ戻る
+      </button>
+      <style>{`
+        .home-btn {
+          display: inline-flex; align-items: center; gap: 8px;
+          background: rgba(201,168,76,.18);
+          border: 1.5px solid rgba(201,168,76,.5);
+          border-radius: 10px;
+          color: #FFF3D6;
+          font-weight: 700; font-family: inherit;
+          cursor: pointer; white-space: nowrap;
+          min-height: 44px;
+          transition: background .15s, transform .1s;
+        }
+        .home-btn:active { transform: scale(.96); background: rgba(201,168,76,.36); }
+        @media (hover: hover) and (pointer: fine) {
+          .home-btn:hover { background: rgba(201,168,76,.3); }
+        }
+      `}</style>
+    </>
+  )
+}
+
+// ── Error State (data load failure, with retry) ────────────
+export function ErrorState({ message, onRetry }) {
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      gap: 14, minHeight: '50vh', padding: '20px', textAlign: 'center',
+    }}>
+      <div style={{
+        width: 56, height: 56, borderRadius: '50%', background: '#FFEBEE',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <i className="ti ti-wifi-off" style={{ fontSize: 26, color: C.red }} />
+      </div>
+      <div style={{ fontSize: 14, color: '#455A64', lineHeight: 1.7 }}>
+        データの読み込みに失敗しました。<br />
+        通信環境をご確認のうえ、もう一度お試しください。
+      </div>
+      {message && (
+        <div style={{ fontSize: 11, color: '#B0BEC5', maxWidth: 320, wordBreak: 'break-word' }}>
+          {message}
+        </div>
+      )}
+      {onRetry && <Btn onClick={onRetry} icon="ti-refresh" label="再読み込み" color={C.navy} />}
     </div>
   )
 }

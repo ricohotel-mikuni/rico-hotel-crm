@@ -2,20 +2,12 @@ import { useNavigate } from 'react-router-dom'
 import { useClients } from '../../../hooks/useData'
 import { useCases } from '../../../hooks/useData'
 import { useAuth } from '../../../contexts/AuthContext'
-import { Badge, PageLoader, Btn } from '../../../ui'
+import { Badge, PageLoader, Btn, ErrorState } from '../../../ui'
 import { C, fmt, today } from '../../../lib/constants'
 
 function KPICard({ label, value, unit, color, icon, bg, onClick }) {
   return (
-    <div onClick={onClick} style={{
-      background: '#fff', borderRadius: 8, padding: '13px 14px',
-      border: '1px solid #ECEFF1', boxShadow: '0 1px 4px rgba(0,0,0,.06)',
-      cursor: onClick ? 'pointer' : 'default',
-      transition: 'transform .15s, box-shadow .15s',
-    }}
-      onMouseEnter={e => onClick && (e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,.1)')}
-      onMouseLeave={e => onClick && (e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,.06)')}
-    >
+    <div onClick={onClick} className={onClick ? 'kpi-card kpi-card-clickable' : 'kpi-card'}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         <div style={{ width: 30, height: 30, borderRadius: 7, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <i className={`ti ${icon}`} style={{ fontSize: 15, color }} />
@@ -33,13 +25,14 @@ function KPICard({ label, value, unit, color, icon, bg, onClick }) {
 export default function Home() {
   const navigate = useNavigate()
   const { profile } = useAuth()
-  const { clients, loading: cLoading } = useClients()
-  const { cases, loading: sLoading } = useCases()
+  const { clients, loading: cLoading, error: cError, refresh: cRefresh } = useClients()
+  const { cases, loading: sLoading, error: sError, refresh: sRefresh } = useCases()
 
   const todayStr = today()
   const weekStr = new Date(Date.now() + 7 * 864e5).toISOString().split('T')[0]
 
   if (cLoading || sLoading) return <PageLoader />
+  if (cError || sError) return <ErrorState message={cError || sError} onRetry={() => { cRefresh(); sRefresh() }} />
 
   const todayFollow = clients.filter(c => c.next_follow_date === todayStr)
   const weekFollow  = clients.filter(c => c.next_follow_date && c.next_follow_date <= weekStr && c.next_follow_date >= todayStr)
@@ -67,8 +60,9 @@ export default function Home() {
           <h1 style={{ fontSize: 18, fontWeight: 700, color: C.navy, margin: '0 0 3px' }}>
             こんにちは、{profile?.full_name || '—'} さん
           </h1>
-          <div style={{ fontSize: 12, color: '#90A4AE' }}>
-            🏨 リコホテル三国 営業管理システム — {todayStr}
+          <div style={{ fontSize: 12, color: '#90A4AE', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <img src="/logo.png" alt="" style={{ width: 14, height: 14, objectFit: 'contain' }} />
+            リコホテル三国 営業管理システム — {todayStr}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -150,6 +144,19 @@ export default function Home() {
           </div>
         ))}
       </div>
+
+      <style>{`
+        .kpi-card {
+          background: #fff; border-radius: 8px; padding: 13px 14px;
+          border: 1px solid #ECEFF1; box-shadow: 0 1px 4px rgba(0,0,0,.06);
+          transition: transform .15s, box-shadow .15s;
+        }
+        .kpi-card-clickable { cursor: pointer; }
+        .kpi-card-clickable:active { transform: scale(.98); }
+        @media (hover: hover) and (pointer: fine) {
+          .kpi-card-clickable:hover { box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+        }
+      `}</style>
     </div>
   )
 }

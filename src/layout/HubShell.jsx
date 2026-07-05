@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { HomeButton } from '../ui'
 import { C, ROLES } from '../lib/constants'
 
 export default function HubShell({ children }) {
@@ -16,6 +17,9 @@ export default function HubShell({ children }) {
           padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           gap: 12, flexWrap: 'wrap', position: 'sticky', top: 0, zIndex: 100,
           boxShadow: '0 2px 14px rgba(0,0,0,.18)',
+          paddingTop: 'max(12px, env(safe-area-inset-top))',
+          paddingLeft: 'max(20px, env(safe-area-inset-left))',
+          paddingRight: 'max(20px, env(safe-area-inset-right))',
         }}
       >
         <div
@@ -39,42 +43,14 @@ export default function HubShell({ children }) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {!isHome && (
-            <button
-              onClick={() => navigate('/')}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.14)',
-                color: 'rgba(255,255,255,.85)', borderRadius: 7, padding: '7px 12px',
-                fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
-                transition: 'background .15s',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.16)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,.08)')}
-            >
-              <i className="ti ti-arrow-left" style={{ fontSize: 13 }} />
-              ホームへ
-            </button>
-          )}
+          {!isHome && <HomeButton compact />}
 
           <div style={{ textAlign: 'right', display: 'none' }} className="hub-user-info">
             <div style={{ fontSize: 12, color: '#fff', fontWeight: 600 }}>{profile?.full_name || '—'}</div>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,.5)' }}>{ROLES[role]?.label || '—'}</div>
           </div>
 
-          <button
-            onClick={signOut}
-            title="ログアウト"
-            style={{
-              width: 32, height: 32, borderRadius: 7, flexShrink: 0,
-              background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.14)',
-              color: 'rgba(255,255,255,.8)', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'background .15s',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.16)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,.08)')}
-          >
+          <button onClick={signOut} title="ログアウト" className="hub-logout-btn">
             <i className="ti ti-logout" style={{ fontSize: 14 }} />
           </button>
         </div>
@@ -85,6 +61,17 @@ export default function HubShell({ children }) {
       <style>{`
         @media (min-width: 480px) {
           .hub-user-info { display: block !important; }
+        }
+        .hub-logout-btn {
+          width: 40px; height: 40px; border-radius: 7px; flex-shrink: 0;
+          background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
+          color: rgba(255,255,255,.8); cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          transition: background .15s;
+        }
+        .hub-logout-btn:active { background: rgba(255,255,255,.18); }
+        @media (hover: hover) and (pointer: fine) {
+          .hub-logout-btn:hover { background: rgba(255,255,255,.16); }
         }
       `}</style>
     </div>

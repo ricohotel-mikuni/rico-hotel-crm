@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useCases, useClients } from '../../../hooks/useData'
 import { useAuth } from '../../../contexts/AuthContext'
-import { Btn, Badge, FI, FT, FS, G2, PageLoader, Empty, Toast } from '../../../ui'
+import { Btn, Badge, FI, FT, FS, G2, PageLoader, Empty, Toast, ErrorState } from '../../../ui'
 import Modal from '../../../ui/Modal'
 import { C, CASE_STATUS, COMM_RATES, PERSONS, fmt } from '../../../lib/constants'
 
@@ -9,7 +9,7 @@ const EMPTY = { client_id:'', title:'', status:'営業中', probability:40, chec
 const SC = {'成約':'#4CAF50','見積提出':'#FF9800','検討中':'#FFC107','営業中':'#2196F3','キャンセル':'#9E9E9E'}
 
 export default function Cases() {
-  const { cases, loading, add, update, softDelete } = useCases()
+  const { cases, loading, error: loadError, refresh, add, update, softDelete } = useCases()
   const { clients } = useClients()
   const { permissions } = useAuth()
   const [modal, setModal] = useState(false)
@@ -38,6 +38,7 @@ export default function Cases() {
   const wonRev = cases.filter(c=>c.status==='成約').reduce((s,c)=>s+(c.revenue||0),0)
 
   if (loading) return <PageLoader />
+  if (loadError) return <ErrorState message={loadError} onRetry={refresh} />
   return (
     <div style={{ padding:'18px 16px', maxWidth:1000, margin:'0 auto' }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
