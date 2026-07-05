@@ -57,7 +57,7 @@ export default function Sidebar({ open, onClose }) {
               width: 36, height: 36, background: 'rgba(201,168,76,.2)',
               borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <span style={{ fontSize: 18 }}>🏨</span>
+              <img src="/logo.png" alt="RICO HOTEL MIKUNI" style={{ width: 24, height: 24, objectFit: 'contain' }} />
             </div>
             <div>
               <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 1.5 }}>RICO HOTEL</div>

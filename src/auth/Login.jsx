@@ -39,7 +39,7 @@ export default function Login() {
         padding: 40, color: '#fff',
         display: 'none',  /* hidden on mobile */
       }} className="login-brand">
-        <div style={{ fontSize: 48, marginBottom: 16 }}>🏨</div>
+        <img src="/logo.png" alt="RICO HOTEL MIKUNI" style={{ width: 120, height: 120, objectFit: 'contain', marginBottom: 16 }} />
         <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: 2 }}>RICO HOTEL</div>
         <div style={{ fontSize: 18, opacity: .8, letterSpacing: 4 }}>MIKUNI</div>
         <div style={{ width: 60, height: 2, background: C.gold, margin: '20px 0' }} />
@@ -67,7 +67,7 @@ export default function Login() {
               background: C.navy, marginBottom: 14,
               boxShadow: '0 4px 16px rgba(31,56,100,.3)',
             }}>
-              <span style={{ fontSize: 28 }}>🏨</span>
+              <img src="/logo.png" alt="RICO HOTEL MIKUNI" style={{ width: 44, height: 44, objectFit: 'contain' }} />
             </div>
             <div style={{ fontSize: 18, fontWeight: 700, color: C.navy, letterSpacing: 1 }}>
               RICO HOTEL MIKUNI
