@@ -6,7 +6,7 @@ import { uploadEmployeeFile } from '../../lib/storage'
 import HubShell from '../../layout/HubShell'
 import EmployeeAvatar from './EmployeeAvatar'
 import EmployeeForm from './EmployeeForm'
-import { AsyncBoundary, TableSkeleton, Btn, Badge, Toast } from '../../ui'
+import { Btn, Badge, Toast } from '../../ui'
 import { C } from '../../lib/constants'
 
 const STATUS_LABEL = { active: '在籍中', inactive: '退職済み' }
@@ -97,55 +97,69 @@ export default function EmployeeDirectory() {
           </div>
         </div>
 
-        {/* Only this data region reacts to loading/error. */}
-        <AsyncBoundary loading={loading} error={error} onRetry={refresh} skeleton={<TableSkeleton avatar rows={6} columns={5} />}>
-          <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #ECEFF1', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ background: '#F5F7FA' }}>
-                    {['', '社員番号', '氏名', '役職', '部署', '配属先', '状態', ''].map((h, i) => (
-                      <th key={i} style={{ padding: '9px 14px', textAlign: 'left', fontSize: 11, color: '#607D8B', fontWeight: 600, borderBottom: '1px solid #ECEFF1', whiteSpace: 'nowrap' }}>
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {employees.length === 0 && (
-                    <tr>
-                      <td colSpan={8} style={{ padding: '28px', textAlign: 'center', color: '#BDBDBD', fontSize: 12 }}>
-                        社員データがありません
-                      </td>
-                    </tr>
-                  )}
-                  {employees.map((e, i) => (
-                    <tr
-                      key={e.id}
-                      onClick={() => navigate(`/employees/${e.id}`)}
-                      style={{ background: i % 2 ? '#FAFAFA' : '#fff', borderBottom: '1px solid #F5F5F5', cursor: 'pointer' }}
-                    >
-                      <td style={{ padding: '9px 0 9px 14px' }}><EmployeeAvatar photoUrl={e.photo_url} name={e.full_name} size={28} /></td>
-                      <td style={{ padding: '9px 14px', color: '#607D8B', whiteSpace: 'nowrap' }}>{e.employee_no || '—'}</td>
-                      <td style={{ padding: '9px 14px', fontWeight: 600, color: C.navy, whiteSpace: 'nowrap' }}>{e.full_name}</td>
-                      <td style={{ padding: '9px 14px', color: '#607D8B' }}>{e.position || '—'}</td>
-                      <td style={{ padding: '9px 14px', color: '#607D8B' }}>{e.department_name || '—'}</td>
-                      <td style={{ padding: '9px 14px', color: '#607D8B' }}>{e.location_name || '—'}</td>
-                      <td style={{ padding: '9px 14px' }}><Badge status={STATUS_LABEL[e.status] || e.status} /></td>
-                      <td style={{ padding: '9px 14px' }}>
-                        {permissions.canWrite && (
-                          <button onClick={openEdit(e)} title="編集" style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.navyLight, padding: 4 }}>
-                            <i className="ti ti-edit" style={{ fontSize: 15 }} />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
+        {/* The table frame (headers, borders) always renders — only the
+            body row changes between loading/error/empty/data, so a
+            failed or slow fetch never removes the table itself. */}
+        <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #ECEFF1', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: '#F5F7FA' }}>
+                  {['', '社員番号', '氏名', '役職', '部署', '配属先', '状態', ''].map((h, i) => (
+                    <th key={i} style={{ padding: '9px 14px', textAlign: 'left', fontSize: 11, color: '#607D8B', fontWeight: 600, borderBottom: '1px solid #ECEFF1', whiteSpace: 'nowrap' }}>
+                      {h}
+                    </th>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={8} style={{ padding: '28px', textAlign: 'center', color: '#90A4AE', fontSize: 12 }}>
+                      <i className="ti ti-loader-2" style={{ fontSize: 15, marginRight: 6 }} />読み込み中…
+                    </td>
+                  </tr>
+                ) : error ? (
+                  <tr>
+                    <td colSpan={8} style={{ padding: '28px', textAlign: 'center' }}>
+                      <div style={{ color: '#C62828', fontSize: 12, marginBottom: 8 }}>
+                        <i className="ti ti-alert-circle" style={{ fontSize: 15, marginRight: 6 }} />社員データを取得できませんでした
+                      </div>
+                      <Btn onClick={refresh} icon="ti-refresh" label="再試行" color={C.navy} sm />
+                    </td>
+                  </tr>
+                ) : employees.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ padding: '28px', textAlign: 'center', color: '#BDBDBD', fontSize: 12 }}>
+                      社員データがありません
+                    </td>
+                  </tr>
+                ) : employees.map((e, i) => (
+                  <tr
+                    key={e.id}
+                    onClick={() => navigate(`/employees/${e.id}`)}
+                    style={{ background: i % 2 ? '#FAFAFA' : '#fff', borderBottom: '1px solid #F5F5F5', cursor: 'pointer' }}
+                  >
+                    <td style={{ padding: '9px 0 9px 14px' }}><EmployeeAvatar photoUrl={e.photo_url} name={e.full_name} size={28} /></td>
+                    <td style={{ padding: '9px 14px', color: '#607D8B', whiteSpace: 'nowrap' }}>{e.employee_no || '—'}</td>
+                    <td style={{ padding: '9px 14px', fontWeight: 600, color: C.navy, whiteSpace: 'nowrap' }}>{e.full_name}</td>
+                    <td style={{ padding: '9px 14px', color: '#607D8B' }}>{e.position || '—'}</td>
+                    <td style={{ padding: '9px 14px', color: '#607D8B' }}>{e.department_name || '—'}</td>
+                    <td style={{ padding: '9px 14px', color: '#607D8B' }}>{e.location_name || '—'}</td>
+                    <td style={{ padding: '9px 14px' }}><Badge status={STATUS_LABEL[e.status] || e.status} /></td>
+                    <td style={{ padding: '9px 14px' }}>
+                      {permissions.canWrite && (
+                        <button onClick={openEdit(e)} title="編集" style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.navyLight, padding: 4 }}>
+                          <i className="ti ti-edit" style={{ fontSize: 15 }} />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </AsyncBoundary>
+        </div>
       </div>
 
       {modalOpen && (

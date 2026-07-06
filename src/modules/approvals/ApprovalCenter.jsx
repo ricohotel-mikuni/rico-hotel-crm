@@ -3,7 +3,7 @@ import { useApprovalRequests, useMyEmployee, useRoles } from '../../hooks/useDat
 import { usePermission } from '../../permissions/PermissionContext'
 import HubShell from '../../layout/HubShell'
 import Modal from '../../ui/Modal'
-import { AsyncBoundary, TableSkeleton, Btn, Badge, FI, FT, G2, Toast } from '../../ui'
+import { Btn, Badge, FI, FT, G2, Toast } from '../../ui'
 import { C, fmt } from '../../lib/constants'
 
 // 申請の種類 — 購入申請/経費申請/休暇申請/稟議書/契約は今後それぞれ
@@ -112,23 +112,37 @@ export default function ApprovalCenter() {
           <Btn onClick={openNew} icon="ti-plus" label="新規申請" color="#4CAF50" />
         </div>
 
-        {/* Only this region reacts to loading/error. */}
-        <AsyncBoundary loading={loading} error={error} onRetry={refresh} skeleton={<TableSkeleton rows={4} columns={3} />}>
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 10 }}>承認待ち（{pending.length}）</div>
-            {pending.length === 0
-              ? <div style={{ padding: '20px', textAlign: 'center', color: '#BDBDBD', fontSize: 12, background: '#fff', borderRadius: 8, border: '1px solid #ECEFF1' }}>承認待ちの申請はありません</div>
-              : pending.map(r => <ApprovalRow key={r.id} request={r} onDecide={onDecide} />)
-            }
+        {/* This frame always renders — only its inner content reacts to
+            loading/error, so a failed/slow fetch never removes the
+            "承認待ち" section itself. */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 10 }}>承認待ち（{loading || error ? '—' : pending.length}）</div>
+          <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #ECEFF1', minHeight: 60 }}>
+            {loading ? (
+              <div style={{ padding: '20px', textAlign: 'center', color: '#90A4AE', fontSize: 12 }}>
+                <i className="ti ti-loader-2" style={{ fontSize: 15, marginRight: 6 }} />読み込み中…
+              </div>
+            ) : error ? (
+              <div style={{ padding: '20px', textAlign: 'center' }}>
+                <div style={{ color: '#C62828', fontSize: 12, marginBottom: 8 }}>
+                  <i className="ti ti-alert-circle" style={{ fontSize: 15, marginRight: 6 }} />申請データを取得できませんでした
+                </div>
+                <Btn onClick={refresh} icon="ti-refresh" label="再試行" color={C.navy} sm />
+              </div>
+            ) : pending.length === 0 ? (
+              <div style={{ padding: '20px', textAlign: 'center', color: '#BDBDBD', fontSize: 12 }}>承認待ちの申請はありません</div>
+            ) : (
+              <div style={{ padding: 10 }}>{pending.map(r => <ApprovalRow key={r.id} request={r} onDecide={onDecide} />)}</div>
+            )}
           </div>
+        </div>
 
-          {done.length > 0 && (
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 10 }}>履歴</div>
-              {done.map(r => <ApprovalRow key={r.id} request={r} onDecide={onDecide} />)}
-            </div>
-          )}
-        </AsyncBoundary>
+        {!loading && !error && done.length > 0 && (
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 10 }}>履歴</div>
+            {done.map(r => <ApprovalRow key={r.id} request={r} onDecide={onDecide} />)}
+          </div>
+        )}
       </div>
 
       {modalOpen && (

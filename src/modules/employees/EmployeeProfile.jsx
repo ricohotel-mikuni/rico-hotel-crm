@@ -34,31 +34,6 @@ const TABLE_BY_TAB = {
   interviews: 'employee_interviews',
 }
 
-function ProfileSkeleton() {
-  return (
-    <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #ECEFF1', padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <div className="skeleton-bar" style={{ width: 72, height: 72, borderRadius: '50%', flexShrink: 0 }} />
-        <div style={{ flex: 1 }}>
-          <div className="skeleton-bar" style={{ height: 16, width: '40%', borderRadius: 4, marginBottom: 10 }} />
-          <div className="skeleton-bar" style={{ height: 12, width: '60%', borderRadius: 4 }} />
-        </div>
-      </div>
-      <style>{`
-        .skeleton-bar {
-          background: linear-gradient(90deg, #EEF1F4 25%, #E2E6EB 37%, #EEF1F4 63%);
-          background-size: 400% 100%;
-          animation: skeleton-shimmer 1.4s ease infinite;
-        }
-        @keyframes skeleton-shimmer {
-          0% { background-position: 100% 50%; }
-          100% { background-position: 0 50%; }
-        }
-      `}</style>
-    </div>
-  )
-}
-
 function TabPanel({ tabId, employeeId }) {
   const table = TABLE_BY_TAB[tabId]
   const { data, loading, error, refresh } = useTable(table, q => q.select('*').eq('employee_id', employeeId).order('created_at', { ascending: false }))
@@ -141,90 +116,101 @@ export default function EmployeeProfile() {
           <i className="ti ti-chevron-left" style={{ fontSize: 13 }} /> 社員一覧へ戻る
         </button>
 
-        {/* Only this region reacts to the employee-list fetch state —
-            the back button above always works even if data fails to load. */}
-        <AsyncBoundary loading={loading} error={error} onRetry={refresh} skeleton={<ProfileSkeleton />}>
-          {!emp ? (
+        {/* Profile card frame always renders — the back button above and
+            this frame stay visible through loading/error, only the
+            content inside changes. */}
+        <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #ECEFF1', padding: '20px', boxShadow: '0 1px 4px rgba(0,0,0,.06)', marginBottom: 16 }}>
+          {loading ? (
+            <div style={{ textAlign: 'center', color: '#90A4AE', fontSize: 12, padding: '24px 0' }}>
+              <i className="ti ti-loader-2" style={{ fontSize: 15, marginRight: 6 }} />読み込み中…
+            </div>
+          ) : error ? (
+            <div style={{ textAlign: 'center', padding: '24px 0' }}>
+              <div style={{ color: '#C62828', fontSize: 12, marginBottom: 8 }}>
+                <i className="ti ti-alert-circle" style={{ fontSize: 15, marginRight: 6 }} />社員情報を取得できませんでした
+              </div>
+              <Btn onClick={refresh} icon="ti-refresh" label="再試行" color={C.navy} sm />
+            </div>
+          ) : !emp ? (
             <Empty icon="ti-user-off" title="社員が見つかりません" />
           ) : (
             <>
-              {/* Header */}
-              <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #ECEFF1', padding: '20px', boxShadow: '0 1px 4px rgba(0,0,0,.06)', marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                  <EmployeeAvatar photoUrl={emp.photo_url} name={emp.full_name} size={72} />
-                  <div style={{ flex: 1, minWidth: 200 }}>
-                    <h1 style={{ fontSize: 19, fontWeight: 700, color: C.navy, margin: '0 0 3px' }}>{emp.full_name}</h1>
-                    <div style={{ fontSize: 12, color: '#90A4AE', marginBottom: 6 }}>{emp.kana}</div>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 12, color: '#607D8B' }}>
-                      <span>{emp.position || '役職未設定'}</span>
-                      <span>/ {emp.department_name || '部署未設定'}</span>
-                      <span>/ {emp.location_name || '配属先未設定'}</span>
-                      <Badge status={STATUS_LABEL[emp.status] || emp.status} />
-                    </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                <EmployeeAvatar photoUrl={emp.photo_url} name={emp.full_name} size={72} />
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <h1 style={{ fontSize: 19, fontWeight: 700, color: C.navy, margin: '0 0 3px' }}>{emp.full_name}</h1>
+                  <div style={{ fontSize: 12, color: '#90A4AE', marginBottom: 6 }}>{emp.kana}</div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 12, color: '#607D8B' }}>
+                    <span>{emp.position || '役職未設定'}</span>
+                    <span>/ {emp.department_name || '部署未設定'}</span>
+                    <span>/ {emp.location_name || '配属先未設定'}</span>
+                    <Badge status={STATUS_LABEL[emp.status] || emp.status} />
                   </div>
-                  {permissions.canWrite && <Btn onClick={openEdit} icon="ti-edit" label="編集" color={C.navy} outline sm />}
                 </div>
-
-                <div style={{ height: 1, background: '#ECEFF1', margin: '16px 0' }} />
-
-                <G2>
-                  <FV label="社員番号" value={emp.employee_no} />
-                  <FV label="雇用区分" value={emp.employment_type} />
-                  <FV label="メールアドレス" value={emp.email} />
-                  <FV label="電話番号" value={emp.phone} />
-                  <FV label="入社日" value={emp.hire_date} />
-                  <FV label="退職日" value={emp.retirement_date} />
-                </G2>
-                <div style={{ height: 8 }} />
-                <FV label="住所" value={emp.address} />
-                <div style={{ height: 8 }} />
-                <G2>
-                  <FV label="緊急連絡先(氏名)" value={emp.emergency_contact_name} />
-                  <FV label="緊急連絡先(電話)" value={emp.emergency_contact_phone} />
-                </G2>
-                <div style={{ height: 8 }} />
-                <FV
-                  label="社会保険"
-                  value={['health', 'pension', 'employment']
-                    .filter(k => emp.social_insurance?.[k])
-                    .map(k => ({ health: '健康保険', pension: '厚生年金', employment: '雇用保険' }[k]))
-                    .join(' / ') || undefined}
-                />
-                <div style={{ height: 8 }} />
-                <FV label="メモ" value={emp.notes} />
+                {permissions.canWrite && <Btn onClick={openEdit} icon="ti-edit" label="編集" color={C.navy} outline sm />}
               </div>
 
-              {/* Extensible tabs */}
-              <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #ECEFF1', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
-                <div style={{ display: 'flex', borderBottom: '2px solid #ECEFF1', overflowX: 'auto' }}>
-                  {TABS.map(t => (
-                    <button
-                      key={t.id}
-                      onClick={() => setTab(t.id)}
-                      style={{
-                        padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer',
-                        fontSize: 12, fontWeight: tab === t.id ? 700 : 400, whiteSpace: 'nowrap',
-                        color: tab === t.id ? C.navy : '#90A4AE',
-                        borderBottom: tab === t.id ? `2px solid ${C.gold}` : '2px solid transparent',
-                        marginBottom: -2, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
-                      }}
-                    >
-                      <i className={`ti ${t.icon}`} style={{ fontSize: 14 }} />
-                      {t.label}
-                      {!t.real && <span style={{ fontSize: 9, color: '#BDBDBD' }}>(準備中)</span>}
-                    </button>
-                  ))}
-                </div>
-                <div style={{ padding: 16 }}>
-                  {TABS.find(t => t.id === tab).real
-                    ? <TabPanel tabId={tab} employeeId={emp.id} />
-                    : <Empty icon={TABS.find(t => t.id === tab).icon} title="この項目は準備中です。今後のモジュール追加時に接続されます。" />
-                  }
-                </div>
-              </div>
+              <div style={{ height: 1, background: '#ECEFF1', margin: '16px 0' }} />
+
+              <G2>
+                <FV label="社員番号" value={emp.employee_no} />
+                <FV label="雇用区分" value={emp.employment_type} />
+                <FV label="メールアドレス" value={emp.email} />
+                <FV label="電話番号" value={emp.phone} />
+                <FV label="入社日" value={emp.hire_date} />
+                <FV label="退職日" value={emp.retirement_date} />
+              </G2>
+              <div style={{ height: 8 }} />
+              <FV label="住所" value={emp.address} />
+              <div style={{ height: 8 }} />
+              <G2>
+                <FV label="緊急連絡先(氏名)" value={emp.emergency_contact_name} />
+                <FV label="緊急連絡先(電話)" value={emp.emergency_contact_phone} />
+              </G2>
+              <div style={{ height: 8 }} />
+              <FV
+                label="社会保険"
+                value={['health', 'pension', 'employment']
+                  .filter(k => emp.social_insurance?.[k])
+                  .map(k => ({ health: '健康保険', pension: '厚生年金', employment: '雇用保険' }[k]))
+                  .join(' / ') || undefined}
+              />
+              <div style={{ height: 8 }} />
+              <FV label="メモ" value={emp.notes} />
             </>
           )}
-        </AsyncBoundary>
+        </div>
+
+        {/* Extensible tabs — only meaningful once we actually have emp */}
+        {!loading && !error && emp && (
+          <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #ECEFF1', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
+            <div style={{ display: 'flex', borderBottom: '2px solid #ECEFF1', overflowX: 'auto' }}>
+              {TABS.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  style={{
+                    padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer',
+                    fontSize: 12, fontWeight: tab === t.id ? 700 : 400, whiteSpace: 'nowrap',
+                    color: tab === t.id ? C.navy : '#90A4AE',
+                    borderBottom: tab === t.id ? `2px solid ${C.gold}` : '2px solid transparent',
+                    marginBottom: -2, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
+                  }}
+                >
+                  <i className={`ti ${t.icon}`} style={{ fontSize: 14 }} />
+                  {t.label}
+                  {!t.real && <span style={{ fontSize: 9, color: '#BDBDBD' }}>(準備中)</span>}
+                </button>
+              ))}
+            </div>
+            <div style={{ padding: 16 }}>
+              {TABS.find(t => t.id === tab).real
+                ? <TabPanel tabId={tab} employeeId={emp.id} />
+                : <Empty icon={TABS.find(t => t.id === tab).icon} title="この項目は準備中です。今後のモジュール追加時に接続されます。" />
+              }
+            </div>
+          </div>
+        )}
       </div>
 
       {modalOpen && (
