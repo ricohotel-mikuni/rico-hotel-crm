@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS public.locations (
   updated_at       TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TRIGGER locations_updated_at
+CREATE OR REPLACE TRIGGER locations_updated_at
   BEFORE UPDATE ON public.locations
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
@@ -101,7 +101,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER hotels_location_type_check
+CREATE OR REPLACE TRIGGER hotels_location_type_check
   BEFORE INSERT OR UPDATE ON public.hotels
   FOR EACH ROW EXECUTE FUNCTION public.check_location_is_hotel();
 
@@ -131,7 +131,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER rentals_location_type_check
+CREATE OR REPLACE TRIGGER rentals_location_type_check
   BEFORE INSERT OR UPDATE ON public.rentals
   FOR EACH ROW EXECUTE FUNCTION public.check_location_is_rental();
 
@@ -195,7 +195,7 @@ CREATE TABLE IF NOT EXISTS public.partners (
   deleted_at TIMESTAMPTZ
 );
 
-CREATE TRIGGER partners_updated_at
+CREATE OR REPLACE TRIGGER partners_updated_at
   BEFORE UPDATE ON public.partners
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
@@ -216,7 +216,7 @@ CREATE TABLE IF NOT EXISTS public.vendors (
   deleted_at TIMESTAMPTZ
 );
 
-CREATE TRIGGER vendors_updated_at
+CREATE OR REPLACE TRIGGER vendors_updated_at
   BEFORE UPDATE ON public.vendors
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
@@ -238,7 +238,7 @@ CREATE TABLE IF NOT EXISTS public.banks (
   deleted_at     TIMESTAMPTZ
 );
 
-CREATE TRIGGER banks_updated_at
+CREATE OR REPLACE TRIGGER banks_updated_at
   BEFORE UPDATE ON public.banks
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
@@ -259,7 +259,7 @@ CREATE TABLE IF NOT EXISTS public.assets (
   deleted_at    TIMESTAMPTZ
 );
 
-CREATE TRIGGER assets_updated_at
+CREATE OR REPLACE TRIGGER assets_updated_at
   BEFORE UPDATE ON public.assets
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
@@ -284,7 +284,7 @@ CREATE TABLE IF NOT EXISTS public.employees (
   deleted_at  TIMESTAMPTZ
 );
 
-CREATE TRIGGER employees_updated_at
+CREATE OR REPLACE TRIGGER employees_updated_at
   BEFORE UPDATE ON public.employees
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
@@ -374,44 +374,70 @@ ALTER TABLE public.assets                ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.employees             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.employee_assignments  ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "companies_select_authenticated" ON public.companies;
 CREATE POLICY "companies_select_authenticated" ON public.companies FOR SELECT USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "companies_write_admin" ON public.companies;
 CREATE POLICY "companies_write_admin" ON public.companies FOR ALL USING (public.is_admin_or_manager());
 
+DROP POLICY IF EXISTS "business_units_select_authenticated" ON public.business_units;
 CREATE POLICY "business_units_select_authenticated" ON public.business_units FOR SELECT USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "business_units_write_admin" ON public.business_units;
 CREATE POLICY "business_units_write_admin" ON public.business_units FOR ALL USING (public.is_admin_or_manager());
 
+DROP POLICY IF EXISTS "locations_select_authenticated" ON public.locations;
 CREATE POLICY "locations_select_authenticated" ON public.locations FOR SELECT USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "locations_write_admin" ON public.locations;
 CREATE POLICY "locations_write_admin" ON public.locations FOR ALL USING (public.is_admin_or_manager());
 
+DROP POLICY IF EXISTS "hotels_select_authenticated" ON public.hotels;
 CREATE POLICY "hotels_select_authenticated" ON public.hotels FOR SELECT USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "hotels_write_admin" ON public.hotels;
 CREATE POLICY "hotels_write_admin" ON public.hotels FOR ALL USING (public.is_admin_or_manager());
 
+DROP POLICY IF EXISTS "rentals_select_authenticated" ON public.rentals;
 CREATE POLICY "rentals_select_authenticated" ON public.rentals FOR SELECT USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "rentals_write_admin" ON public.rentals;
 CREATE POLICY "rentals_write_admin" ON public.rentals FOR ALL USING (public.is_admin_or_manager());
 
+DROP POLICY IF EXISTS "departments_select_authenticated" ON public.departments;
 CREATE POLICY "departments_select_authenticated" ON public.departments FOR SELECT USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "departments_write_admin" ON public.departments;
 CREATE POLICY "departments_write_admin" ON public.departments FOR ALL USING (public.is_admin_or_manager());
 
+DROP POLICY IF EXISTS "roles_select_authenticated" ON public.roles;
 CREATE POLICY "roles_select_authenticated" ON public.roles FOR SELECT USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "roles_write_admin" ON public.roles;
 CREATE POLICY "roles_write_admin" ON public.roles FOR ALL USING (public.is_admin_or_manager());
 
+DROP POLICY IF EXISTS "partners_select_authenticated" ON public.partners;
 CREATE POLICY "partners_select_authenticated" ON public.partners FOR SELECT USING (auth.uid() IS NOT NULL AND deleted_at IS NULL);
+DROP POLICY IF EXISTS "partners_write_admin" ON public.partners;
 CREATE POLICY "partners_write_admin" ON public.partners FOR ALL USING (public.is_admin_or_manager());
 
+DROP POLICY IF EXISTS "vendors_select_authenticated" ON public.vendors;
 CREATE POLICY "vendors_select_authenticated" ON public.vendors FOR SELECT USING (auth.uid() IS NOT NULL AND deleted_at IS NULL);
+DROP POLICY IF EXISTS "vendors_write_admin" ON public.vendors;
 CREATE POLICY "vendors_write_admin" ON public.vendors FOR ALL USING (public.is_admin_or_manager());
 
 -- Bank/account data is more sensitive — restrict SELECT to admin/manager too.
+DROP POLICY IF EXISTS "banks_select_admin" ON public.banks;
 CREATE POLICY "banks_select_admin" ON public.banks FOR SELECT USING (public.is_admin_or_manager() AND deleted_at IS NULL);
+DROP POLICY IF EXISTS "banks_write_admin" ON public.banks;
 CREATE POLICY "banks_write_admin" ON public.banks FOR ALL USING (public.is_admin_or_manager());
 
+DROP POLICY IF EXISTS "assets_select_authenticated" ON public.assets;
 CREATE POLICY "assets_select_authenticated" ON public.assets FOR SELECT USING (auth.uid() IS NOT NULL AND deleted_at IS NULL);
+DROP POLICY IF EXISTS "assets_write_admin" ON public.assets;
 CREATE POLICY "assets_write_admin" ON public.assets FOR ALL USING (public.is_admin_or_manager());
 
+DROP POLICY IF EXISTS "employees_select_authenticated" ON public.employees;
 CREATE POLICY "employees_select_authenticated" ON public.employees FOR SELECT USING (auth.uid() IS NOT NULL AND deleted_at IS NULL);
+DROP POLICY IF EXISTS "employees_write_admin" ON public.employees;
 CREATE POLICY "employees_write_admin" ON public.employees FOR ALL USING (public.is_admin_or_manager());
 
+DROP POLICY IF EXISTS "employee_assignments_select_authenticated" ON public.employee_assignments;
 CREATE POLICY "employee_assignments_select_authenticated" ON public.employee_assignments FOR SELECT USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "employee_assignments_write_admin" ON public.employee_assignments;
 CREATE POLICY "employee_assignments_write_admin" ON public.employee_assignments FOR ALL USING (public.is_admin_or_manager());
 
 COMMENT ON TABLE public.locations IS '事業所マスター — ホテル・賃貸・本社等あらゆる拠点の共通基底(hotels/rentalsが1:1で拡張)';

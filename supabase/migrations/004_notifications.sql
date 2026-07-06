@@ -28,14 +28,17 @@ CREATE INDEX IF NOT EXISTS notifications_unread_idx ON public.notifications(modu
 
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "notifications_select_authenticated" ON public.notifications;
 CREATE POLICY "notifications_select_authenticated"
   ON public.notifications FOR SELECT
   USING (auth.uid() IS NOT NULL);
 
+DROP POLICY IF EXISTS "notifications_insert_authenticated" ON public.notifications;
 CREATE POLICY "notifications_insert_authenticated"
   ON public.notifications FOR INSERT
   WITH CHECK (auth.uid() IS NOT NULL);
 
+DROP POLICY IF EXISTS "notifications_update_authenticated" ON public.notifications;
 CREATE POLICY "notifications_update_authenticated"
   ON public.notifications FOR UPDATE
   USING (auth.uid() IS NOT NULL);

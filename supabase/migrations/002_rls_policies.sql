@@ -41,14 +41,17 @@ ALTER TABLE public.system_settings  ENABLE ROW LEVEL SECURITY;
 -- ============================================================
 -- USER PROFILES policies
 -- ============================================================
+DROP POLICY IF EXISTS "profiles_select_authenticated" ON public.user_profiles;
 CREATE POLICY "profiles_select_authenticated"
   ON public.user_profiles FOR SELECT
   USING (auth.uid() IS NOT NULL);
 
+DROP POLICY IF EXISTS "profiles_insert_self" ON public.user_profiles;
 CREATE POLICY "profiles_insert_self"
   ON public.user_profiles FOR INSERT
   WITH CHECK (auth.uid() = id);
 
+DROP POLICY IF EXISTS "profiles_update_self_or_admin" ON public.user_profiles;
 CREATE POLICY "profiles_update_self_or_admin"
   ON public.user_profiles FOR UPDATE
   USING (auth.uid() = id OR public.is_admin_or_manager());
@@ -56,14 +59,17 @@ CREATE POLICY "profiles_update_self_or_admin"
 -- ============================================================
 -- CLIENTS policies
 -- ============================================================
+DROP POLICY IF EXISTS "clients_select_authenticated" ON public.clients;
 CREATE POLICY "clients_select_authenticated"
   ON public.clients FOR SELECT
   USING (auth.uid() IS NOT NULL AND deleted_at IS NULL);
 
+DROP POLICY IF EXISTS "clients_insert_sales" ON public.clients;
 CREATE POLICY "clients_insert_sales"
   ON public.clients FOR INSERT
   WITH CHECK (public.can_write());
 
+DROP POLICY IF EXISTS "clients_update_sales" ON public.clients;
 CREATE POLICY "clients_update_sales"
   ON public.clients FOR UPDATE
   USING (public.can_write());
@@ -73,10 +79,12 @@ CREATE POLICY "clients_update_sales"
 -- ============================================================
 -- CLIENT HISTORY policies
 -- ============================================================
+DROP POLICY IF EXISTS "history_select_authenticated" ON public.client_history;
 CREATE POLICY "history_select_authenticated"
   ON public.client_history FOR SELECT
   USING (auth.uid() IS NOT NULL);
 
+DROP POLICY IF EXISTS "history_insert_sales" ON public.client_history;
 CREATE POLICY "history_insert_sales"
   ON public.client_history FOR INSERT
   WITH CHECK (public.can_write());
@@ -86,14 +94,17 @@ CREATE POLICY "history_insert_sales"
 -- ============================================================
 -- CASES policies
 -- ============================================================
+DROP POLICY IF EXISTS "cases_select_authenticated" ON public.cases;
 CREATE POLICY "cases_select_authenticated"
   ON public.cases FOR SELECT
   USING (auth.uid() IS NOT NULL AND deleted_at IS NULL);
 
+DROP POLICY IF EXISTS "cases_insert_sales" ON public.cases;
 CREATE POLICY "cases_insert_sales"
   ON public.cases FOR INSERT
   WITH CHECK (public.can_write());
 
+DROP POLICY IF EXISTS "cases_update_sales" ON public.cases;
 CREATE POLICY "cases_update_sales"
   ON public.cases FOR UPDATE
   USING (public.can_write());
@@ -101,14 +112,17 @@ CREATE POLICY "cases_update_sales"
 -- ============================================================
 -- DAILY REPORTS policies
 -- ============================================================
+DROP POLICY IF EXISTS "reports_select_authenticated" ON public.daily_reports;
 CREATE POLICY "reports_select_authenticated"
   ON public.daily_reports FOR SELECT
   USING (auth.uid() IS NOT NULL AND deleted_at IS NULL);
 
+DROP POLICY IF EXISTS "reports_insert_sales" ON public.daily_reports;
 CREATE POLICY "reports_insert_sales"
   ON public.daily_reports FOR INSERT
   WITH CHECK (public.can_write());
 
+DROP POLICY IF EXISTS "reports_update_own_or_admin" ON public.daily_reports;
 CREATE POLICY "reports_update_own_or_admin"
   ON public.daily_reports FOR UPDATE
   USING (
@@ -118,14 +132,17 @@ CREATE POLICY "reports_update_own_or_admin"
 -- ============================================================
 -- CONTRACTS policies
 -- ============================================================
+DROP POLICY IF EXISTS "contracts_select_authenticated" ON public.contracts;
 CREATE POLICY "contracts_select_authenticated"
   ON public.contracts FOR SELECT
   USING (auth.uid() IS NOT NULL AND deleted_at IS NULL);
 
+DROP POLICY IF EXISTS "contracts_insert_manager" ON public.contracts;
 CREATE POLICY "contracts_insert_manager"
   ON public.contracts FOR INSERT
   WITH CHECK (public.is_admin_or_manager());
 
+DROP POLICY IF EXISTS "contracts_update_manager" ON public.contracts;
 CREATE POLICY "contracts_update_manager"
   ON public.contracts FOR UPDATE
   USING (public.is_admin_or_manager());
@@ -133,10 +150,12 @@ CREATE POLICY "contracts_update_manager"
 -- ============================================================
 -- SYSTEM SETTINGS policies
 -- ============================================================
+DROP POLICY IF EXISTS "settings_select_authenticated" ON public.system_settings;
 CREATE POLICY "settings_select_authenticated"
   ON public.system_settings FOR SELECT
   USING (auth.uid() IS NOT NULL);
 
+DROP POLICY IF EXISTS "settings_update_admin" ON public.system_settings;
 CREATE POLICY "settings_update_admin"
   ON public.system_settings FOR UPDATE
   USING (public.is_admin_or_manager());

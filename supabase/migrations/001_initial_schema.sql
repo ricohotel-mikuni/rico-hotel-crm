@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
   updated_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TRIGGER user_profiles_updated_at
+CREATE OR REPLACE TRIGGER user_profiles_updated_at
   BEFORE UPDATE ON public.user_profiles
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS public.clients (
   deleted_at       TIMESTAMPTZ  -- soft delete
 );
 
-CREATE TRIGGER clients_updated_at
+CREATE OR REPLACE TRIGGER clients_updated_at
   BEFORE UPDATE ON public.clients
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
@@ -120,7 +120,7 @@ CREATE TABLE IF NOT EXISTS public.cases (
   deleted_at      TIMESTAMPTZ
 );
 
-CREATE TRIGGER cases_updated_at
+CREATE OR REPLACE TRIGGER cases_updated_at
   BEFORE UPDATE ON public.cases
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
@@ -154,7 +154,7 @@ CREATE TABLE IF NOT EXISTS public.daily_reports (
   deleted_at          TIMESTAMPTZ
 );
 
-CREATE TRIGGER daily_reports_updated_at
+CREATE OR REPLACE TRIGGER daily_reports_updated_at
   BEFORE UPDATE ON public.daily_reports
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
@@ -185,7 +185,7 @@ CREATE TABLE IF NOT EXISTS public.contracts (
   deleted_at           TIMESTAMPTZ
 );
 
-CREATE TRIGGER contracts_updated_at
+CREATE OR REPLACE TRIGGER contracts_updated_at
   BEFORE UPDATE ON public.contracts
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 

@@ -53,13 +53,15 @@ CREATE TABLE IF NOT EXISTS public.employee_documents (
   deleted_at  TIMESTAMPTZ
 );
 
-CREATE TRIGGER employee_documents_updated_at
+CREATE OR REPLACE TRIGGER employee_documents_updated_at
   BEFORE UPDATE ON public.employee_documents
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 ALTER TABLE public.employee_documents ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "employee_documents_select_authenticated" ON public.employee_documents;
 CREATE POLICY "employee_documents_select_authenticated" ON public.employee_documents
   FOR SELECT USING (auth.uid() IS NOT NULL AND deleted_at IS NULL);
+DROP POLICY IF EXISTS "employee_documents_write_admin" ON public.employee_documents;
 CREATE POLICY "employee_documents_write_admin" ON public.employee_documents
   FOR ALL USING (public.is_admin_or_manager());
 
@@ -85,6 +87,7 @@ CREATE TABLE IF NOT EXISTS public.employee_login_history (
 );
 
 ALTER TABLE public.employee_login_history ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "employee_login_history_select" ON public.employee_login_history;
 CREATE POLICY "employee_login_history_select" ON public.employee_login_history
   FOR SELECT USING (
     public.is_admin_or_manager()
@@ -124,8 +127,10 @@ CREATE TABLE IF NOT EXISTS public.approval_history (
 );
 
 ALTER TABLE public.approval_history ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "approval_history_select_authenticated" ON public.approval_history;
 CREATE POLICY "approval_history_select_authenticated" ON public.approval_history
   FOR SELECT USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "approval_history_insert_authenticated" ON public.approval_history;
 CREATE POLICY "approval_history_insert_authenticated" ON public.approval_history
   FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
@@ -143,8 +148,10 @@ CREATE TABLE IF NOT EXISTS public.approval_comments (
 );
 
 ALTER TABLE public.approval_comments ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "approval_comments_select_authenticated" ON public.approval_comments;
 CREATE POLICY "approval_comments_select_authenticated" ON public.approval_comments
   FOR SELECT USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "approval_comments_insert_authenticated" ON public.approval_comments;
 CREATE POLICY "approval_comments_insert_authenticated" ON public.approval_comments
   FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
@@ -169,6 +176,7 @@ CREATE TABLE IF NOT EXISTS public.audit_logs (
 );
 
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "audit_logs_select_admin" ON public.audit_logs;
 CREATE POLICY "audit_logs_select_admin" ON public.audit_logs
   FOR SELECT USING (public.is_admin_or_manager());
 
@@ -189,8 +197,10 @@ CREATE TABLE IF NOT EXISTS public.activity_logs (
 );
 
 ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "activity_logs_select_authenticated" ON public.activity_logs;
 CREATE POLICY "activity_logs_select_authenticated" ON public.activity_logs
   FOR SELECT USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "activity_logs_insert_authenticated" ON public.activity_logs;
 CREATE POLICY "activity_logs_insert_authenticated" ON public.activity_logs
   FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 

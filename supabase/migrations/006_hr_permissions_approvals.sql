@@ -226,7 +226,7 @@ CREATE TABLE IF NOT EXISTS public.approval_requests (
   updated_at    TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TRIGGER approval_requests_updated_at
+CREATE OR REPLACE TRIGGER approval_requests_updated_at
   BEFORE UPDATE ON public.approval_requests
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
@@ -287,18 +287,22 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('employee-files', 'employee-files', true)
 ON CONFLICT (id) DO NOTHING;
 
+DROP POLICY IF EXISTS "employee_files_select_authenticated" ON storage.objects;
 CREATE POLICY "employee_files_select_authenticated"
   ON storage.objects FOR SELECT
   USING (bucket_id = 'employee-files' AND auth.uid() IS NOT NULL);
 
+DROP POLICY IF EXISTS "employee_files_insert_admin" ON storage.objects;
 CREATE POLICY "employee_files_insert_admin"
   ON storage.objects FOR INSERT
   WITH CHECK (bucket_id = 'employee-files' AND public.is_admin_or_manager());
 
+DROP POLICY IF EXISTS "employee_files_update_admin" ON storage.objects;
 CREATE POLICY "employee_files_update_admin"
   ON storage.objects FOR UPDATE
   USING (bucket_id = 'employee-files' AND public.is_admin_or_manager());
 
+DROP POLICY IF EXISTS "employee_files_delete_admin" ON storage.objects;
 CREATE POLICY "employee_files_delete_admin"
   ON storage.objects FOR DELETE
   USING (bucket_id = 'employee-files' AND public.is_admin_or_manager());
@@ -343,37 +347,59 @@ ALTER TABLE public.approval_requests       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.approval_steps          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notification_reads      ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "emp_qualifications_select" ON public.employee_qualifications;
 CREATE POLICY "emp_qualifications_select" ON public.employee_qualifications FOR SELECT USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "emp_qualifications_write" ON public.employee_qualifications;
 CREATE POLICY "emp_qualifications_write"  ON public.employee_qualifications FOR ALL USING (public.is_admin_or_manager());
 
+DROP POLICY IF EXISTS "emp_health_checks_select" ON public.employee_health_checks;
 CREATE POLICY "emp_health_checks_select" ON public.employee_health_checks FOR SELECT USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "emp_health_checks_write" ON public.employee_health_checks;
 CREATE POLICY "emp_health_checks_write"  ON public.employee_health_checks FOR ALL USING (public.is_admin_or_manager());
 
+DROP POLICY IF EXISTS "emp_evaluations_select" ON public.employee_evaluations;
 CREATE POLICY "emp_evaluations_select" ON public.employee_evaluations FOR SELECT USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "emp_evaluations_write" ON public.employee_evaluations;
 CREATE POLICY "emp_evaluations_write"  ON public.employee_evaluations FOR ALL USING (public.is_admin_or_manager());
 
+DROP POLICY IF EXISTS "emp_trainings_select" ON public.employee_trainings;
 CREATE POLICY "emp_trainings_select" ON public.employee_trainings FOR SELECT USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "emp_trainings_write" ON public.employee_trainings;
 CREATE POLICY "emp_trainings_write"  ON public.employee_trainings FOR ALL USING (public.is_admin_or_manager());
 
+DROP POLICY IF EXISTS "emp_interviews_select" ON public.employee_interviews;
 CREATE POLICY "emp_interviews_select" ON public.employee_interviews FOR SELECT USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "emp_interviews_write" ON public.employee_interviews;
 CREATE POLICY "emp_interviews_write"  ON public.employee_interviews FOR ALL USING (public.is_admin_or_manager());
 
+DROP POLICY IF EXISTS "role_permissions_select" ON public.role_permissions;
 CREATE POLICY "role_permissions_select" ON public.role_permissions FOR SELECT USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "role_permissions_write" ON public.role_permissions;
 CREATE POLICY "role_permissions_write"  ON public.role_permissions FOR ALL USING (public.is_admin_or_manager());
 
+DROP POLICY IF EXISTS "employee_roles_select" ON public.employee_roles;
 CREATE POLICY "employee_roles_select" ON public.employee_roles FOR SELECT USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "employee_roles_write" ON public.employee_roles;
 CREATE POLICY "employee_roles_write"  ON public.employee_roles FOR ALL USING (public.is_admin_or_manager());
 
+DROP POLICY IF EXISTS "approval_requests_select" ON public.approval_requests;
 CREATE POLICY "approval_requests_select" ON public.approval_requests FOR SELECT USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "approval_requests_insert" ON public.approval_requests;
 CREATE POLICY "approval_requests_insert" ON public.approval_requests FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "approval_requests_update" ON public.approval_requests;
 CREATE POLICY "approval_requests_update" ON public.approval_requests FOR UPDATE USING (public.is_admin_or_manager());
 
+DROP POLICY IF EXISTS "approval_steps_select" ON public.approval_steps;
 CREATE POLICY "approval_steps_select" ON public.approval_steps FOR SELECT USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "approval_steps_insert" ON public.approval_steps;
 CREATE POLICY "approval_steps_insert" ON public.approval_steps FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "approval_steps_update" ON public.approval_steps;
 CREATE POLICY "approval_steps_update" ON public.approval_steps FOR UPDATE
   USING (public.can_approve((SELECT module FROM public.approval_requests WHERE id = request_id)));
 
+DROP POLICY IF EXISTS "notification_reads_select" ON public.notification_reads;
 CREATE POLICY "notification_reads_select" ON public.notification_reads FOR SELECT USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "notification_reads_insert" ON public.notification_reads;
 CREATE POLICY "notification_reads_insert" ON public.notification_reads FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
 COMMENT ON TABLE public.role_permissions IS '権限マトリクス(閲覧/編集/削除/承認/DL/CSV/印刷) — module列は自由文字列でモジュール追加時に無修正';

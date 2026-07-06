@@ -11,21 +11,25 @@ VALUES ('client-files', 'client-files', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Anyone signed in can view files (mirrors clients_select_authenticated)
+DROP POLICY IF EXISTS "client_files_select_authenticated" ON storage.objects;
 CREATE POLICY "client_files_select_authenticated"
   ON storage.objects FOR SELECT
   USING (bucket_id = 'client-files' AND auth.uid() IS NOT NULL);
 
 -- Only admin/manager/sales can upload (mirrors clients_insert_sales)
+DROP POLICY IF EXISTS "client_files_insert_sales" ON storage.objects;
 CREATE POLICY "client_files_insert_sales"
   ON storage.objects FOR INSERT
   WITH CHECK (bucket_id = 'client-files' AND public.can_write());
 
 -- Only admin/manager/sales can replace a file
+DROP POLICY IF EXISTS "client_files_update_sales" ON storage.objects;
 CREATE POLICY "client_files_update_sales"
   ON storage.objects FOR UPDATE
   USING (bucket_id = 'client-files' AND public.can_write());
 
 -- Only admin/manager/sales can remove a file
+DROP POLICY IF EXISTS "client_files_delete_sales" ON storage.objects;
 CREATE POLICY "client_files_delete_sales"
   ON storage.objects FOR DELETE
   USING (bucket_id = 'client-files' AND public.can_write());
