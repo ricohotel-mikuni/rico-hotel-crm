@@ -69,9 +69,10 @@ export function PermissionProvider({ children }) {
       }
 
       setState({ loading: false, isSystemAdmin, isCeo, map })
-    } catch {
+    } catch (e) {
       // Network hiccup or migration not applied yet in this environment —
       // fail closed (no extra permissions granted) rather than crash.
+      console.error('[PermissionContext] load failed:', e)
       setState(EMPTY_STATE)
     }
   }, [user?.id]) // eslint-disable-line

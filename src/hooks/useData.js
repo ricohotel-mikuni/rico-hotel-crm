@@ -38,9 +38,18 @@ export function useTable(table, query = null, realtimeTable = table) {
         ? query(supabase.from(table))
         : supabase.from(table).select('*').is('deleted_at', null).order('created_at', { ascending: false })
       const { data: rows, error: err } = await withTimeout(q, FETCH_TIMEOUT_MS)
-      if (err) { setError(err.message); return }
+      if (err) {
+        // Log the full PostgREST error (code/details/hint) to the console —
+        // e.g. PGRST205 "Could not find the table" carries a `hint` that's
+        // invaluable for diagnosing a not-yet-applied migration, but the
+        // UI-facing message alone doesn't show it.
+        console.error(`[useTable:${table}] fetch failed:`, err)
+        setError(err.hint ? `${err.message} (${err.hint})` : err.message)
+        return
+      }
       setData(rows ?? [])
     } catch (e) {
+      console.error(`[useTable:${table}] fetch threw:`, e)
       setError(e?.message || '通信エラーが発生しました')
     }
   }, [user, table]) // eslint-disable-line
@@ -300,8 +309,11 @@ export function useMyEmployee() {
     if (!user) { setEmployee(null); setLoading(false); return }
     let cancelled = false
     supabase.from('employees').select('id, full_name').eq('user_id', user.id).maybeSingle()
-      .then(({ data }) => { if (!cancelled) { setEmployee(data); setLoading(false) } })
-      .catch(() => { if (!cancelled) { setEmployee(null); setLoading(false) } })
+      .then(({ data, error }) => {
+        if (error) console.error('[useMyEmployee] fetch failed:', error)
+        if (!cancelled) { setEmployee(data); setLoading(false) }
+      })
+      .catch(e => { console.error('[useMyEmployee] fetch threw:', e); if (!cancelled) { setEmployee(null); setLoading(false) } })
     return () => { cancelled = true }
   }, [user?.id])
 
