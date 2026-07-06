@@ -328,11 +328,14 @@ export function Empty({ icon, title, action }) {
 }
 
 // ── Error State (data load failure, with retry) ────────────
-export function ErrorState({ message, onRetry }) {
+// `compact` shrinks the min-height for use *inside* a page that already
+// has its own always-visible title/actions above it (see AsyncBoundary
+// below) — the default (tall) sizing is for whole-page usage.
+export function ErrorState({ message, onRetry, compact }) {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      gap: 14, minHeight: '50vh', padding: '20px', textAlign: 'center',
+      gap: 14, minHeight: compact ? 200 : '50vh', padding: '20px', textAlign: 'center',
     }}>
       <div style={{
         width: 56, height: 56, borderRadius: '50%', background: '#FFEBEE',
@@ -350,6 +353,50 @@ export function ErrorState({ message, onRetry }) {
         </div>
       )}
       {onRetry && <Btn onClick={onRetry} icon="ti-refresh" label="再読み込み" color={C.navy} />}
+    </div>
+  )
+}
+
+// ── Async Boundary — separates a screen's always-visible chrome
+// (title, action buttons) from its data-fetch state. Wrap ONLY the
+// data-dependent region with this; page title/buttons must render
+// outside it so a slow or failing fetch never blanks the whole screen.
+//   {loading && <TableSkeleton/>} / {error && <ErrorState .../>} in one
+//   place, reused everywhere instead of each screen re-deriving it.
+export function AsyncBoundary({ loading, error, onRetry, skeleton, children }) {
+  if (error) return <ErrorState message={error} onRetry={onRetry} compact />
+  if (loading) return skeleton || <PageLoader />
+  return children
+}
+
+// ── Table Skeleton — default loading placeholder for AsyncBoundary
+// when the wrapped content is a data table (shimmering rows instead of
+// a blank spinner, closer to what the final content will look like).
+export function TableSkeleton({ rows = 5, columns = 5, avatar }) {
+  return (
+    <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #ECEFF1', overflow: 'hidden' }}>
+      {Array.from({ length: rows }).map((_, r) => (
+        <div key={r} style={{
+          display: 'flex', alignItems: 'center', gap: 16, padding: '13px 16px',
+          borderBottom: r < rows - 1 ? '1px solid #F5F5F5' : 'none',
+        }}>
+          {avatar && <div className="skeleton-bar" style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0 }} />}
+          {Array.from({ length: columns }).map((_, c) => (
+            <div key={c} className="skeleton-bar" style={{ height: 12, borderRadius: 4, flex: 1, maxWidth: c === 0 ? 140 : 100 }} />
+          ))}
+        </div>
+      ))}
+      <style>{`
+        .skeleton-bar {
+          background: linear-gradient(90deg, #EEF1F4 25%, #E2E6EB 37%, #EEF1F4 63%);
+          background-size: 400% 100%;
+          animation: skeleton-shimmer 1.4s ease infinite;
+        }
+        @keyframes skeleton-shimmer {
+          0% { background-position: 100% 50%; }
+          100% { background-position: 0 50%; }
+        }
+      `}</style>
     </div>
   )
 }
