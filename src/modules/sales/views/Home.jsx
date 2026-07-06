@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useClients } from '../../../hooks/useData'
 import { useCases } from '../../../hooks/useData'
 import { useAuth } from '../../../contexts/AuthContext'
-import { Badge, PageLoader, Btn, ErrorState } from '../../../ui'
+import { Badge, AsyncBoundary, TableSkeleton, Btn } from '../../../ui'
 import { C, fmt, today } from '../../../lib/constants'
 
 function KPICard({ label, value, unit, color, icon, bg, onClick }) {
@@ -30,9 +30,6 @@ export default function Home() {
 
   const todayStr = today()
   const weekStr = new Date(Date.now() + 7 * 864e5).toISOString().split('T')[0]
-
-  if (cLoading || sLoading) return <PageLoader />
-  if (cError || sError) return <ErrorState message={cError || sError} onRetry={() => { cRefresh(); sRefresh() }} />
 
   const todayFollow = clients.filter(c => c.next_follow_date === todayStr)
   const weekFollow  = clients.filter(c => c.next_follow_date && c.next_follow_date <= weekStr && c.next_follow_date >= todayStr)
@@ -70,80 +67,83 @@ export default function Home() {
         </div>
       </div>
 
-      {/* KPI Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10, marginBottom: 16 }}>
-        {kpis.map(k => (
-          <KPICard key={k.label} {...k} onClick={() => navigate(k.path)} />
-        ))}
-      </div>
+      {/* Only the data-dependent sections below react to loading/error. */}
+      <AsyncBoundary loading={cLoading || sLoading} error={cError || sError} onRetry={() => { cRefresh(); sRefresh() }} skeleton={<TableSkeleton rows={4} columns={4} />}>
+        {/* KPI Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10, marginBottom: 16 }}>
+          {kpis.map(k => (
+            <KPICard key={k.label} {...k} onClick={() => navigate(k.path)} />
+          ))}
+        </div>
 
-      {/* Alert panels */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-        {/* Today's follow */}
-        <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #ECEFF1', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
-          <div style={{ padding: '9px 14px', background: '#FFEBEE', display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 700, color: '#C62828' }}>
-            <i className="ti ti-bell" style={{ fontSize: 13 }} />
-            今日のフォロー（{todayFollow.length}件）
-          </div>
-          {todayFollow.length === 0
-            ? <div style={{ padding: '20px', textAlign: 'center', color: '#BDBDBD', fontSize: 12 }}>今日のフォロー予定はありません ✓</div>
-            : todayFollow.map(c => (
-              <div key={c.id} onClick={() => navigate('/clients')} style={{ padding: '8px 14px', borderBottom: '1px solid #F5F5F5', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: C.navy }}>{c.company}</div>
-                  <div style={{ fontSize: 11, color: '#90A4AE' }}>{c.contact}</div>
+        {/* Alert panels */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+          {/* Today's follow */}
+          <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #ECEFF1', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
+            <div style={{ padding: '9px 14px', background: '#FFEBEE', display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 700, color: '#C62828' }}>
+              <i className="ti ti-bell" style={{ fontSize: 13 }} />
+              今日のフォロー（{todayFollow.length}件）
+            </div>
+            {todayFollow.length === 0
+              ? <div style={{ padding: '20px', textAlign: 'center', color: '#BDBDBD', fontSize: 12 }}>今日のフォロー予定はありません ✓</div>
+              : todayFollow.map(c => (
+                <div key={c.id} onClick={() => navigate('/clients')} style={{ padding: '8px 14px', borderBottom: '1px solid #F5F5F5', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: C.navy }}>{c.company}</div>
+                    <div style={{ fontSize: 11, color: '#90A4AE' }}>{c.contact}</div>
+                  </div>
+                  <Badge status={c.status} />
                 </div>
+              ))}
+          </div>
+
+          {/* Overdue */}
+          <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #ECEFF1', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
+            <div style={{ padding: '9px 14px', background: overdue.length > 0 ? '#FFEBEE' : '#F5F5F5', display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 700, color: overdue.length > 0 ? '#C62828' : '#9E9E9E' }}>
+              <i className="ti ti-alert-circle" style={{ fontSize: 13 }} />
+              期限切れ案件（{overdue.length}件）
+            </div>
+            {overdue.length === 0
+              ? <div style={{ padding: '20px', textAlign: 'center', color: '#BDBDBD', fontSize: 12 }}>期限切れの案件はありません ✓</div>
+              : overdue.slice(0, 5).map(c => (
+                <div key={c.id} onClick={() => navigate('/clients')} style={{ padding: '8px 14px', borderBottom: '1px solid #F5F5F5', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#C62828' }}>⚠ {c.company}</div>
+                    <div style={{ fontSize: 11, color: '#90A4AE' }}>期限: {c.next_follow_date}</div>
+                  </div>
+                  <Badge status={c.rank} />
+                </div>
+              ))}
+          </div>
+        </div>
+
+        {/* Recent clients */}
+        <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #ECEFF1', padding: '12px 14px', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <i className="ti ti-list" style={{ fontSize: 14 }} />
+            最近の営業先
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
+              <i className="ti ti-wifi" style={{ fontSize: 12, color: '#4CAF50' }} />
+              <span style={{ fontSize: 11, color: '#4CAF50', fontWeight: 500 }}>リアルタイム同期中</span>
+            </div>
+          </div>
+          {clients.slice(0, 6).map(c => (
+            <div key={c.id} onClick={() => navigate('/clients')} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid #F5F5F5', cursor: 'pointer', transition: 'background .1s' }}>
+              <div style={{ width: 34, height: 34, borderRadius: 7, background: `${C.navy}12`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <i className="ti ti-building-store" style={{ fontSize: 15, color: C.navy }} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: C.navy, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.company}</div>
+                <div style={{ fontSize: 11, color: '#90A4AE' }}>{c.contact} · {c.phone}</div>
+              </div>
+              <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
+                <Badge status={c.rank} />
                 <Badge status={c.status} />
               </div>
-            ))}
-        </div>
-
-        {/* Overdue */}
-        <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #ECEFF1', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
-          <div style={{ padding: '9px 14px', background: overdue.length > 0 ? '#FFEBEE' : '#F5F5F5', display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 700, color: overdue.length > 0 ? '#C62828' : '#9E9E9E' }}>
-            <i className="ti ti-alert-circle" style={{ fontSize: 13 }} />
-            期限切れ案件（{overdue.length}件）
-          </div>
-          {overdue.length === 0
-            ? <div style={{ padding: '20px', textAlign: 'center', color: '#BDBDBD', fontSize: 12 }}>期限切れの案件はありません ✓</div>
-            : overdue.slice(0, 5).map(c => (
-              <div key={c.id} onClick={() => navigate('/clients')} style={{ padding: '8px 14px', borderBottom: '1px solid #F5F5F5', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#C62828' }}>⚠ {c.company}</div>
-                  <div style={{ fontSize: 11, color: '#90A4AE' }}>期限: {c.next_follow_date}</div>
-                </div>
-                <Badge status={c.rank} />
-              </div>
-            ))}
-        </div>
-      </div>
-
-      {/* Recent clients */}
-      <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #ECEFF1', padding: '12px 14px', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <i className="ti ti-list" style={{ fontSize: 14 }} />
-          最近の営業先
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
-            <i className="ti ti-wifi" style={{ fontSize: 12, color: '#4CAF50' }} />
-            <span style={{ fontSize: 11, color: '#4CAF50', fontWeight: 500 }}>リアルタイム同期中</span>
-          </div>
-        </div>
-        {clients.slice(0, 6).map(c => (
-          <div key={c.id} onClick={() => navigate('/clients')} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid #F5F5F5', cursor: 'pointer', transition: 'background .1s' }}>
-            <div style={{ width: 34, height: 34, borderRadius: 7, background: `${C.navy}12`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <i className="ti ti-building-store" style={{ fontSize: 15, color: C.navy }} />
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: C.navy, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.company}</div>
-              <div style={{ fontSize: 11, color: '#90A4AE' }}>{c.contact} · {c.phone}</div>
-            </div>
-            <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
-              <Badge status={c.rank} />
-              <Badge status={c.status} />
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </AsyncBoundary>
 
       <style>{`
         .kpi-card {

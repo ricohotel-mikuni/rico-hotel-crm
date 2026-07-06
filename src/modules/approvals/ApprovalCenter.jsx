@@ -3,7 +3,7 @@ import { useApprovalRequests, useMyEmployee, useRoles } from '../../hooks/useDat
 import { usePermission } from '../../permissions/PermissionContext'
 import HubShell from '../../layout/HubShell'
 import Modal from '../../ui/Modal'
-import { PageLoader, ErrorState, Btn, Badge, FI, FT, G2, Toast } from '../../ui'
+import { AsyncBoundary, TableSkeleton, Btn, Badge, FI, FT, G2, Toast } from '../../ui'
 import { C, fmt } from '../../lib/constants'
 
 // 申請の種類 — 購入申請/経費申請/休暇申請/稟議書/契約は今後それぞれ
@@ -94,15 +94,13 @@ export default function ApprovalCenter() {
     else showToast(decision === 'approved' ? '承認しました' : '却下しました')
   }
 
-  if (loading) return <HubShell><PageLoader /></HubShell>
-  if (error) return <HubShell><ErrorState message={error} onRetry={refresh} /></HubShell>
-
   const pending = requests.filter(r => r.status === 'pending')
   const done = requests.filter(r => r.status !== 'pending')
 
   return (
     <HubShell>
       <div style={{ maxWidth: 800, margin: '0 auto', padding: '32px 20px 56px' }}>
+        {/* Page chrome always renders, regardless of data-fetch state. */}
         <div style={{ marginBottom: 22, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12 }}>
           <div>
             <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 2.5, marginBottom: 8 }}>電子承認</div>
@@ -114,20 +112,23 @@ export default function ApprovalCenter() {
           <Btn onClick={openNew} icon="ti-plus" label="新規申請" color="#4CAF50" />
         </div>
 
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 10 }}>承認待ち（{pending.length}）</div>
-          {pending.length === 0
-            ? <div style={{ padding: '20px', textAlign: 'center', color: '#BDBDBD', fontSize: 12, background: '#fff', borderRadius: 8, border: '1px solid #ECEFF1' }}>承認待ちの申請はありません</div>
-            : pending.map(r => <ApprovalRow key={r.id} request={r} onDecide={onDecide} />)
-          }
-        </div>
-
-        {done.length > 0 && (
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 10 }}>履歴</div>
-            {done.map(r => <ApprovalRow key={r.id} request={r} onDecide={onDecide} />)}
+        {/* Only this region reacts to loading/error. */}
+        <AsyncBoundary loading={loading} error={error} onRetry={refresh} skeleton={<TableSkeleton rows={4} columns={3} />}>
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 10 }}>承認待ち（{pending.length}）</div>
+            {pending.length === 0
+              ? <div style={{ padding: '20px', textAlign: 'center', color: '#BDBDBD', fontSize: 12, background: '#fff', borderRadius: 8, border: '1px solid #ECEFF1' }}>承認待ちの申請はありません</div>
+              : pending.map(r => <ApprovalRow key={r.id} request={r} onDecide={onDecide} />)
+            }
           </div>
-        )}
+
+          {done.length > 0 && (
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 10 }}>履歴</div>
+              {done.map(r => <ApprovalRow key={r.id} request={r} onDecide={onDecide} />)}
+            </div>
+          )}
+        </AsyncBoundary>
       </div>
 
       {modalOpen && (

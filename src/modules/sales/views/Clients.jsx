@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useClients, useCases } from '../../../hooks/useData'
 import { useAuth } from '../../../contexts/AuthContext'
-import { Btn, Badge, FI, FT, FS, FV, G2, Dvd, PageLoader, Empty, Toast, ImageUpload, DocUpload, ErrorState } from '../../../ui'
+import { Btn, Badge, FI, FT, FS, FV, G2, Dvd, AsyncBoundary, TableSkeleton, Empty, Toast, ImageUpload, DocUpload } from '../../../ui'
 import Modal from '../../../ui/Modal'
 import { uploadClientFile, fileNameFromUrl, downloadFile } from '../../../lib/storage'
 import { C, CLIENT_TYPES, RANKS, CLIENT_STATUS, CONTRACT_STATUS, PREFECTURES, PERSONS, today, fmt } from '../../../lib/constants'
@@ -118,9 +118,6 @@ export default function Clients() {
     { id: 'photos',  label: '写真・資料' },
   ]
 
-  if (loading) return <PageLoader />
-  if (error) return <ErrorState message={error} onRetry={refresh} />
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden' }}>
       {/* Toolbar */}
@@ -146,7 +143,8 @@ export default function Clients() {
         </select>
       </div>
 
-      {/* Content */}
+      {/* Content — only this region reacts to loading/error; the toolbar above always stays interactive. */}
+      <AsyncBoundary loading={loading} error={error} onRetry={refresh} skeleton={<TableSkeleton rows={6} columns={5} />}>
       {listMode ? (
         <div style={{ flex: 1, overflow: 'auto', padding: 12 }}>
           <div style={{ fontSize: 11, color: '#90A4AE', marginBottom: 8 }}>全 {filtered.length} 件</div>
@@ -329,6 +327,7 @@ export default function Clients() {
       ) : (
         <Empty icon="ti-building-store" title="営業先が見つかりません" action={permissions.canWrite && <Btn onClick={openNew} icon="ti-plus" label="最初の営業先を登録" color={C.navy} />} />
       )}
+      </AsyncBoundary>
 
       {/* Client Modal */}
       {modal === 'client' && (

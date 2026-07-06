@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useReports, useClients } from '../../../hooks/useData'
 import { useAuth } from '../../../contexts/AuthContext'
-import { Btn, Badge, FI, FT, FS, G2, PageLoader, Empty, Toast, ErrorState } from '../../../ui'
+import { Btn, Badge, FI, FT, FS, G2, AsyncBoundary, TableSkeleton, Empty, Toast } from '../../../ui'
 import Modal from '../../../ui/Modal'
 import { C, PERSONS, PURPOSES, today } from '../../../lib/constants'
 
@@ -35,8 +35,6 @@ const del = async id => {
     else showToast('削除しました')
   }
 
-  if (loading) return <PageLoader />
-  if (loadError) return <ErrorState message={loadError} onRetry={refresh} />
   return (
     <div style={{ padding:'18px 16px', maxWidth:1000, margin:'0 auto' }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
@@ -46,32 +44,34 @@ const del = async id => {
         </div>
         {permissions.canWrite && <Btn onClick={()=>{setForm({...EMPTY,client_id:clients[0]?.id||''}); setModal(true)}} icon="ti-plus" label="日報を追加" color="#4CAF50" />}
       </div>
-      {reports.length===0 ? <Empty icon="ti-file-text" title="日報がありません。「日報を追加」から記録してください。" /> :
-        reports.map(r => (
-          <div key={r.id} style={{ background:'#fff', borderRadius:8, padding:'12px 14px', marginBottom:10, border:'1px solid #ECEFF1', boxShadow:'0 1px 4px rgba(0,0,0,.05)' }}>
-            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:7 }}>
-              <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
-                <span style={{ fontSize:12, fontWeight:700, color:C.navy }}>{r.report_date}</span>
-                <span style={{ fontSize:13, fontWeight:600, color:C.navy }}>{getC(r.client_id)}</span>
-                <Badge status={r.purpose} />
-                <span style={{ fontSize:11, color:'#90A4AE' }}>/ {r.salesperson}</span>
+      <AsyncBoundary loading={loading} error={loadError} onRetry={refresh} skeleton={<TableSkeleton rows={4} columns={4} />}>
+        {reports.length===0 ? <Empty icon="ti-file-text" title="日報がありません。「日報を追加」から記録してください。" /> :
+          reports.map(r => (
+            <div key={r.id} style={{ background:'#fff', borderRadius:8, padding:'12px 14px', marginBottom:10, border:'1px solid #ECEFF1', boxShadow:'0 1px 4px rgba(0,0,0,.05)' }}>
+              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:7 }}>
+                <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
+                  <span style={{ fontSize:12, fontWeight:700, color:C.navy }}>{r.report_date}</span>
+                  <span style={{ fontSize:13, fontWeight:600, color:C.navy }}>{getC(r.client_id)}</span>
+                  <Badge status={r.purpose} />
+                  <span style={{ fontSize:11, color:'#90A4AE' }}>/ {r.salesperson}</span>
+                </div>
+                <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                  <Badge status={r.booking_status} />
+                  {permissions.canWrite && <button onClick={()=>openEdit(r)} style={{ background:'none', border:'none', cursor:'pointer', color:'#90A4AE', fontSize:15, padding:'0 3px' }}><i className="ti ti-edit" /></button>}
+                  {permissions.canDelete && <button onClick={()=>del(r.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'#BDBDBD', fontSize:15 }}><i className="ti ti-trash" /></button>}
+                </div>
               </div>
-              <div style={{ display:'flex', gap:6, alignItems:'center' }}>
-                <Badge status={r.booking_status} />
-                {permissions.canWrite && <button onClick={()=>openEdit(r)} style={{ background:'none', border:'none', cursor:'pointer', color:'#90A4AE', fontSize:15, padding:'0 3px' }}><i className="ti ti-edit" /></button>}
-                {permissions.canDelete && <button onClick={()=>del(r.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'#BDBDBD', fontSize:15 }}><i className="ti ti-trash" /></button>}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4px 16px', fontSize:12 }}>
+                <div><span style={{ color:'#90A4AE' }}>提案内容: </span>{r.proposal||'—'}</div>
+                <div><span style={{ color:'#90A4AE' }}>相手の反応: </span>{r.reaction||'—'}</div>
+                <div><span style={{ color:'#90A4AE' }}>次回アクション: </span><span style={{ fontWeight:600, color:C.navyLight }}>{r.next_action||'—'}</span></div>
+                <div><span style={{ color:'#90A4AE' }}>次回訪問: </span><span style={{ color:'#2E7D32', fontWeight:600 }}>{r.next_visit_date||'—'}</span></div>
               </div>
+              {r.memo && <div style={{ marginTop:6, fontSize:12, color:'#607D8B', background:'#FFFDE7', padding:'5px 8px', borderRadius:4, borderLeft:`3px solid ${C.gold}` }}>メモ: {r.memo}</div>}
             </div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4px 16px', fontSize:12 }}>
-              <div><span style={{ color:'#90A4AE' }}>提案内容: </span>{r.proposal||'—'}</div>
-              <div><span style={{ color:'#90A4AE' }}>相手の反応: </span>{r.reaction||'—'}</div>
-              <div><span style={{ color:'#90A4AE' }}>次回アクション: </span><span style={{ fontWeight:600, color:C.navyLight }}>{r.next_action||'—'}</span></div>
-              <div><span style={{ color:'#90A4AE' }}>次回訪問: </span><span style={{ color:'#2E7D32', fontWeight:600 }}>{r.next_visit_date||'—'}</span></div>
-            </div>
-            {r.memo && <div style={{ marginTop:6, fontSize:12, color:'#607D8B', background:'#FFFDE7', padding:'5px 8px', borderRadius:4, borderLeft:`3px solid ${C.gold}` }}>メモ: {r.memo}</div>}
-          </div>
-        ))
-      }
+          ))
+        }
+      </AsyncBoundary>
       {modal && (
         <Modal title={form.id ? '営業日報を編集' : '営業日報を追加'} icon="ti-file-text" onClose={()=>setModal(false)} onSave={save} saving={saving} width={540}>
           <G2>

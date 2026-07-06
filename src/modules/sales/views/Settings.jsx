@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useUsers } from '../../../hooks/useData'
 import { useAuth } from '../../../contexts/AuthContext'
 import { supabase } from '../../../lib/supabase'
-import { Btn, Badge, FI, FS, PageLoader, Toast, Spinner, ErrorState } from '../../../ui'
+import { Btn, Badge, FI, FS, AsyncBoundary, TableSkeleton, Toast } from '../../../ui'
 import { C, ROLES } from '../../../lib/constants'
 
 export default function Settings() {
@@ -43,14 +43,12 @@ export default function Settings() {
     else showToast('権限を変更しました')
   }
 
-  if (loading) return <PageLoader />
-  if (loadError) return <ErrorState message={loadError} onRetry={refresh} />
-
   return (
     <div style={{ padding: '18px 16px', maxWidth: 800, margin: '0 auto' }}>
       <h1 style={{ fontSize: 16, fontWeight: 700, color: C.navy, margin: '0 0 16px' }}>設定</h1>
 
-      {/* User list */}
+      {/* User list — only this reacts to loading/error */}
+      <AsyncBoundary loading={loading} error={loadError} onRetry={refresh} skeleton={<TableSkeleton rows={4} columns={4} />}>
       <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #ECEFF1', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.06)', marginBottom: 16 }}>
         <div style={{ padding: '10px 16px', background: C.navy, fontSize: 13, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
           <i className="ti ti-users" style={{ fontSize: 14 }} />
@@ -94,6 +92,7 @@ export default function Settings() {
           </tbody>
         </table>
       </div>
+      </AsyncBoundary>
 
       {/* Add user */}
       {permissions.canManageUsers && (

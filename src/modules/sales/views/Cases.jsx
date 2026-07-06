@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useCases, useClients } from '../../../hooks/useData'
 import { useAuth } from '../../../contexts/AuthContext'
-import { Btn, Badge, FI, FT, FS, G2, PageLoader, Empty, Toast, ErrorState } from '../../../ui'
+import { Btn, Badge, FI, FT, FS, G2, AsyncBoundary, TableSkeleton, Empty, Toast } from '../../../ui'
 import Modal from '../../../ui/Modal'
 import { C, CASE_STATUS, COMM_RATES, PERSONS, fmt } from '../../../lib/constants'
 
@@ -37,8 +37,6 @@ export default function Cases() {
 
   const wonRev = cases.filter(c=>c.status==='成約').reduce((s,c)=>s+(c.revenue||0),0)
 
-  if (loading) return <PageLoader />
-  if (loadError) return <ErrorState message={loadError} onRetry={refresh} />
   return (
     <div style={{ padding:'18px 16px', maxWidth:1000, margin:'0 auto' }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
@@ -48,36 +46,38 @@ export default function Cases() {
         </div>
         {permissions.canWrite && <Btn onClick={()=>{setForm({...EMPTY,client_id:clients[0]?.id||''}); setModal(true)}} icon="ti-plus" label="案件を追加" color="#4CAF50" />}
       </div>
-      {cases.length===0 ? <Empty icon="ti-clipboard-list" title="案件がありません" /> :
-        cases.map((c,i)=>(
-          <div key={c.id} style={{ background:'#fff', borderRadius:8, padding:'12px 14px', marginBottom:10, border:'1px solid #ECEFF1', boxShadow:'0 1px 4px rgba(0,0,0,.05)' }}>
-            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
-              <div style={{ display:'flex', gap:8, alignItems:'center', flex:1, minWidth:0 }}>
-                <span style={{ fontSize:14, fontWeight:700, color:C.navy, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c.title}</span>
-                <Badge status={c.status} />
+      <AsyncBoundary loading={loading} error={loadError} onRetry={refresh} skeleton={<TableSkeleton rows={4} columns={4} />}>
+        {cases.length===0 ? <Empty icon="ti-clipboard-list" title="案件がありません" /> :
+          cases.map((c,i)=>(
+            <div key={c.id} style={{ background:'#fff', borderRadius:8, padding:'12px 14px', marginBottom:10, border:'1px solid #ECEFF1', boxShadow:'0 1px 4px rgba(0,0,0,.05)' }}>
+              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+                <div style={{ display:'flex', gap:8, alignItems:'center', flex:1, minWidth:0 }}>
+                  <span style={{ fontSize:14, fontWeight:700, color:C.navy, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c.title}</span>
+                  <Badge status={c.status} />
+                </div>
+                <div style={{ display:'flex', gap:8, alignItems:'center', flexShrink:0 }}>
+                  <span style={{ fontSize:15, fontWeight:700, color:C.navy }}>{fmt(c.revenue)}円</span>
+                  {permissions.canWrite && <button onClick={()=>{setForm({...c});setModal(true)}} style={{ background:'none',border:'none',cursor:'pointer',color:'#90A4AE',fontSize:14 }}><i className="ti ti-edit"/></button>}
+                  {permissions.canDelete && <button onClick={()=>del(c.id)} style={{ background:'none',border:'none',cursor:'pointer',color:'#BDBDBD',fontSize:14 }}><i className="ti ti-trash"/></button>}
+                </div>
               </div>
-              <div style={{ display:'flex', gap:8, alignItems:'center', flexShrink:0 }}>
-                <span style={{ fontSize:15, fontWeight:700, color:C.navy }}>{fmt(c.revenue)}円</span>
-                {permissions.canWrite && <button onClick={()=>{setForm({...c});setModal(true)}} style={{ background:'none',border:'none',cursor:'pointer',color:'#90A4AE',fontSize:14 }}><i className="ti ti-edit"/></button>}
-                {permissions.canDelete && <button onClick={()=>del(c.id)} style={{ background:'none',border:'none',cursor:'pointer',color:'#BDBDBD',fontSize:14 }}><i className="ti ti-trash"/></button>}
+              <div style={{ display:'flex', gap:12, fontSize:11, color:'#607D8B', marginBottom:7, flexWrap:'wrap' }}>
+                <span>🏢 {getC(c.client_id)}</span>
+                <span>📅 {c.check_in_date}〜{c.check_out_date}</span>
+                <span>👥 {c.guests}名/{c.rooms}室</span>
+                <span style={{ color:'#2E7D32', fontWeight:600 }}>報酬: {fmt(c.commission)}円 ({c.commission_rate})</span>
+                <span>担当: {c.source}</span>
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <div style={{ flex:1, height:6, background:'#F0F0F0', borderRadius:3, overflow:'hidden' }}>
+                  <div style={{ height:6, background:SC[c.status]||C.navy, borderRadius:3, width:(c.probability||0)+'%', transition:'width .3s' }} />
+                </div>
+                <span style={{ fontSize:11, color:'#607D8B', minWidth:30, textAlign:'right' }}>{c.probability}%</span>
               </div>
             </div>
-            <div style={{ display:'flex', gap:12, fontSize:11, color:'#607D8B', marginBottom:7, flexWrap:'wrap' }}>
-              <span>🏢 {getC(c.client_id)}</span>
-              <span>📅 {c.check_in_date}〜{c.check_out_date}</span>
-              <span>👥 {c.guests}名/{c.rooms}室</span>
-              <span style={{ color:'#2E7D32', fontWeight:600 }}>報酬: {fmt(c.commission)}円 ({c.commission_rate})</span>
-              <span>担当: {c.source}</span>
-            </div>
-            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              <div style={{ flex:1, height:6, background:'#F0F0F0', borderRadius:3, overflow:'hidden' }}>
-                <div style={{ height:6, background:SC[c.status]||C.navy, borderRadius:3, width:(c.probability||0)+'%', transition:'width .3s' }} />
-              </div>
-              <span style={{ fontSize:11, color:'#607D8B', minWidth:30, textAlign:'right' }}>{c.probability}%</span>
-            </div>
-          </div>
-        ))
-      }
+          ))
+        }
+      </AsyncBoundary>
       {modal && (
         <Modal title="案件情報" icon="ti-clipboard-list" onClose={()=>setModal(false)} onSave={save} saving={saving} width={540}>
           <FI label="案件名" value={form.title} onChange={set('title')} required placeholder="○○ 研修旅行 30名" />
