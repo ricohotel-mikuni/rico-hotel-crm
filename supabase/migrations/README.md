@@ -4,7 +4,9 @@
 
 このディレクトリ(`supabase/migrations/`)はリポジトリの一部であり、他のソースコードと同じく**既にGitで管理・追跡されています**。`git log -- supabase/migrations/` で誰がいつどのmigrationを追加したか確認できます。ローカルにしか無いファイルではありません。
 
-## 適用方法(自動 — GitHub Push → 本番DBへ自動反映)
+## 適用方法(自動 — GitHub Push → 本番DBへ自動反映) ✅ 稼働中(2026-07-07確認済み)
+
+ワークフローファイル作成・3つのSecrets登録・初回実行まで完了し、`supabase db push`が成功することを確認済みです。
 
 `supabase/migrations/**` に変更を加えて `main` へ push すると、GitHub Actions
 (`.github/workflows/supabase-migrations.yml`)が自動的に `supabase db push` を
@@ -46,7 +48,12 @@ SELECT table_name FROM information_schema.views  WHERE table_schema = 'public' O
 ## 新しいmigrationを追加するときの規則
 
 1. ファイル名は `NNN_短い説明.sql`(3桁ゼロ埋め連番)、常に最新番号+1から始める。
-2. 冪等に書く: `CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`, `CREATE OR REPLACE VIEW/FUNCTION` を徹底し、二重実行してもエラーにならないようにする。
+2. 冪等に書く(`supabase db push`は`001`から全ファイルを毎回チェックするため、これを怠ると自動適用が壊れる):
+   - `CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`
+   - `CREATE INDEX IF NOT EXISTS` / `CREATE UNIQUE INDEX IF NOT EXISTS`(素の`CREATE INDEX`は2回目以降必ずエラーになる — 2026-07-07に実際に発生)
+   - `CREATE POLICY`の前には必ず`DROP POLICY IF EXISTS "同じ名前" ON テーブル;`を置く(`CREATE POLICY`自体はIF NOT EXISTSに対応していない)
+   - `CREATE TRIGGER`は`CREATE OR REPLACE TRIGGER`にする
+   - `CREATE OR REPLACE VIEW`で列を減らす/型を変える場合は、その前に`DROP VIEW IF EXISTS`を置く(PostgreSQLは`CREATE OR REPLACE VIEW`で既存列を減らせない — 2026-07-07に実際に発生。`v_employee_directory`は良い実例)
 3. 新しいテーブルには必ずセットで書く: `ENABLE ROW LEVEL SECURITY` → 最低でも `<table>_select_...` ポリシー → 書き込みが必要なら `<table>_write_admin`(`public.is_admin_or_manager()`を使う、`002_rls_policies.sql`で定義済み)。閲覧を管理者限定にしたい機微データは`banks_select_admin`(`005`)を参考に。
 4. `updated_at`が必要な可変テーブルは、既存の共有トリガー関数`update_updated_at()`(`001`で定義済み)をそのまま使う。新しい関数を作らない。
 5. 履歴/ログ系テーブルを追加する前に、`009_extended_logs_and_documents.sql`冒頭のコメントで整理した既存の使い分け(`client_history`/`approval_history`/`audit_logs`/`activity_logs`)を確認し、同じ役割のテーブルを重複作成しない。
