@@ -8,6 +8,7 @@ import HotelsApp from './modules/hotels/HotelsApp'
 import EmployeeDirectory from './modules/employees/EmployeeDirectory'
 import EmployeeProfile from './modules/employees/EmployeeProfile'
 import ApprovalCenter from './modules/approvals/ApprovalCenter'
+import AdminApp from './modules/admin/AdminApp'
 import ComingSoon from './modules/ComingSoon'
 
 export default function App() {
@@ -23,6 +24,7 @@ export default function App() {
       <Route path="/employees" element={<EmployeeDirectory />} />
       <Route path="/employees/:id" element={<EmployeeProfile />} />
       <Route path="/approvals" element={<ApprovalCenter />} />
+      <Route path="/admin/*" element={<AdminApp />} />
       {COMPANY_MODULES.filter(m => m.status !== 'active').map(m => (
         <Route key={m.id} path={`${m.path}/*`} element={<ComingSoon module={m} />} />
       ))}

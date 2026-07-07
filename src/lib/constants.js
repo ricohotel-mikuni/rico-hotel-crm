@@ -4,7 +4,7 @@ export const C = {
   green: '#4CAF50', red: '#F44336', orange: '#FF9800',
 
   // Design tokens (v1.2.1) — the canonical scale for the shared
-  // header ecosystem (Header/BackButton/ProfileMenu/NotificationBell).
+  // header ecosystem (Header/Breadcrumb/ProfileMenu/NotificationBell).
   // Existing page-level UI (Btn, cards, etc. in individual views) is
   // intentionally left on its own established sizing for this round —
   // only the header family was reported as inconsistent, so only it

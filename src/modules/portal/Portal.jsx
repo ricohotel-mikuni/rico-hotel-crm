@@ -1,11 +1,20 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { usePermissions } from '../../permissions/PermissionContext'
 import { useUnreadCounts, useMyNotifications } from '../../hooks/useNotifications'
 import { useApprovalRequests } from '../../hooks/useData'
 import HubShell from '../../layout/HubShell'
 import ModuleGrid from '../../ui/ModuleGrid'
 import { COMPANY_MODULES } from './registry'
 import { C, today } from '../../lib/constants'
+
+// Not part of COMPANY_MODULES itself since it's conditionally shown —
+// keeping it out of the plain array means there's no risk of it
+// leaking to a non-admin by a future refactor that stops filtering.
+const ADMIN_CENTER_TILE = {
+  id: 'admin-center', label: '管理センター', icon: 'ti-shield', path: '/admin',
+  status: 'active', notifiable: false, desc: '経営・システム管理機能(管理者専用)',
+}
 
 function StatCard({ icon, label, value, unit, color, dummy }) {
   return (
@@ -45,11 +54,13 @@ function StatCard({ icon, label, value, unit, color, dummy }) {
 export default function Portal() {
   const navigate = useNavigate()
   const { profile } = useAuth()
+  const { isSystemAdmin, isCeo } = usePermissions()
   const unread = useUnreadCounts()
   const { requests } = useApprovalRequests()
   const { unreadCount } = useMyNotifications()
 
   const pendingApprovals = requests.filter(r => r.status === 'pending').length
+  const tiles = (isSystemAdmin || isCeo) ? [...COMPANY_MODULES, ADMIN_CENTER_TILE] : COMPANY_MODULES
 
   return (
     <HubShell>
@@ -80,7 +91,7 @@ export default function Portal() {
           <StatCard icon="ti-sparkles" label="AIからのお知らせ" value="1" unit="件" color="#B4933D" dummy />
         </div>
 
-        <ModuleGrid modules={COMPANY_MODULES} unreadCounts={unread} onSelect={m => navigate(m.path)} />
+        <ModuleGrid modules={tiles} unreadCounts={unread} onSelect={m => navigate(m.path)} />
       </div>
     </HubShell>
   )

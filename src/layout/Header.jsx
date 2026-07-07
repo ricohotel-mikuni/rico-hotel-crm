@@ -1,23 +1,18 @@
 import { useNavigate } from 'react-router-dom'
 import { useBrand } from '../branding/BrandContext'
-import BackButton from '../branding/BackButton'
-import PropertyBackLink from '../branding/PropertyBackLink'
+import Breadcrumb from './Breadcrumb'
 import ProfileMenu from '../branding/ProfileMenu'
 import NotificationBell from '../notifications/NotificationBell'
 import { C } from '../lib/constants'
 
 // The ONE header used everywhere — company Portal, ComingSoon,
-// PropertyHub, the sales module, and every future screen. Only the
-// active brand (logo/name, via useBrand()) and whether a sidebar
-// toggle is needed (`onMenuClick`, passed only by the sales module's
-// AppShell) change; the structure, sizing and spacing are fixed via
-// the C.* design tokens (src/lib/constants.js) so nothing drifts
-// out of sync again like the old separate HubShell header / AppShell
-// topbar did.
+// PropertyHub, 管理センター, the sales module, and every future screen.
+// Navigation is entirely breadcrumb-driven (see Breadcrumb.jsx) — no
+// per-screen or per-brand back-button variants.
 //
-// Layout: [menu?] [logo+brand — flexes/truncates] [BackButton]
-// [NotificationBell] [ProfileMenu — right group never shrinks], so
-// on any viewport width the middle gives way before anything overlaps.
+// Layout: [menu?] [logo — fixed] [breadcrumb — flexes/truncates]
+// [NotificationBell] [ProfileMenu — right group never shrinks], so on
+// any viewport width the middle gives way before anything overlaps.
 export default function Header({ onMenuClick }) {
   const navigate = useNavigate()
   const brand = useBrand()
@@ -30,23 +25,20 @@ export default function Header({ onMenuClick }) {
         </button>
       )}
 
-      <div className="app-header-brand" onClick={() => navigate(brand.homePath)}>
-        <div className="app-header-logo">
-          <img src={brand.logo} alt={brand.name} />
-        </div>
-        <span className="app-header-brand-text">{brand.name}</span>
+      <div className="app-header-logo" onClick={() => navigate(brand.homePath)} title={brand.name}>
+        <img src={brand.logo} alt={brand.name} />
       </div>
 
+      <Breadcrumb />
+
       <div className="app-header-actions">
-        <PropertyBackLink compact />
-        <BackButton compact />
         <NotificationBell compact />
         <ProfileMenu compact />
       </div>
 
       <style>{`
         .app-header {
-          display: flex; align-items: center; gap: 8px;
+          display: flex; align-items: center; gap: 10px;
           min-height: ${C.headerHeight}px;
           padding: 6px 14px;
           padding-top: max(6px, env(safe-area-inset-top));
@@ -63,29 +55,17 @@ export default function Header({ onMenuClick }) {
           min-width: 40px; min-height: 40px;
           display: flex; align-items: center; justify-content: center;
         }
-        .app-header-brand {
-          display: flex; align-items: center; gap: 9px; cursor: pointer;
-          flex: 1; min-width: 0;
-        }
         .app-header-logo {
           width: 36px; height: 36px; border-radius: ${C.radius.md}px;
-          background: rgba(201,168,76,.18); flex-shrink: 0;
+          background: rgba(201,168,76,.18); flex-shrink: 0; cursor: pointer;
           display: flex; align-items: center; justify-content: center;
         }
         .app-header-logo img { width: 26px; height: 26px; object-fit: contain; }
-        .app-header-brand-text {
-          font-size: 13px; font-weight: 700; color: ${C.gold};
-          letter-spacing: .5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
         .app-header-actions {
           display: flex; align-items: center; gap: 8px; flex-shrink: 0;
         }
-        @media (max-width: 400px) {
-          .app-header-brand-text { display: none; }
-        }
-        /* The sales module's Sidebar becomes permanently visible at
-           this width (see Sidebar.jsx's .sidebar-desktop rule) — the
-           menu toggle would do nothing there, so hide it. */
+        /* The property/admin sidebars become permanently visible at
+           this width — the menu toggle would do nothing there, so hide it. */
         @media (min-width: ${C.breakpoint.md}px) {
           .app-header-menu-btn { display: none; }
         }
