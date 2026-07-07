@@ -72,10 +72,10 @@ CREATE OR REPLACE TRIGGER clients_updated_at
   BEFORE UPDATE ON public.clients
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
-CREATE INDEX clients_rank_idx ON public.clients(rank);
-CREATE INDEX clients_status_idx ON public.clients(status);
-CREATE INDEX clients_next_follow_idx ON public.clients(next_follow_date);
-CREATE INDEX clients_deleted_idx ON public.clients(deleted_at) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS clients_rank_idx ON public.clients(rank);
+CREATE INDEX IF NOT EXISTS clients_status_idx ON public.clients(status);
+CREATE INDEX IF NOT EXISTS clients_next_follow_idx ON public.clients(next_follow_date);
+CREATE INDEX IF NOT EXISTS clients_deleted_idx ON public.clients(deleted_at) WHERE deleted_at IS NULL;
 
 -- ============================================================
 -- 3. CLIENT HISTORY — 営業履歴
@@ -91,8 +91,8 @@ CREATE TABLE IF NOT EXISTS public.client_history (
   created_by  UUID REFERENCES auth.users(id)
 );
 
-CREATE INDEX client_history_client_idx ON public.client_history(client_id);
-CREATE INDEX client_history_date_idx ON public.client_history(visit_date DESC);
+CREATE INDEX IF NOT EXISTS client_history_client_idx ON public.client_history(client_id);
+CREATE INDEX IF NOT EXISTS client_history_date_idx ON public.client_history(visit_date DESC);
 
 -- ============================================================
 -- 4. CASES — 案件管理
@@ -124,9 +124,9 @@ CREATE OR REPLACE TRIGGER cases_updated_at
   BEFORE UPDATE ON public.cases
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
-CREATE INDEX cases_client_idx ON public.cases(client_id);
-CREATE INDEX cases_status_idx ON public.cases(status);
-CREATE INDEX cases_deleted_idx ON public.cases(deleted_at) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS cases_client_idx ON public.cases(client_id);
+CREATE INDEX IF NOT EXISTS cases_status_idx ON public.cases(status);
+CREATE INDEX IF NOT EXISTS cases_deleted_idx ON public.cases(deleted_at) WHERE deleted_at IS NULL;
 
 -- ============================================================
 -- 5. DAILY REPORTS — 営業日報
@@ -158,8 +158,8 @@ CREATE OR REPLACE TRIGGER daily_reports_updated_at
   BEFORE UPDATE ON public.daily_reports
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
-CREATE INDEX daily_reports_date_idx ON public.daily_reports(report_date DESC);
-CREATE INDEX daily_reports_client_idx ON public.daily_reports(client_id);
+CREATE INDEX IF NOT EXISTS daily_reports_date_idx ON public.daily_reports(report_date DESC);
+CREATE INDEX IF NOT EXISTS daily_reports_client_idx ON public.daily_reports(client_id);
 
 -- ============================================================
 -- 6. CONTRACTS — 契約管理
