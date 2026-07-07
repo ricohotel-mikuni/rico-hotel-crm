@@ -350,6 +350,7 @@ CREATE TABLE IF NOT EXISTS public.notification_reads (
 -- ============================================================
 -- 6. VIEW — v_employee_directory(006の拡張版で確定)
 -- ============================================================
+DROP VIEW IF EXISTS public.v_employee_directory;
 CREATE OR REPLACE VIEW public.v_employee_directory AS
 SELECT
   e.id, e.employee_no, e.full_name, e.kana, e.photo_url, e.email, e.phone,

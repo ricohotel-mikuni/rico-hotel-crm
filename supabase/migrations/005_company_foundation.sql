@@ -340,6 +340,7 @@ WHERE NOT EXISTS (
 -- ============================================================
 -- 14. VIEW — 社員ディレクトリ(閲覧用、現在の主配属をJOIN)
 -- ============================================================
+DROP VIEW IF EXISTS public.v_employee_directory;
 CREATE OR REPLACE VIEW public.v_employee_directory AS
 SELECT
   e.id, e.employee_no, e.full_name, e.email, e.phone, e.status,

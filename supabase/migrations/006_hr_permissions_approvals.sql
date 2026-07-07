@@ -312,6 +312,7 @@ CREATE POLICY "employee_files_delete_admin"
 -- location_id/department_id (005's version only exposed the joined
 -- *names*; the edit form needs the ids to prefill its selects).
 -- ============================================================
+DROP VIEW IF EXISTS public.v_employee_directory;
 CREATE OR REPLACE VIEW public.v_employee_directory AS
 SELECT
   e.id, e.employee_no, e.full_name, e.kana, e.photo_url, e.email, e.phone,

@@ -54,6 +54,7 @@ ALTER TABLE public.employees
   ADD COLUMN IF NOT EXISTS notes                     TEXT DEFAULT '';
 
 -- view本体を必ず再作成(006と同一定義。存在しなければ新規作成される)
+DROP VIEW IF EXISTS public.v_employee_directory;
 CREATE OR REPLACE VIEW public.v_employee_directory AS
 SELECT
   e.id, e.employee_no, e.full_name, e.kana, e.photo_url, e.email, e.phone,
