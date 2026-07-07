@@ -18,6 +18,7 @@ export const BRANDS = {
   ricoHotel: {
     id: 'ricoHotel',
     name: 'RICO HOTEL MIKUNI',
+    shortNameJa: 'リコホテル三国',
     nameLines: ['RICO HOTEL', 'MIKUNI'],
     tagline: 'HOTEL MANAGEMENT SYSTEM',
     subtitle: 'ホテル管理システム',

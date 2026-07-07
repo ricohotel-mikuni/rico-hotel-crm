@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useBrand } from '../branding/BrandContext'
 import BackButton from '../branding/BackButton'
+import PropertyBackLink from '../branding/PropertyBackLink'
 import ProfileMenu from '../branding/ProfileMenu'
 import NotificationBell from '../notifications/NotificationBell'
 import { C } from '../lib/constants'
@@ -37,6 +38,7 @@ export default function Header({ onMenuClick }) {
       </div>
 
       <div className="app-header-actions">
+        <PropertyBackLink compact />
         <BackButton compact />
         <NotificationBell compact />
         <ProfileMenu compact />
