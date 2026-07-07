@@ -1,8 +1,67 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useBrand } from '../branding/BrandContext'
+import { BRANDS } from '../branding/brands'
 import { Spinner } from '../ui'
 import { C } from '../lib/constants'
+
+// The two official full logos, rotating 3D left → next → left → back,
+// looping forever. Always daiei ⇄ ricoHotel regardless of which brand
+// context Login itself is mounted under (login happens before a
+// property is chosen, so this is a company-wide branding moment, not
+// tied to `useBrand()`).
+const CAROUSEL_LOGOS = [BRANDS.daiei, BRANDS.ricoHotel]
+
+// Face A always shows daiei, face B always shows ricoHotel — with
+// exactly 2 logos, "which logo is on which face" never needs to
+// change, only "which face is currently at rest vs rotated away" does.
+// That keeps the animation state trivial: a single 'a' | 'b' flag for
+// which one is in front. The outgoing face rotates OUT to the left
+// while the incoming one rotates IN from the right at the same time —
+// a single swapped <img> can't produce that illusion (a freshly
+// mounted element has no "before" state to transition from).
+function LogoCarousel() {
+  const [front, setFront] = useState('a')
+  const reduceMotion = useRef(typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches).current
+
+  useEffect(() => {
+    if (reduceMotion) return
+    const id = setInterval(() => setFront(f => (f === 'a' ? 'b' : 'a')), 2000)
+    return () => clearInterval(id)
+  }, [reduceMotion])
+
+  return (
+    <div className="login-logo-stage">
+      <img
+        src={BRANDS.daiei.logo} alt={BRANDS.daiei.name}
+        className={`login-logo-face ${front === 'a' ? 'is-entering' : 'is-leaving'}`}
+      />
+      <img
+        src={BRANDS.ricoHotel.logo} alt={BRANDS.ricoHotel.name}
+        className={`login-logo-face ${front === 'b' ? 'is-entering' : 'is-leaving'}`}
+      />
+      <style>{`
+        .login-logo-stage {
+          width: 100%; max-width: 300px; height: 200px; position: relative;
+          perspective: 1200px;
+        }
+        .login-logo-face {
+          position: absolute; inset: 0; margin: auto;
+          max-width: 100%; max-height: 100%; object-fit: contain;
+          filter: drop-shadow(0 10px 30px rgba(0,0,0,.4));
+          transition: transform .8s cubic-bezier(.65,0,.35,1), opacity .5s ease;
+          transform: rotateY(0deg); backface-visibility: hidden;
+        }
+        .login-logo-face.is-leaving { transform: rotateY(-100deg); }
+        .login-logo-face.is-entering { animation: logoEnter .8s cubic-bezier(.65,0,.35,1); }
+        @keyframes logoEnter { from { transform: rotateY(100deg); } to { transform: rotateY(0deg); } }
+        @media (prefers-reduced-motion: reduce) {
+          .login-logo-face { transition: none; animation: none !important; }
+        }
+      `}</style>
+    </div>
+  )
+}
 
 export default function Login() {
   const { signIn, error } = useAuth()
@@ -34,26 +93,18 @@ export default function Login() {
       minHeight: '100dvh', display: 'flex',
       background: `linear-gradient(135deg, ${C.navyDark} 0%, ${C.navy} 60%, #2E5FA3 100%)`,
     }}>
-      {/* Left panel — branding */}
+      {/* Left panel — branding: 大栄商事 ⇄ リコホテル三国 の正式ロゴが交互に
+          3D回転する。各ロゴ自体に社名・タグラインが含まれるため、別途
+          テキストは表示しない(重複を避ける)。 */}
       <div style={{
         flex: 1, flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
         padding: 40, color: '#fff',
         display: 'none',  /* hidden on mobile */
       }} className="login-brand">
-        <img src={brand.logo} alt={brand.name} style={{ width: 120, height: 120, objectFit: 'contain', marginBottom: 16 }} />
-        {brand.nameLines ? (
-          brand.nameLines.map((line, i) => (
-            <div key={i} style={{ fontSize: i === 0 ? 28 : 18, fontWeight: i === 0 ? 700 : 400, opacity: i === 0 ? 1 : .8, letterSpacing: i === 0 ? 2 : 4 }}>
-              {line}
-            </div>
-          ))
-        ) : (
-          <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: 2, textAlign: 'center' }}>{brand.name}</div>
-        )}
-        <div style={{ width: 60, height: 2, background: C.gold, margin: '20px 0' }} />
-        <div style={{ fontSize: 13, opacity: .6, textAlign: 'center', lineHeight: 1.8 }}>
-          {brand.subtitle}<br />{brand.tagline}
+        <LogoCarousel />
+        <div style={{ fontSize: 12, opacity: .55, textAlign: 'center', letterSpacing: 2, marginTop: 22 }}>
+          統合管理システム
         </div>
       </div>
 
@@ -68,22 +119,20 @@ export default function Login() {
           background: '#fff', borderRadius: 16, padding: '44px 40px',
           width: '100%', boxShadow: '0 24px 80px rgba(0,0,0,.3)',
         }}>
-          {/* Logo */}
+          {/* Logo — 正式ロゴ自体に社名・タグラインが含まれるため、
+              重複するテキストは表示しない */}
           <div style={{ textAlign: 'center', marginBottom: 28 }}>
             <div style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               width: 192, height: 192, borderRadius: 32,
               background: `linear-gradient(135deg, ${C.navy} 0%, ${C.navyDark} 100%)`,
-              marginBottom: 18,
+              marginBottom: 16,
               boxShadow: '0 12px 32px rgba(31,56,100,.35)',
             }}>
               <img src={brand.logo} alt={brand.name} style={{ width: 160, height: 160, objectFit: 'contain' }} />
             </div>
-            <div style={{ fontSize: 19, fontWeight: 700, color: C.navy, letterSpacing: 1 }}>
-              {brand.name}
-            </div>
-            <div style={{ fontSize: 12, color: '#90A4AE', marginTop: 4, letterSpacing: 2 }}>
-              {brand.tagline}
+            <div style={{ fontSize: 12, color: '#90A4AE', letterSpacing: 2 }}>
+              {brand.subtitle}
             </div>
             <div style={{
               width: 48, height: 2, background: C.gold,

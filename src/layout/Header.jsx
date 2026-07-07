@@ -56,11 +56,10 @@ export default function Header({ onMenuClick }) {
           display: flex; align-items: center; justify-content: center;
         }
         .app-header-logo {
-          width: 36px; height: 36px; border-radius: ${C.radius.md}px;
-          background: rgba(201,168,76,.18); flex-shrink: 0; cursor: pointer;
+          height: 34px; max-width: 132px; flex-shrink: 0; cursor: pointer;
           display: flex; align-items: center; justify-content: center;
         }
-        .app-header-logo img { width: 26px; height: 26px; object-fit: contain; }
+        .app-header-logo img { height: 100%; width: auto; max-width: 100%; object-fit: contain; }
         .app-header-actions {
           display: flex; align-items: center; gap: 8px; flex-shrink: 0;
         }

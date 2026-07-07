@@ -5,6 +5,7 @@ import { useUnreadCounts, useMyNotifications } from '../../hooks/useNotification
 import { useApprovalRequests } from '../../hooks/useData'
 import HubShell from '../../layout/HubShell'
 import ModuleGrid from '../../ui/ModuleGrid'
+import WelcomeHero from './WelcomeHero'
 import { COMPANY_MODULES } from './registry'
 import { C, today } from '../../lib/constants'
 
@@ -66,12 +67,7 @@ export default function Portal() {
     <HubShell>
       <div style={{ maxWidth: 1180, margin: '0 auto', padding: '32px 20px 56px' }}>
         <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 2.5, marginBottom: 8 }}>
-            WELCOME
-          </div>
-          <h1 style={{ fontSize: 21, fontWeight: 700, color: C.navy, margin: '0 0 5px' }}>
-            こんにちは、{profile?.full_name || '—'} さん
-          </h1>
+          <WelcomeHero fullName={profile?.full_name} />
           <div style={{ fontSize: 13, color: '#90A4AE' }}>
             ご利用になる管理メニューを選択してください — {today()}
           </div>
