@@ -54,7 +54,7 @@ export default function PropertyHub() {
           borderRadius: 14, padding: '12px 16px', flex: 1, minWidth: 220,
         }}>
           <div style={{ fontSize: 11, color: '#D9BE72', letterSpacing: 1, marginBottom: 3, fontWeight: 700 }}>
-            DAI TODAY
+            NEO TODAY
           </div>
           <div style={{ fontSize: 13, color: '#fff', whiteSpace: 'pre-line', lineHeight: 1.6 }}>
             {daiGreeting()}{profile?.full_name ? ` ${profile.full_name}さん` : ''}
@@ -99,7 +99,7 @@ export default function PropertyHub() {
 
         <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #ECEFF1', boxShadow: '0 1px 4px rgba(0,0,0,.06)', padding: 16 }}>
           <div style={{ fontSize: 12.5, fontWeight: 700, color: C.navy, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <i className="ti ti-bulb" style={{ color: C.gold }} />DAIからの提案
+            <i className="ti ti-bulb" style={{ color: C.gold }} />NEOからの提案
           </div>
           {SUGGESTIONS.map((s, i) => (
             <div key={i} style={{ fontSize: 12, color: '#607D8B', marginBottom: 9, paddingLeft: 14, position: 'relative' }}>
@@ -115,7 +115,7 @@ export default function PropertyHub() {
       `}</style>
 
       <div style={{ textAlign: 'center', fontSize: 11.5, color: '#90A4AE', marginBottom: 30 }}>
-        DAIはあなたの業務をサポートします。何でも聞いてください！
+        NEOはあなたの業務をサポートします。何でも聞いてください！
       </div>
 
       <div style={{ marginBottom: 12 }}>

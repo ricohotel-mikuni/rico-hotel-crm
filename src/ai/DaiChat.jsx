@@ -46,7 +46,7 @@ export default function DaiChat() {
         >
           <Dai expr="smile" size={56} />
           <span style={{ color: '#fff', fontSize: 12, textAlign: 'left', lineHeight: 1.5 }}>
-            <b style={{ display: 'block', color: C.gold, fontSize: 11 }}>DAI</b>
+            <b style={{ display: 'block', color: C.gold, fontSize: 11 }}>NEO</b>
             お手伝いできることありますか？
           </span>
         </button>
@@ -63,7 +63,7 @@ export default function DaiChat() {
           }}>
             <Dai expr="talk" size={44} />
             <div style={{ flex: 1 }}>
-              <div style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>DAI</div>
+              <div style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>NEO</div>
               <div style={{ color: C.gold, fontSize: 10.5 }}>● オンライン</div>
             </div>
             <button
