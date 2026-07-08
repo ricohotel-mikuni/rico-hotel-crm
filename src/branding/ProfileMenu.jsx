@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useMyEmployee } from '../hooks/useData'
+import { hasTrustedRoster } from '../auth/deviceTrust'
 import { C, ROLES } from '../lib/constants'
 
 // Replaces the old cramped "name / role / bell / logout" row (which
@@ -13,11 +14,21 @@ import { C, ROLES } from '../lib/constants'
 // being visible.
 export default function ProfileMenu({ compact }) {
   const [open, setOpen] = useState(false)
-  const { profile, role, signOut } = useAuth()
+  const { profile, role, signOut, lock } = useAuth()
   const { employee } = useMyEmployee()
   const navigate = useNavigate()
 
   const go = (path) => { navigate(path); setOpen(false) }
+
+  // この端末にPINが登録済みなら「ログアウト」はロック画面へ戻すだけ
+  // (Supabaseセッションは破棄しない、次回はPINで即再開できる)。
+  // PIN未登録の端末では、そもそもPINで復帰できないため通常どおり
+  // 本当のサインアウトを行う。
+  const handleLogout = () => {
+    setOpen(false)
+    if (hasTrustedRoster()) lock()
+    else signOut()
+  }
 
   return (
     <div style={{ position: 'relative' }}>
@@ -45,7 +56,7 @@ export default function ProfileMenu({ compact }) {
               <i className="ti ti-settings" /> 設定
             </button>
             <div className="profile-menu-divider" />
-            <button onClick={signOut} className="profile-menu-item profile-menu-item-danger">
+            <button onClick={handleLogout} className="profile-menu-item profile-menu-item-danger">
               <i className="ti ti-logout" /> ログアウト
             </button>
           </div>

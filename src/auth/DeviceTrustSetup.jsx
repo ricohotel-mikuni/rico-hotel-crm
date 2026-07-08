@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { C } from '../lib/constants'
 import { Spinner } from '../ui'
 import PinPad from './PinPad'
-import { getDeviceId, findRosterEntry, upsertRosterEntry, updateRosterToken, maskToken } from './deviceTrust'
+import { getDeviceId, findRosterEntry, upsertRosterEntry } from './deviceTrust'
 
 function guessDeviceLabel() {
   const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
@@ -18,8 +18,9 @@ function guessDeviceLabel() {
 
 // パスワードでログインした直後に一度だけ挟まる画面(App.jsxが
 // sessionStorageのJUST_PASSWORD_SIGNED_INフラグを見て表示を判断する)。
-// この端末が既にPIN登録済みの本人であれば、画面を出さずrefresh_token
-// だけ静かに更新してすぐ onDone() する(毎回聞かれると煩わしいため)。
+// この端末が既にPIN登録済みの本人であれば、画面を出さず
+// register_trusted_device を再実行して30日有効期限だけスライドさせ、
+// すぐ onDone() する(毎回聞かれると煩わしいため)。
 export default function DeviceTrustSetup({ onDone }) {
   const { user } = useAuth()
   const [stage, setStage] = useState('checking') // checking | prompt | pin-setup | pin-confirm | done
@@ -42,17 +43,12 @@ export default function DeviceTrustSetup({ onDone }) {
       setEmployee(full)
 
       const existing = findRosterEntry(emp.id)
-      console.log('[DAI-AUTH][DeviceTrustSetup] init: employee_id=%s existing roster entry found=%s', emp.id, Boolean(existing))
       if (existing) {
-        // この端末は既に信頼済み — 最新のrefresh_tokenを更新し、
-        // register_trusted_device を再実行して30日有効期限もスライドさせる
-        // (PINを使わずパスワードで来た日も、信頼が切れずに済むように)
-        const { data: sessionData } = await supabase.auth.getSession()
-        const session = sessionData?.session
-        console.log('[DAI-AUTH][DeviceTrustSetup] init(already trusted): refresh_token=%s', maskToken(session?.refresh_token))
-        if (session?.refresh_token) updateRosterToken(emp.id, session.refresh_token)
+        // この端末は既に信頼済み — register_trusted_device を再実行して
+        // 30日有効期限だけスライドさせる(表示名等が変わっていれば更新)
+        upsertRosterEntry(full)
         supabase.rpc('register_trusted_device', { p_device_id: getDeviceId(), p_device_label: guessDeviceLabel() })
-          .then(({ error }) => { if (error) console.error('[DAI-AUTH][DeviceTrustSetup] expiry refresh failed:', error) })
+          .then(({ error }) => { if (error) console.error('[DeviceTrustSetup] expiry refresh failed:', error) })
         onDone()
         return
       }
@@ -67,31 +63,21 @@ export default function DeviceTrustSetup({ onDone }) {
   const finishWithTrust = async (pin) => {
     setSaving(true)
     setErrorMsg('')
-    console.log('[DAI-AUTH][DeviceTrustSetup] ① PIN登録開始 employee_id=%s', employee?.employee_id)
     try {
       const { error: pinErr } = await supabase.rpc('set_employee_pin', { p_pin: pin })
-      console.log('[DAI-AUTH][DeviceTrustSetup] set_employee_pin RPC result: error=%o', pinErr)
       if (pinErr) { setErrorMsg('PINの登録に失敗しました: ' + pinErr.message); setSaving(false); return }
 
       const deviceId = getDeviceId()
-      console.log('[DAI-AUTH][DeviceTrustSetup] device_id=%s label=%s', deviceId, guessDeviceLabel())
-      const { data: registeredId, error: devErr } = await supabase.rpc('register_trusted_device', {
+      const { error: devErr } = await supabase.rpc('register_trusted_device', {
         p_device_id: deviceId, p_device_label: guessDeviceLabel(),
       })
-      console.log('[DAI-AUTH][DeviceTrustSetup] register_trusted_device RPC result: id=%s error=%o', registeredId, devErr)
       if (devErr) { setErrorMsg('端末の登録に失敗しました: ' + devErr.message); setSaving(false); return }
 
-      const { data: sessionData, error: sessErr } = await supabase.auth.getSession()
-      const session = sessionData?.session
-      console.log('[DAI-AUTH][DeviceTrustSetup] getSession() after registration: error=%o hasSession=%s access_token=%s refresh_token=%s expires_at=%s',
-        sessErr, Boolean(session), maskToken(session?.access_token), maskToken(session?.refresh_token), session?.expires_at)
-
-      upsertRosterEntry({ ...employee, refresh_token: session?.refresh_token })
-      console.log('[DAI-AUTH][DeviceTrustSetup] ① PIN登録完了 — ローカルロスターへ保存済み')
+      upsertRosterEntry(employee)
       setStage('done')
       setTimeout(onDone, 1400)
     } catch (e) {
-      console.error('[DAI-AUTH][DeviceTrustSetup] finishWithTrust failed:', e)
+      console.error('[DeviceTrustSetup] finishWithTrust failed:', e)
       setErrorMsg(e.message || '端末の信頼登録に失敗しました。もう一度お試しください。')
       setStage('pin-setup')
       setFirstPin('')

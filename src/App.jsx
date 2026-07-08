@@ -17,35 +17,36 @@ import ComingSoon from './modules/ComingSoon'
 import DaiChat from './ai/DaiChat'
 
 export default function App() {
-  const { user, loading } = useAuth()
-  const [forcePassword, setForcePassword] = useState(false)
+  const { user, loading, locked, unlock, signOut } = useAuth()
   const [notice, setNotice] = useState('')
   const [deviceSetupPending, setDeviceSetupPending] = useState(false)
 
   // パスワードでログインした直後だけ、信頼済み端末+PIN登録の案内を
-  // 一度挟む(Login.jsxがsignIn成功時に立てるフラグを読む)。PINログイン
-  // やページ再読み込みによるセッション復元では立たないため誤発火しない。
+  // 一度挟む(Login.jsxがsignIn成功時に立てるフラグを読む)。PINロック
+  // 解除やページ再読み込みによるセッション復元では立たないため誤発火
+  // しない。
   useEffect(() => {
     if (user && sessionStorage.getItem(JUST_PASSWORD_SIGNED_IN_KEY)) {
       setDeviceSetupPending(true)
     }
   }, [user])
 
-  // ログアウトして別の人がこの共有端末を使うケースに備え、直前の
-  // 「パスワードで」強制表示は次のセッションへ持ち越さない。
-  useEffect(() => {
-    if (!user) setForcePassword(false)
-  }, [user])
-
   if (loading) return <PageLoader message="起動中…" />
 
+  // セッションが無い(初回・完全ログアウト後・端末失効時のパスワードへの
+  // 差し戻し等) — 必ずパスワード認証から。
   if (!user) {
-    if (forcePassword || !hasTrustedRoster()) {
-      return <Login notice={notice} />
-    }
+    return <Login notice={notice} onLoggedIn={() => setNotice('')} />
+  }
+
+  // セッションは生きているが、このタブではまだPINロックを解除して
+  // いない(アプリ起動直後、または「ログアウト」でロックした直後)。
+  // 信頼済み端末の登録が無ければPIN自体を出しようがないのでスキップする。
+  if (locked && hasTrustedRoster()) {
     return (
       <PinLogin
-        onUsePassword={(msg) => { setForcePassword(true); setNotice(msg || '') }}
+        onUnlocked={unlock}
+        onUsePassword={(msg) => { setNotice(msg || ''); signOut() }}
       />
     )
   }
@@ -56,8 +57,6 @@ export default function App() {
         onDone={() => {
           sessionStorage.removeItem(JUST_PASSWORD_SIGNED_IN_KEY)
           setDeviceSetupPending(false)
-          setForcePassword(false)
-          setNotice('')
         }}
       />
     )
@@ -85,8 +84,7 @@ export default function App() {
       </Routes>
       {/* DAI常設チャット — ルート遷移をまたいで常に右下に表示する
           ため、Routesの外(ルート切り替えで再マウントされない位置)に
-          一度だけ置く。ログイン前(Login/PinLogin/DeviceTrustSetup)には
-          表示しない。 */}
+          一度だけ置く。ログイン前・ロック中には表示しない。 */}
       <DaiChat />
     </>
   )

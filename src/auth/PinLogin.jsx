@@ -4,21 +4,24 @@ import { C } from '../lib/constants'
 import LogoCarousel from './LogoCarousel'
 import PinPad from './PinPad'
 import { currentGreeting, WELCOME_WORDS } from '../modules/portal/WelcomeHero'
-import { getDeviceId, getRoster, removeRosterEntry, updateRosterToken, maskToken } from './deviceTrust'
+import { getDeviceId, getRoster, removeRosterEntry } from './deviceTrust'
 
 const INTRO_MS = 4200
 const WORD_CYCLE_MS = 900
 
-// 2回目以降のログイン画面(信頼済み端末)。ロゴ演出 → 時間帯の挨拶 →
-// 〇〇様 → 世界の「ようこそ」→ (共有端末なら)ユーザー選択 → PIN入力 →
-// 6桁揃った時点で自動ログイン、の順で提案書⑪⑫の仕様通りに進む。
-// PINはサーバー(verify_employee_pin RPC)でのみ照合し、成功したら
-// この端末に保存済みのrefresh_tokenでSupabaseセッションを復元する —
-// PIN自体が新しいセッションを発行するわけではない(提案書「改善案」
-// の設計判断を参照)。
-export default function PinLogin({ onUsePassword }) {
+// 2回目以降の画面(信頼済み端末) — ロゴ演出 → 時間帯の挨拶 → 〇〇様 →
+// 世界の「ようこそ」→ (共有端末なら)ユーザー選択 → PIN入力 → 6桁揃った
+// 時点で自動的に画面を開く。
+//
+// 設計(2026-07-09確定): PINは新しいSupabaseセッションを作らない。
+// App.jsxがすでに生きたセッション(user)の上にロック画面として重ねて
+// いるだけなので、PINが一致したらAuthContextのunlock()を呼んで
+// ロックを外すだけでよい — refresh_tokenの保存・再提示は一切不要
+// (以前の設計はsignOut()がscopeに関わらずrefresh tokenを失効させる
+// ため原理的に成立しなかった。詳細はAuthContext.jsx冒頭のコメント)。
+export default function PinLogin({ onUnlocked, onUsePassword }) {
   const [roster] = useState(getRoster)
-  const [stage, setStage] = useState('intro') // intro | pick | pin | locked | error
+  const [stage, setStage] = useState('intro') // intro | pick | pin | locked | success
   const [wordIdx, setWordIdx] = useState(0)
   const [wordPhase, setWordPhase] = useState('in')
   const [activeUser, setActiveUser] = useState(roster.length === 1 ? roster[0] : null)
@@ -77,35 +80,34 @@ export default function PinLogin({ onUsePassword }) {
     if (!activeUser) return
     setBusy(true)
     setPinMsg('')
-    const deviceId = getDeviceId()
-    console.log('[DAI-AUTH][PinLogin] ② PIN入力: employee_id=%s device_id=%s stored refresh_token=%s',
-      activeUser.employee_id, deviceId, maskToken(activeUser.refresh_token))
     const { data, error } = await supabase.rpc('verify_employee_pin', {
-      p_employee_id: activeUser.employee_id, p_device_id: deviceId, p_pin: pin,
+      p_employee_id: activeUser.employee_id, p_device_id: getDeviceId(), p_pin: pin,
     })
-    console.log('[DAI-AUTH][PinLogin] verify_employee_pin RPC result: data=%o error=%o', data, error)
     setBusy(false)
 
     if (error) { setPinMsg('通信エラーが発生しました。もう一度お試しください'); setShakeToken(Date.now()); return }
 
     if (data?.ok) {
-      setStage('success')
-      console.log('[DAI-AUTH][PinLogin] PIN一致。refreshSession()を呼び出します refresh_token=%s', maskToken(activeUser.refresh_token))
-      const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession({ refresh_token: activeUser.refresh_token })
-      console.log('[DAI-AUTH][PinLogin] refreshSession() result: error=%o hasSession=%s new access_token=%s new refresh_token=%s',
-        refreshErr, Boolean(refreshed?.session), maskToken(refreshed?.session?.access_token), maskToken(refreshed?.session?.refresh_token))
-      if (refreshErr || !refreshed?.session) {
-        // PINは通ったが、端末に保存済みのセッションそのものが使えない
-        // (パスワード変更・管理者による強制サインアウト等、稀なケース)。
-        // 通常のログアウトではここに来ない — signOut()はscope:'local'を
-        // 使っており、この端末のrefresh_tokenを道連れにしないため。
-        console.error('[DAI-AUTH][PinLogin] refreshSession failed — removing roster entry and falling back to password.', refreshErr)
-        removeRosterEntry(activeUser.employee_id)
-        onUsePassword('この端末の保存情報が無効になっています。もう一度パスワードでログインしてください。')
+      // このブラウザに今実際に生きているSupabaseセッションが、選んだ
+      // 本人のものかを確認する。共有端末で複数人がrosterに載っている
+      // 場合、PINが合っていても「今のセッションの持ち主」と選んだ人が
+      // 違えば、unlock()では別人のセッションを見せてしまう(このタブは
+      // 一度に1人分のセッションしか保持していないため、まだPINだけで
+      // 別人へ安全に切り替える手段が無い) — その場合は安全側に倒し、
+      // パスワードでの再ログインを求める。
+      const { data: { session } } = await supabase.auth.getSession()
+      const { data: liveEmp } = session?.user
+        ? await supabase.from('employees').select('id').eq('user_id', session.user.id).maybeSingle()
+        : { data: null }
+
+      if (!liveEmp || liveEmp.id !== activeUser.employee_id) {
+        onUsePassword(`${activeUser.full_name}様としてこの端末を使うには、一度パスワードでログインしてください。`)
         return
       }
-      console.log('[DAI-AUTH][PinLogin] ② 認証成功。isAuthenticated相当のセッションを確立しました。App.jsxのuser状態更新→ダッシュボード遷移を待ちます。')
-      updateRosterToken(activeUser.employee_id, refreshed.session.refresh_token)
+
+      setStage('success')
+      // セッションはApp.jsx側で既に生きている — ロックを外すだけでよい。
+      setTimeout(onUnlocked, 500)
       return
     }
 

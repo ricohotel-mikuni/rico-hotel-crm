@@ -1,15 +1,33 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { ROLES } from '../lib/constants'
-import { updateRosterToken, findRosterEntry, maskToken } from '../auth/deviceTrust'
 
 const AuthContext = createContext(null)
 
+// PINの設計方針(2026-07-09、認証フロー不具合の根本修正で確定): 実際の
+// @supabase/auth-js ソース(GoTrueClient.js `_signOut`)を確認したところ、
+// signOut()は scope:'local' を指定してもサーバーの /logout を必ず呼び、
+// 「今まさに使っているこのセッション」のrefresh tokenをscopeに関わらず
+// 失効させることが分かった('local'は「他のセッションを巻き込まない」
+// という意味でしかない)。そのため「ログアウトしたセッションのrefresh
+// tokenを後でPINログイン時に再利用する」という以前の設計は、そもそも
+// 両立し得なかった。
+//
+// 新方針: PINは「セッションを破棄して後で復元する」ものではなく、
+// 「生きたままのセッションの上に被せるロック画面」とする。
+// - `signOut()` は本当にSupabaseセッションを破棄する、正真正銘のログアウト。
+// - `lock()`/`unlock()` はSupabaseへ一切アクセスしない、純粋にこのタブ内
+//   だけの表示状態の切り替え。ロック中もSupabaseセッション自体は生きた
+//   ままなので、PIN照合(verify_employee_pin RPC)に成功したら
+//   unlock()を呼ぶだけでダッシュボードに戻れる — refresh_tokenの保存も
+//   再提示も一切不要になり、トークンの失効・ローテーションに起因する
+//   このクラスの不具合自体が発生しなくなる。
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [locked, setLocked] = useState(true)
 
   const fetchProfile = useCallback(async (userId) => {
     const { data, error } = await supabase
@@ -21,55 +39,30 @@ export function AuthProvider({ children }) {
     if (error) console.error('Profile fetch error:', error)
   }, [])
 
-  // Supabaseのrefresh tokenは使い捨て(ローテーション)で、
-  // autoRefreshToken:true(src/lib/supabase.js)により、アプリを開いた
-  // ままでも裏側で定期的に新しいトークンへ入れ替わる。信頼済み端末の
-  // roster(localStorage)にPIN登録時の1回分だけ保存していると、この
-  // 裏側の入れ替わりに追従できず、時間が経つと保存済みトークンが
-  // 「もう使われていない古い世代」になってしまう(refreshSession()が
-  // 失敗する一因になり得る)。そこで、認証状態が変化するたび
-  // (SIGNED_IN・TOKEN_REFRESHED等)に、今ログイン中の社員がこの端末の
-  // rosterに載っていれば、常に最新のrefresh_tokenへ上書きしておく。
-  const syncRosterToken = useCallback(async (session) => {
-    if (!session?.user || !session?.refresh_token) return
-    const { data: emp, error: empErr } = await supabase
-      .from('employees').select('id').eq('user_id', session.user.id).maybeSingle()
-    if (empErr) { console.error('[DAI-AUTH][AuthContext] syncRosterToken: employee lookup failed', empErr); return }
-    if (!emp) return
-    if (!findRosterEntry(emp.id)) return // この端末は信頼済みではない — 何もしない
-    console.log('[DAI-AUTH][AuthContext] syncRosterToken: employee_id=%s refresh_token=%s',
-      emp.id, maskToken(session.refresh_token))
-    updateRosterToken(emp.id, session.refresh_token)
-  }, [])
-
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       if (session?.user) fetchProfile(session.user.id)
       setLoading(false)
-      syncRosterToken(session)
     })
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
-        // 診断用: TOKEN_REFRESHED/SIGNED_IN/SIGNED_OUT等、いつrefresh_token
-        // が入れ替わっているかを追うためのログ(PINログイン不具合の調査)。
-        console.log('[DAI-AUTH][AuthContext] onAuthStateChange event=%s hasSession=%s', _event, Boolean(session))
         setUser(session?.user ?? null)
         if (session?.user) {
           await fetchProfile(session.user.id)
         } else {
           setProfile(null)
+          setLocked(true) // 次回、セッションが復活したら改めてロック状態から始める
         }
         setLoading(false)
-        syncRosterToken(session)
       }
     )
 
     return () => subscription.unsubscribe()
-  }, [fetchProfile, syncRosterToken])
+  }, [fetchProfile])
 
   const signIn = async (email, password) => {
     setError(null)
@@ -83,21 +76,20 @@ export function AuthProvider({ children }) {
     return { data }
   }
 
+  // 正真正銘のサインアウト — Supabaseセッションを実際に破棄する。
+  // 信頼済み端末が無いユーザーの通常ログアウト、またはPINが使えなく
+  // なった場合(端末失効・繰り返し失敗等)のパスワードへの差し戻しに使う。
   const signOut = async () => {
-    // scope:'local' はこのブラウザのセッションだけを終了し、サーバー側の
-    // refresh tokenを失効させない。デフォルト(scope:'global')は
-    // refresh tokenをサーバー側で即座に失効させてしまい、信頼済み端末が
-    // PINログイン用に保存している refresh_token まで道連れで無効化される
-    // ため、ログアウト直後にPINが「端末登録期限切れ」になる不具合の
-    // 原因になっていた。PINログインは「同じ端末に残る正規セッションの
-    // 再提示」という設計(ERP開発憲章第16条)なので、通常のログアウトは
-    // その再提示能力を壊してはならない。
-    console.log('[DAI-AUTH][AuthContext] ③ signOut(scope:local) 呼び出し — PIN/端末登録情報(localStorage)には触れません')
-    const { error } = await supabase.auth.signOut({ scope: 'local' })
-    if (error) console.error('[DAI-AUTH][AuthContext] signOut error:', error)
+    const { error } = await supabase.auth.signOut()
+    if (error) console.error('[AuthContext] signOut error:', error)
     setUser(null)
     setProfile(null)
+    setLocked(true)
   }
+
+  // ロック(Supabaseへは触れない、表示状態の切り替えのみ)
+  const lock = () => setLocked(true)
+  const unlock = () => setLocked(false)
 
   const role = profile?.role ?? 'viewer'
   const permissions = ROLES[role] ?? ROLES.viewer
@@ -110,8 +102,11 @@ export function AuthProvider({ children }) {
       permissions,
       loading,
       error,
+      locked,
       signIn,
       signOut,
+      lock,
+      unlock,
       refetchProfile: () => user && fetchProfile(user.id),
     }}>
       {children}

@@ -41,8 +41,8 @@ function CityNightGlow() {
   )
 }
 
-export default function Login({ notice }) {
-  const { signIn, error } = useAuth()
+export default function Login({ notice, onLoggedIn }) {
+  const { signIn, error, unlock } = useAuth()
   const brand = useBrand()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -67,6 +67,10 @@ export default function Login({ notice }) {
       sessionStorage.setItem(JUST_PASSWORD_SIGNED_IN_KEY, '1')
       supabase.rpc('record_password_login', { p_device_id: getDeviceId() })
         .then(({ error }) => { if (error) console.error('[Login] record_password_login failed:', error) })
+      // パスワードでの認証はPINより強い証明なので、このタブでは
+      // 改めてPINロックを要求しない(次回起動時は通常どおりロックされる)。
+      unlock()
+      onLoggedIn?.()
     }
     setLoading(false)
   }
