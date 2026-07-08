@@ -4,7 +4,7 @@ import { C } from '../lib/constants'
 import LogoCarousel from './LogoCarousel'
 import PinPad from './PinPad'
 import { currentGreeting, WELCOME_WORDS } from '../modules/portal/WelcomeHero'
-import { getDeviceId, getRoster, removeRosterEntry, updateRosterToken } from './deviceTrust'
+import { getDeviceId, getRoster, removeRosterEntry, updateRosterToken, maskToken } from './deviceTrust'
 
 const INTRO_MS = 4200
 const WORD_CYCLE_MS = 900
@@ -77,25 +77,34 @@ export default function PinLogin({ onUsePassword }) {
     if (!activeUser) return
     setBusy(true)
     setPinMsg('')
+    const deviceId = getDeviceId()
+    console.log('[DAI-AUTH][PinLogin] ② PIN入力: employee_id=%s device_id=%s stored refresh_token=%s',
+      activeUser.employee_id, deviceId, maskToken(activeUser.refresh_token))
     const { data, error } = await supabase.rpc('verify_employee_pin', {
-      p_employee_id: activeUser.employee_id, p_device_id: getDeviceId(), p_pin: pin,
+      p_employee_id: activeUser.employee_id, p_device_id: deviceId, p_pin: pin,
     })
+    console.log('[DAI-AUTH][PinLogin] verify_employee_pin RPC result: data=%o error=%o', data, error)
     setBusy(false)
 
     if (error) { setPinMsg('通信エラーが発生しました。もう一度お試しください'); setShakeToken(Date.now()); return }
 
     if (data?.ok) {
       setStage('success')
+      console.log('[DAI-AUTH][PinLogin] PIN一致。refreshSession()を呼び出します refresh_token=%s', maskToken(activeUser.refresh_token))
       const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession({ refresh_token: activeUser.refresh_token })
+      console.log('[DAI-AUTH][PinLogin] refreshSession() result: error=%o hasSession=%s new access_token=%s new refresh_token=%s',
+        refreshErr, Boolean(refreshed?.session), maskToken(refreshed?.session?.access_token), maskToken(refreshed?.session?.refresh_token))
       if (refreshErr || !refreshed?.session) {
         // PINは通ったが、端末に保存済みのセッションそのものが使えない
         // (パスワード変更・管理者による強制サインアウト等、稀なケース)。
         // 通常のログアウトではここに来ない — signOut()はscope:'local'を
         // 使っており、この端末のrefresh_tokenを道連れにしないため。
+        console.error('[DAI-AUTH][PinLogin] refreshSession failed — removing roster entry and falling back to password.', refreshErr)
         removeRosterEntry(activeUser.employee_id)
         onUsePassword('この端末の保存情報が無効になっています。もう一度パスワードでログインしてください。')
         return
       }
+      console.log('[DAI-AUTH][PinLogin] ② 認証成功。isAuthenticated相当のセッションを確立しました。App.jsxのuser状態更新→ダッシュボード遷移を待ちます。')
       updateRosterToken(activeUser.employee_id, refreshed.session.refresh_token)
       return
     }

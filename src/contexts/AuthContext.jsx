@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { ROLES } from '../lib/constants'
+import { updateRosterToken, findRosterEntry, maskToken } from '../auth/deviceTrust'
 
 const AuthContext = createContext(null)
 
@@ -20,17 +21,42 @@ export function AuthProvider({ children }) {
     if (error) console.error('Profile fetch error:', error)
   }, [])
 
+  // Supabaseのrefresh tokenは使い捨て(ローテーション)で、
+  // autoRefreshToken:true(src/lib/supabase.js)により、アプリを開いた
+  // ままでも裏側で定期的に新しいトークンへ入れ替わる。信頼済み端末の
+  // roster(localStorage)にPIN登録時の1回分だけ保存していると、この
+  // 裏側の入れ替わりに追従できず、時間が経つと保存済みトークンが
+  // 「もう使われていない古い世代」になってしまう(refreshSession()が
+  // 失敗する一因になり得る)。そこで、認証状態が変化するたび
+  // (SIGNED_IN・TOKEN_REFRESHED等)に、今ログイン中の社員がこの端末の
+  // rosterに載っていれば、常に最新のrefresh_tokenへ上書きしておく。
+  const syncRosterToken = useCallback(async (session) => {
+    if (!session?.user || !session?.refresh_token) return
+    const { data: emp, error: empErr } = await supabase
+      .from('employees').select('id').eq('user_id', session.user.id).maybeSingle()
+    if (empErr) { console.error('[DAI-AUTH][AuthContext] syncRosterToken: employee lookup failed', empErr); return }
+    if (!emp) return
+    if (!findRosterEntry(emp.id)) return // この端末は信頼済みではない — 何もしない
+    console.log('[DAI-AUTH][AuthContext] syncRosterToken: employee_id=%s refresh_token=%s',
+      emp.id, maskToken(session.refresh_token))
+    updateRosterToken(emp.id, session.refresh_token)
+  }, [])
+
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       if (session?.user) fetchProfile(session.user.id)
       setLoading(false)
+      syncRosterToken(session)
     })
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        // 診断用: TOKEN_REFRESHED/SIGNED_IN/SIGNED_OUT等、いつrefresh_token
+        // が入れ替わっているかを追うためのログ(PINログイン不具合の調査)。
+        console.log('[DAI-AUTH][AuthContext] onAuthStateChange event=%s hasSession=%s', _event, Boolean(session))
         setUser(session?.user ?? null)
         if (session?.user) {
           await fetchProfile(session.user.id)
@@ -38,11 +64,12 @@ export function AuthProvider({ children }) {
           setProfile(null)
         }
         setLoading(false)
+        syncRosterToken(session)
       }
     )
 
     return () => subscription.unsubscribe()
-  }, [fetchProfile])
+  }, [fetchProfile, syncRosterToken])
 
   const signIn = async (email, password) => {
     setError(null)
@@ -65,7 +92,9 @@ export function AuthProvider({ children }) {
     // 原因になっていた。PINログインは「同じ端末に残る正規セッションの
     // 再提示」という設計(ERP開発憲章第16条)なので、通常のログアウトは
     // その再提示能力を壊してはならない。
-    await supabase.auth.signOut({ scope: 'local' })
+    console.log('[DAI-AUTH][AuthContext] ③ signOut(scope:local) 呼び出し — PIN/端末登録情報(localStorage)には触れません')
+    const { error } = await supabase.auth.signOut({ scope: 'local' })
+    if (error) console.error('[DAI-AUTH][AuthContext] signOut error:', error)
     setUser(null)
     setProfile(null)
   }
