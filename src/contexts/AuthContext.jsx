@@ -57,7 +57,15 @@ export function AuthProvider({ children }) {
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    // scope:'local' はこのブラウザのセッションだけを終了し、サーバー側の
+    // refresh tokenを失効させない。デフォルト(scope:'global')は
+    // refresh tokenをサーバー側で即座に失効させてしまい、信頼済み端末が
+    // PINログイン用に保存している refresh_token まで道連れで無効化される
+    // ため、ログアウト直後にPINが「端末登録期限切れ」になる不具合の
+    // 原因になっていた。PINログインは「同じ端末に残る正規セッションの
+    // 再提示」という設計(ERP開発憲章第16条)なので、通常のログアウトは
+    // その再提示能力を壊してはならない。
+    await supabase.auth.signOut({ scope: 'local' })
     setUser(null)
     setProfile(null)
   }

@@ -88,10 +88,12 @@ export default function PinLogin({ onUsePassword }) {
       setStage('success')
       const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession({ refresh_token: activeUser.refresh_token })
       if (refreshErr || !refreshed?.session) {
-        // 保存されていたセッションが失効している(長期間未使用/パスワード
-        // 変更など)— この端末の登録を解除し、パスワード認証へ
+        // PINは通ったが、端末に保存済みのセッションそのものが使えない
+        // (パスワード変更・管理者による強制サインアウト等、稀なケース)。
+        // 通常のログアウトではここに来ない — signOut()はscope:'local'を
+        // 使っており、この端末のrefresh_tokenを道連れにしないため。
         removeRosterEntry(activeUser.employee_id)
-        onUsePassword('この端末の登録が期限切れです。もう一度パスワードでログインしてください。')
+        onUsePassword('この端末の保存情報が無効になっています。もう一度パスワードでログインしてください。')
         return
       }
       updateRosterToken(activeUser.employee_id, refreshed.session.refresh_token)
@@ -102,6 +104,12 @@ export default function PinLogin({ onUsePassword }) {
       const secs = Math.max(1, Math.ceil((new Date(data.locked_until).getTime() - Date.now()) / 1000))
       setLockSeconds(secs)
       setStage('locked')
+      return
+    }
+
+    if (data?.reason === 'device_expired') {
+      removeRosterEntry(activeUser.employee_id)
+      onUsePassword('この端末の信頼登録は30日間利用が無かったため期限切れになりました。もう一度パスワードでログインしてください。')
       return
     }
 

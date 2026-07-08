@@ -43,9 +43,13 @@ export default function DeviceTrustSetup({ onDone }) {
 
       const existing = findRosterEntry(emp.id)
       if (existing) {
-        // この端末は既に信頼済み — 最新のrefresh_tokenだけ更新して終了
+        // この端末は既に信頼済み — 最新のrefresh_tokenを更新し、
+        // register_trusted_device を再実行して30日有効期限もスライドさせる
+        // (PINを使わずパスワードで来た日も、信頼が切れずに済むように)
         const { data: { session } } = await supabase.auth.getSession()
         if (session?.refresh_token) updateRosterToken(emp.id, session.refresh_token)
+        supabase.rpc('register_trusted_device', { p_device_id: getDeviceId(), p_device_label: guessDeviceLabel() })
+          .then(({ error }) => { if (error) console.error('[DeviceTrustSetup] expiry refresh failed:', error) })
         onDone()
         return
       }
