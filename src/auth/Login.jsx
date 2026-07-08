@@ -1,69 +1,13 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useBrand } from '../branding/BrandContext'
-import { BRANDS } from '../branding/brands'
 import { Spinner } from '../ui'
 import { C } from '../lib/constants'
+import { supabase } from '../lib/supabase'
+import { getDeviceId, JUST_PASSWORD_SIGNED_IN_KEY } from './deviceTrust'
+import LogoCarousel from './LogoCarousel'
 
-// The two official full logos, rotating 3D left → next → left → back,
-// looping forever. Always daiei ⇄ ricoHotel regardless of which brand
-// context Login itself is mounted under (login happens before a
-// property is chosen, so this is a company-wide branding moment, not
-// tied to `useBrand()`).
-const CAROUSEL_LOGOS = [BRANDS.daiei, BRANDS.ricoHotel]
-
-// Face A always shows daiei, face B always shows ricoHotel — with
-// exactly 2 logos, "which logo is on which face" never needs to
-// change, only "which face is currently at rest vs rotated away" does.
-// That keeps the animation state trivial: a single 'a' | 'b' flag for
-// which one is in front. The outgoing face rotates OUT to the left
-// while the incoming one rotates IN from the right at the same time —
-// a single swapped <img> can't produce that illusion (a freshly
-// mounted element has no "before" state to transition from).
-function LogoCarousel() {
-  const [front, setFront] = useState('a')
-  const reduceMotion = useRef(typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches).current
-
-  useEffect(() => {
-    if (reduceMotion) return
-    const id = setInterval(() => setFront(f => (f === 'a' ? 'b' : 'a')), 2000)
-    return () => clearInterval(id)
-  }, [reduceMotion])
-
-  return (
-    <div className="login-logo-stage">
-      <img
-        src={BRANDS.daiei.logo} alt={BRANDS.daiei.name}
-        className={`login-logo-face ${front === 'a' ? 'is-entering' : 'is-leaving'}`}
-      />
-      <img
-        src={BRANDS.ricoHotel.logo} alt={BRANDS.ricoHotel.name}
-        className={`login-logo-face ${front === 'b' ? 'is-entering' : 'is-leaving'}`}
-      />
-      <style>{`
-        .login-logo-stage {
-          width: 100%; max-width: 300px; height: 200px; position: relative;
-          perspective: 1200px;
-        }
-        .login-logo-face {
-          position: absolute; inset: 0; margin: auto;
-          max-width: 100%; max-height: 100%; object-fit: contain;
-          filter: drop-shadow(0 10px 30px rgba(0,0,0,.4));
-          transition: transform .8s cubic-bezier(.65,0,.35,1), opacity .5s ease;
-          transform: rotateY(0deg); backface-visibility: hidden;
-        }
-        .login-logo-face.is-leaving { transform: rotateY(-100deg); }
-        .login-logo-face.is-entering { animation: logoEnter .8s cubic-bezier(.65,0,.35,1); }
-        @keyframes logoEnter { from { transform: rotateY(100deg); } to { transform: rotateY(0deg); } }
-        @media (prefers-reduced-motion: reduce) {
-          .login-logo-face { transition: none; animation: none !important; }
-        }
-      `}</style>
-    </div>
-  )
-}
-
-export default function Login() {
+export default function Login({ notice }) {
   const { signIn, error } = useAuth()
   const brand = useBrand()
   const [email, setEmail] = useState('')
@@ -77,7 +21,19 @@ export default function Login() {
     setLoading(true)
     setLocalError('')
     const { error: err } = await signIn(email, password)
-    if (err) setLocalError(err)
+    if (err) {
+      setLocalError(err)
+    } else {
+      // App.jsx reads this flag once (right after mount, before the
+      // employee's next PIN login) to decide whether to offer the
+      // 「この端末を信頼する」+ PIN登録ステップ. It must NOT fire on
+      // session restore (page reload) or on a PIN-based sign-in, only
+      // on an actual password submit — sessionStorage (not localStorage)
+      // makes it self-clearing per tab and PinLogin never sets it.
+      sessionStorage.setItem(JUST_PASSWORD_SIGNED_IN_KEY, '1')
+      supabase.rpc('record_password_login', { p_device_id: getDeviceId() })
+        .then(({ error }) => { if (error) console.error('[Login] record_password_login failed:', error) })
+    }
     setLoading(false)
   }
 
@@ -139,6 +95,17 @@ export default function Login() {
               margin: '12px auto 0', borderRadius: 1,
             }} />
           </div>
+
+          {notice && (
+            <div style={{
+              background: '#EEF3FB', color: C.navy, fontSize: 12.5,
+              padding: '10px 14px', borderRadius: 7, marginBottom: 18,
+              border: '1px solid #D5E1F2', display: 'flex', alignItems: 'center', gap: 8,
+            }}>
+              <i className="ti ti-info-circle" style={{ flexShrink: 0 }} />
+              {notice}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit}>
             {/* Email */}

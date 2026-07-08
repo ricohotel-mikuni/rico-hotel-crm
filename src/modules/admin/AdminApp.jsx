@@ -4,6 +4,7 @@ import { PageLoader } from '../../ui'
 import SidebarShell from '../../layout/SidebarShell'
 import ComingSoon from '../ComingSoon'
 import AdminCenter from './AdminCenter'
+import AdminAuditLog from './AdminAuditLog'
 import { ADMIN_MODULES } from './registry'
 
 const ADMIN_NAV_GROUPS = [{
@@ -29,7 +30,8 @@ export default function AdminApp() {
     <SidebarShell groups={ADMIN_NAV_GROUPS}>
       <Routes>
         <Route path="/" element={<AdminCenter />} />
-        {ADMIN_MODULES.map(m => (
+        <Route path="audit-logs/*" element={<AdminAuditLog />} />
+        {ADMIN_MODULES.filter(m => m.status !== 'active').map(m => (
           <Route key={m.id} path={`${m.path.replace(/^\//, '')}/*`} element={<ComingSoon module={m} bare />} />
         ))}
         <Route path="*" element={<Navigate to="." replace />} />

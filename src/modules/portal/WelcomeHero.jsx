@@ -1,21 +1,24 @@
 import { useEffect, useRef, useState } from 'react'
 import { C } from '../../lib/constants'
 
-const GREETINGS = [
+export const GREETINGS = [
   { from: 5, to: 11, emoji: '🌅', text: 'おはようございます' },
   { from: 11, to: 17, emoji: '☀️', text: 'こんにちは' },
   { from: 17, to: 22, emoji: '🌇', text: 'こんばんは' },
   { from: 22, to: 29, emoji: '🌙', text: 'お疲れ様です' }, // 29 wraps past midnight to 5:00
 ]
 
-function currentGreeting() {
+// PinLogin(2回目以降のPINログイン画面)も同じ挨拶ロジックを使う —
+// 「時間帯の挨拶」は会社ホームとログイン画面で1つの定義を共有する。
+export function currentGreeting() {
   const h = new Date().getHours()
   const hh = h < 5 ? h + 24 : h
   return GREETINGS.find(g => hh >= g.from && hh < g.to) || GREETINGS[3]
 }
 
 // 世界各国の「ようこそ」— ユーザー指定の21パターンを国旗付きで巡回。
-const WELCOME_WORDS = [
+// PinLoginでも共有するためexportする。
+export const WELCOME_WORDS = [
   { flag: '🇯🇵', text: 'ようこそ' },
   { flag: '🇺🇸', text: 'Welcome' },
   { flag: '🇬🇧', text: 'Welcome' },
