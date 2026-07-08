@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useClients } from '../../../hooks/useData'
 import { useCases } from '../../../hooks/useData'
 import { useAuth } from '../../../contexts/AuthContext'
-import { Badge, AsyncBoundary, TableSkeleton, Btn } from '../../../ui'
+import { Badge, AsyncBoundary, TableSkeleton } from '../../../ui'
 import { C, fmt, today } from '../../../lib/constants'
 
 function KPICard({ label, value, unit, color, icon, bg, onClick }) {
@@ -38,15 +38,20 @@ export default function Home() {
   const wonRev      = won.reduce((s, c) => s + (c.revenue || 0), 0)
   const wonComm     = won.reduce((s, c) => s + (c.commission || 0), 0)
 
+  // 相対パス(先頭スラッシュ無し) — この画面はSalesAppのネスト
+  // ルート内('.../sales/'配下)にマウントされているため、絶対パス
+  // ('/clients'等)を渡すとアプリのルート直下として解釈され、
+  // どの拠点のURLにも一致せず /(会社ホーム)へ弾かれてしまう
+  // (2026-07-09、実際に発生した不具合を修正)。
   const kpis = [
-    { label: '今日のフォロー',   value: todayFollow.length, unit: '件', color: '#F44336', icon: 'ti-bell',          bg: '#FFEBEE', path: '/clients' },
-    { label: '今週フォロー予定', value: weekFollow.length,  unit: '件', color: '#FF9800', icon: 'ti-calendar',      bg: '#FFF3E0', path: '/clients' },
-    { label: '期限切れ案件',     value: overdue.length,     unit: '件', color: '#9C27B0', icon: 'ti-alert-circle',  bg: '#F3E5F5', path: '/clients' },
-    { label: '成約件数',         value: won.length,         unit: '件', color: C.green,   icon: 'ti-trophy',        bg: '#E8F5E9', path: '/cases'   },
-    { label: '成約売上合計',     value: Math.round(wonRev / 10000), unit: '万円', color: C.navy, icon: 'ti-currency-yen', bg: '#E3F2FD', path: '/cases' },
-    { label: '成果報酬合計',     value: Math.round(wonComm / 10000), unit: '万円', color: '#009688', icon: 'ti-coins', bg: '#E0F2F1', path: '/commissions' },
-    { label: '商談中案件',       value: cases.filter(c => c.status !== '成約' && c.status !== 'キャンセル').length, unit: '件', color: '#5C6BC0', icon: 'ti-briefcase', bg: '#E8EAF6', path: '/cases' },
-    { label: '営業先総数',       value: clients.length,     unit: '社', color: '#455A64', icon: 'ti-building-store', bg: '#ECEFF1', path: '/clients' },
+    { label: '今日のフォロー',   value: todayFollow.length, unit: '件', color: '#F44336', icon: 'ti-bell',          bg: '#FFEBEE', path: 'clients' },
+    { label: '今週フォロー予定', value: weekFollow.length,  unit: '件', color: '#FF9800', icon: 'ti-calendar',      bg: '#FFF3E0', path: 'clients' },
+    { label: '期限切れ案件',     value: overdue.length,     unit: '件', color: '#9C27B0', icon: 'ti-alert-circle',  bg: '#F3E5F5', path: 'clients' },
+    { label: '成約件数',         value: won.length,         unit: '件', color: C.green,   icon: 'ti-trophy',        bg: '#E8F5E9', path: 'cases'   },
+    { label: '成約売上合計',     value: Math.round(wonRev / 10000), unit: '万円', color: C.navy, icon: 'ti-currency-yen', bg: '#E3F2FD', path: 'cases' },
+    { label: '成果報酬合計',     value: Math.round(wonComm / 10000), unit: '万円', color: '#009688', icon: 'ti-coins', bg: '#E0F2F1', path: 'commissions' },
+    { label: '商談中案件',       value: cases.filter(c => c.status !== '成約' && c.status !== 'キャンセル').length, unit: '件', color: '#5C6BC0', icon: 'ti-briefcase', bg: '#E8EAF6', path: 'cases' },
+    { label: '営業先総数',       value: clients.length,     unit: '社', color: '#455A64', icon: 'ti-building-store', bg: '#ECEFF1', path: 'clients' },
   ]
 
   return (
@@ -61,9 +66,6 @@ export default function Home() {
             <img src="/logo.png" alt="" style={{ width: 14, height: 14, objectFit: 'contain' }} />
             リコホテル三国 営業管理システム — {todayStr}
           </div>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Btn onClick={() => navigate('/clients')} icon="ti-plus" label="営業先を追加" color={C.navy} sm />
         </div>
       </div>
 
@@ -87,7 +89,7 @@ export default function Home() {
             {todayFollow.length === 0
               ? <div style={{ padding: '20px', textAlign: 'center', color: '#BDBDBD', fontSize: 12 }}>今日のフォロー予定はありません ✓</div>
               : todayFollow.map(c => (
-                <div key={c.id} onClick={() => navigate('/clients')} style={{ padding: '8px 14px', borderBottom: '1px solid #F5F5F5', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div key={c.id} onClick={() => navigate('clients')} style={{ padding: '8px 14px', borderBottom: '1px solid #F5F5F5', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <div style={{ fontSize: 12, fontWeight: 600, color: C.navy }}>{c.company}</div>
                     <div style={{ fontSize: 11, color: '#90A4AE' }}>{c.contact}</div>
@@ -106,7 +108,7 @@ export default function Home() {
             {overdue.length === 0
               ? <div style={{ padding: '20px', textAlign: 'center', color: '#BDBDBD', fontSize: 12 }}>期限切れの案件はありません ✓</div>
               : overdue.slice(0, 5).map(c => (
-                <div key={c.id} onClick={() => navigate('/clients')} style={{ padding: '8px 14px', borderBottom: '1px solid #F5F5F5', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div key={c.id} onClick={() => navigate('clients')} style={{ padding: '8px 14px', borderBottom: '1px solid #F5F5F5', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <div style={{ fontSize: 12, fontWeight: 600, color: '#C62828' }}>⚠ {c.company}</div>
                     <div style={{ fontSize: 11, color: '#90A4AE' }}>期限: {c.next_follow_date}</div>
@@ -128,7 +130,7 @@ export default function Home() {
             </div>
           </div>
           {clients.slice(0, 6).map(c => (
-            <div key={c.id} onClick={() => navigate('/clients')} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid #F5F5F5', cursor: 'pointer', transition: 'background .1s' }}>
+            <div key={c.id} onClick={() => navigate('clients')} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid #F5F5F5', cursor: 'pointer', transition: 'background .1s' }}>
               <div style={{ width: 34, height: 34, borderRadius: 7, background: `${C.navy}12`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <i className="ti ti-building-store" style={{ fontSize: 15, color: C.navy }} />
               </div>
