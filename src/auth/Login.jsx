@@ -5,7 +5,41 @@ import { Spinner } from '../ui'
 import { C } from '../lib/constants'
 import { supabase } from '../lib/supabase'
 import { getDeviceId, JUST_PASSWORD_SIGNED_IN_KEY } from './deviceTrust'
-import LogoCarousel from './LogoCarousel'
+import Dai from '../ai/Dai'
+import { daiGreeting } from '../ai/daiGreeting'
+
+// 都会夜景のボケ味(ビルの灯り)を軽量なCSSだけで表現する — 写真素材を
+// 使わず、金/白の柔らかい光点をぼかして重ねるだけの簡易版(AI開発憲章の
+// 「簡易版実装指示書」に基づく今回のスコープ)。
+function CityNightGlow() {
+  const dots = [
+    { l: '8%', t: '18%', s: 46, c: 'rgba(201,168,76,.35)' },
+    { l: '22%', t: '58%', s: 30, c: 'rgba(255,255,255,.18)' },
+    { l: '78%', t: '22%', s: 54, c: 'rgba(201,168,76,.25)' },
+    { l: '88%', t: '64%', s: 34, c: 'rgba(255,255,255,.14)' },
+    { l: '55%', t: '10%', s: 26, c: 'rgba(255,255,255,.16)' },
+  ]
+  return (
+    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+      {dots.map((d, i) => (
+        <div key={i} style={{
+          position: 'absolute', left: d.l, top: d.t, width: d.s, height: d.s,
+          borderRadius: '50%', background: d.c, filter: 'blur(6px)',
+        }} />
+      ))}
+      <svg style={{ position: 'absolute', left: 0, right: 0, bottom: 0, width: '100%', height: '32%', opacity: .5, filter: 'blur(.5px)' }} viewBox="0 0 400 100" preserveAspectRatio="none">
+        {[
+          [0, 28, 60], [30, 22, 45], [55, 26, 70], [84, 20, 38],
+          [107, 30, 58], [140, 24, 80], [167, 26, 50], [196, 22, 65],
+          [221, 28, 42], [252, 24, 85], [279, 30, 55], [312, 22, 40],
+          [337, 26, 72], [366, 34, 52],
+        ].map(([x, w, h], i) => (
+          <rect key={i} x={x} y={100 - h} width={w} height={h} fill="rgba(31,56,100,.5)" />
+        ))}
+      </svg>
+    </div>
+  )
+}
 
 export default function Login({ notice }) {
   const { signIn, error } = useAuth()
@@ -46,21 +80,28 @@ export default function Login({ notice }) {
 
   return (
     <div style={{
-      minHeight: '100dvh', display: 'flex',
+      minHeight: '100dvh', display: 'flex', position: 'relative', overflow: 'hidden',
       background: `linear-gradient(135deg, ${C.navyDark} 0%, ${C.navy} 60%, #2E5FA3 100%)`,
     }}>
-      {/* Left panel — branding: 大栄商事 ⇄ リコホテル三国 の正式ロゴが交互に
-          3D回転する。各ロゴ自体に社名・タグラインが含まれるため、別途
-          テキストは表示しない(重複を避ける)。 */}
+      <CityNightGlow />
+
+      {/* Left panel — DAI(会社専属AI)が時間帯挨拶とともに出迎える。
+          正式ロゴは右パネル側に別途表示するため、DAIが置き換えることは
+          ない(ERP開発憲章第12〜14条・ブランド規定)。 */}
       <div style={{
         flex: 1, flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
-        padding: 40, color: '#fff',
+        padding: 40, color: '#fff', position: 'relative', zIndex: 1,
         display: 'none',  /* hidden on mobile */
       }} className="login-brand">
-        <LogoCarousel />
-        <div style={{ fontSize: 12, opacity: .55, textAlign: 'center', letterSpacing: 2, marginTop: 22 }}>
-          統合管理システム
+        <Dai expr="smile" pose="wave" size={260} />
+        <div style={{
+          marginTop: 22, background: 'rgba(255,255,255,.96)', color: C.navyDark,
+          borderRadius: 16, padding: '14px 20px', fontSize: 14, fontWeight: 500,
+          maxWidth: 260, textAlign: 'center', boxShadow: '0 14px 34px rgba(0,0,0,.28)',
+          whiteSpace: 'pre-line', lineHeight: 1.6,
+        }}>
+          {daiGreeting()}
         </div>
       </div>
 
@@ -69,10 +110,11 @@ export default function Login({ notice }) {
         width: '100%', maxWidth: 440,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '20px 16px',
-        margin: '0 auto',
+        margin: '0 auto', position: 'relative', zIndex: 1,
       }}>
         <div style={{
-          background: '#fff', borderRadius: 16, padding: '44px 40px',
+          background: 'rgba(255,255,255,.94)', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)',
+          borderRadius: 16, padding: '44px 40px', border: '1px solid rgba(255,255,255,.5)',
           width: '100%', boxShadow: '0 24px 80px rgba(0,0,0,.3)',
         }}>
           {/* Logo — 正式ロゴ自体に社名・タグラインが含まれるため、

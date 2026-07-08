@@ -14,6 +14,7 @@ import EmployeeProfile from './modules/employees/EmployeeProfile'
 import ApprovalCenter from './modules/approvals/ApprovalCenter'
 import AdminApp from './modules/admin/AdminApp'
 import ComingSoon from './modules/ComingSoon'
+import DaiChat from './ai/DaiChat'
 
 export default function App() {
   const { user, loading } = useAuth()
@@ -63,23 +64,30 @@ export default function App() {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<Portal />} />
-      <Route path="/hotels/*" element={<HotelsApp />} />
-      <Route path="/employees" element={<EmployeeDirectory />} />
-      <Route path="/employees/:id" element={<EmployeeProfile />} />
-      <Route path="/approvals" element={<ApprovalCenter />} />
-      <Route path="/admin/*" element={<AdminApp />} />
-      {COMPANY_MODULES.filter(m => m.status !== 'active').map(m => (
-        <Route key={m.id} path={`${m.path}/*`} element={<ComingSoon module={m} />} />
-      ))}
+    <>
+      <Routes>
+        <Route path="/" element={<Portal />} />
+        <Route path="/hotels/*" element={<HotelsApp />} />
+        <Route path="/employees" element={<EmployeeDirectory />} />
+        <Route path="/employees/:id" element={<EmployeeProfile />} />
+        <Route path="/approvals" element={<ApprovalCenter />} />
+        <Route path="/admin/*" element={<AdminApp />} />
+        {COMPANY_MODULES.filter(m => m.status !== 'active').map(m => (
+          <Route key={m.id} path={`${m.path}/*`} element={<ComingSoon module={m} />} />
+        ))}
 
-      {/* 旧URL互換: /sales/* は今はリコホテル三国配下に移動した。
-          ブックマーク・履歴からの移行用の一時的なリダイレクトであり、
-          恒久的な構造として維持する意図はない。 */}
-      <Route path="/sales/*" element={<Navigate to="/hotels/rico-mikuni/sales" replace />} />
+        {/* 旧URL互換: /sales/* は今はリコホテル三国配下に移動した。
+            ブックマーク・履歴からの移行用の一時的なリダイレクトであり、
+            恒久的な構造として維持する意図はない。 */}
+        <Route path="/sales/*" element={<Navigate to="/hotels/rico-mikuni/sales" replace />} />
 
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      {/* DAI常設チャット — ルート遷移をまたいで常に右下に表示する
+          ため、Routesの外(ルート切り替えで再マウントされない位置)に
+          一度だけ置く。ログイン前(Login/PinLogin/DeviceTrustSetup)には
+          表示しない。 */}
+      <DaiChat />
+    </>
   )
 }

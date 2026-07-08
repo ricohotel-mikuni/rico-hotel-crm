@@ -2,6 +2,11 @@ export const C = {
   navy: '#1F3864', navyLight: '#2E5FA3', navyDark: '#162847',
   gold: '#C9A84C', goldLight: '#FFF8E1',
   green: '#4CAF50', red: '#F44336', orange: '#FF9800',
+  // DAIアシスタント(AI開発憲章 第五章)専用の追加トークン。既存の
+  // navy/goldはそのまま流用し、キャラクターの目の発光にのみ必要な
+  // 新規アクセント色をここへ追加する(ERP開発憲章第11条: 新しい色は
+  // 画面ごとに個別定義せずC定数へ追加する)。
+  daiEye: '#00E5FF',
 
   // Design tokens (v1.2.1) — the canonical scale for the shared
   // header ecosystem (Header/Breadcrumb/ProfileMenu/NotificationBell).
