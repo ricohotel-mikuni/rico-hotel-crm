@@ -17,8 +17,22 @@ function replyFor(text) {
   return hit ? hit.reply : '承知しました！サポートしますね😊'
 }
 
+// ランチャーカードの一言 — 固定文言をやめ、状況に応じたヒントを毎回
+// ランダムに1つ表示する(承認済み提案書「拠点ダッシュボードUI改善
+// Ver.7」⑧)。日替わり判定が必要な訳ではない軽い誘い文句のため、
+// PropertyHubのdailyPick(日付シード)とは違い、開くたびに単純に
+// ランダム選択でよい。
+const LAUNCHER_HINTS = [
+  'VIP到着予定です',
+  'レビュー返信があります',
+  '朝食在庫を確認しますか？',
+  '売上予測を表示できます',
+  'お手伝いできることはありますか？',
+]
+
 export default function DaiChat() {
   const [open, setOpen] = useState(false)
+  const [hint] = useState(() => LAUNCHER_HINTS[Math.floor(Math.random() * LAUNCHER_HINTS.length)])
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState([
     { from: 'dai', text: 'お疲れさまです😊\n何かお困りのことはありますか？' },
@@ -38,16 +52,16 @@ export default function DaiChat() {
           type="button"
           onClick={() => setOpen(true)}
           style={{
-            display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', border: 'none',
+            display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', border: 'none',
             background: `linear-gradient(160deg, ${C.navyDark}, ${C.navy} 70%, #2E5FA3 140%)`,
-            borderRadius: 16, padding: '10px 16px 10px 10px', boxShadow: '0 12px 32px rgba(0,0,0,.35)',
-            fontFamily: 'inherit',
+            borderRadius: 14, padding: '8px 14px 8px 8px', boxShadow: '0 12px 32px rgba(0,0,0,.35)',
+            fontFamily: 'inherit', maxWidth: 220,
           }}
         >
-          <Dai expr="smile" size={56} />
-          <span style={{ color: '#fff', fontSize: 12, textAlign: 'left', lineHeight: 1.5 }}>
-            <b style={{ display: 'block', color: C.gold, fontSize: 11 }}>NEO</b>
-            お手伝いできることありますか？
+          <Dai expr="smile" size={46} />
+          <span style={{ color: '#fff', fontSize: 11.5, textAlign: 'left', lineHeight: 1.5 }}>
+            <b style={{ display: 'block', color: C.gold, fontSize: 10.5 }}>NEOに相談する</b>
+            {hint}
           </span>
         </button>
       )}

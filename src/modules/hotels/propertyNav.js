@@ -32,20 +32,24 @@ const SALES_SIDEBAR_ITEMS = [
   { seg: '/contracts',  icon: 'ti-file-check',     label: '契約管理' },
 ]
 
-const HOTEL_OPS_IDS = ['front', 'cleaning', 'breakfast', 'dinner']
+const HOTEL_OPS_IDS = ['front', 'cleaning', 'breakfast', 'dinner', 'parking']
 const MANAGEMENT_IDS = ['maintenance', 'shifts', 'payments', 'cashier', 'purchase', 'expenses', 'documents']
 const SYSTEM_IDS = ['staff', 'settings', 'neo']
 
 // Builds the grouped sidebar structure for a given property brand —
-// ホテル業務／営業／管理／システムの4カテゴリー(承認済み提案書
-// 「拠点ダッシュボードUI改善 Ver.5/Ver.6」④)。旧「概要」グループの
-// 「ホーム」リンクは廃止し、サイドバー上部のブランドロゴ(NavSidebar.jsx)
-// がその役割を引き継ぐ。
+// 「ダッシュボード」の固定項目(label無し = NavSidebar.jsxで折りたたみ
+// 不可のpinned表示になる)+ ホテル業務／営業／管理／システムの4カテゴリー
+// (承認済み提案書「拠点ダッシュボードUI改善 Ver.5〜Ver.7」)。旧「概要」
+// グループの「ホーム」リンクはロゴクリックに統合済みだが、Ver.7で改めて
+// 独立したナビ項目としても復活させている。
 export function buildPropertyNavGroups(brand) {
   const propBase = brand.homePath
   const salesBase = `${propBase}/sales`
 
   return [
+    {
+      items: [{ icon: 'ti-layout-dashboard', label: 'ダッシュボード', path: propBase, exact: true }],
+    },
     {
       label: 'ホテル業務',
       items: MODULES.filter(m => HOTEL_OPS_IDS.includes(m.id)).map(m => ({
