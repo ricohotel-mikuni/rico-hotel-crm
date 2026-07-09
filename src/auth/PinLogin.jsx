@@ -118,15 +118,11 @@ export default function PinLogin({ onUnlocked, onUsePassword }) {
 
   if (roster.length === 0) return null
 
-  const cornerAction = stage !== 'success' ? (
-    <button type="button" onClick={() => onUsePassword()} className="auth-corner-btn">
-      パスワードでログイン
-    </button>
-  ) : null
-
   return (
     <AuthShell
-      cornerAction={cornerAction}
+      mode="pin"
+      onSelectPassword={() => onUsePassword()}
+      onSelectPin={() => {}}
       daiExpr={stage === 'success' ? 'joy' : 'smile'}
       bubbleText={stage === 'success' ? `${activeUser?.full_name} さん、おかえりなさい` : undefined}
     >
@@ -193,13 +189,6 @@ export default function PinLogin({ onUnlocked, onUsePassword }) {
           <div style={{ fontSize: 14, color: '#fff' }}>{activeUser?.full_name} さん、おかえりなさい</div>
         </div>
       )}
-
-      <style>{`
-        .auth-corner-btn {
-          background: rgba(255,255,255,.1); border: none; color: #fff; font-size: 11px;
-          padding: 7px 13px; border-radius: 999px; cursor: pointer; font-family: inherit;
-        }
-      `}</style>
     </AuthShell>
   )
 }

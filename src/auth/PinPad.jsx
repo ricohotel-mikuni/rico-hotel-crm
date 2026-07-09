@@ -90,7 +90,7 @@ export default function PinPad({ length = 6, onComplete, disabled, shakeToken, t
           }} />
         ))}
       </div>
-      <div className="pinpad-keys" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, maxWidth: 220, margin: '0 auto' }}>
+      <div className="pinpad-keys" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, maxWidth: 190, margin: '0 auto' }}>
         {KEYS.map((k, i) => (
           <button
             key={i}
@@ -102,7 +102,7 @@ export default function PinPad({ length = 6, onComplete, disabled, shakeToken, t
               aspectRatio: '1', borderRadius: '50%',
               border: k === '' ? 'none' : `1px solid ${keyBorder}`,
               background: k === '' ? 'transparent' : keyBg,
-              color: keyColor, fontSize: 18, cursor: k === '' ? 'default' : 'pointer',
+              color: keyColor, fontSize: 16, cursor: k === '' ? 'default' : 'pointer',
               fontFamily: 'inherit', opacity: disabled ? 0.35 : 1,
             }}
           >

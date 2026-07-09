@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { Spinner } from '../ui'
 import { C } from '../lib/constants'
 import { supabase } from '../lib/supabase'
-import { getDeviceId, JUST_PASSWORD_SIGNED_IN_KEY } from './deviceTrust'
+import { getDeviceId, JUST_PASSWORD_SIGNED_IN_KEY, hasTrustedRoster } from './deviceTrust'
 import AuthShell from './AuthShell'
 
 export default function Login({ notice, onLoggedIn }) {
@@ -12,6 +12,7 @@ export default function Login({ notice, onLoggedIn }) {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [localError, setLocalError] = useState('')
+  const [pinTapped, setPinTapped] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -39,8 +40,18 @@ export default function Login({ notice, onLoggedIn }) {
     setLoading(false)
   }
 
+  // この画面が出ている時点で生きたSupabaseセッションは無い(App.jsxが
+  // `!user`の場合しかLoginを出さない)ため、PINは検証しようがない
+  // (PINは既存セッションの上に被せるロック画面 — AuthContext.jsx冒頭の
+  // 設計コメント参照)。それでも切替ボタンは常に両方表示する(承認済み
+  // 提案書Ver.4最終指示⑥)方針のため、押されたら実際には切り替えず、
+  // その旨を案内するにとどめる。
+  const pinNotice = hasTrustedRoster()
+    ? 'この端末は登録済みですが、今セッションが有効でないためPINは使えません。まずパスワードでログインしてください。'
+    : 'この端末はまだPINログインが設定されていません。ログイン後に設定できます。'
+
   return (
-    <AuthShell>
+    <AuthShell mode={pinTapped ? 'pin' : 'password'} onSelectPassword={() => setPinTapped(false)} onSelectPin={() => setPinTapped(true)}>
       {notice && (
         <div className="auth-notice">
           <i className="ti ti-info-circle" style={{ flexShrink: 0 }} />
@@ -48,43 +59,47 @@ export default function Login({ notice, onLoggedIn }) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: 16 }}>
-          <label className="auth-label">メールアドレス</label>
-          <input
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            placeholder="your@email.com"
-            autoComplete="email"
-            className="auth-input"
-          />
-        </div>
-
-        <div style={{ marginBottom: 24 }}>
-          <label className="auth-label">パスワード</label>
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="••••••••"
-            autoComplete="current-password"
-            className="auth-input"
-          />
-        </div>
-
-        {(localError || error) && (
-          <div className="auth-error">
-            <i className="ti ti-alert-circle" style={{ flexShrink: 0 }} />
-            {localError || error}
+      {pinTapped ? (
+        <div className="auth-notice">{pinNotice}</div>
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: 16 }}>
+            <label className="auth-label">メールアドレス</label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="your@email.com"
+              autoComplete="email"
+              className="auth-input"
+            />
           </div>
-        )}
 
-        <button type="submit" disabled={loading} className="auth-submit">
-          {loading ? <Spinner size={18} color={C.navyDark} /> : <i className="ti ti-login" />}
-          {loading ? 'ログイン中…' : 'ログイン'}
-        </button>
-      </form>
+          <div style={{ marginBottom: 24 }}>
+            <label className="auth-label">パスワード</label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••"
+              autoComplete="current-password"
+              className="auth-input"
+            />
+          </div>
+
+          {(localError || error) && (
+            <div className="auth-error">
+              <i className="ti ti-alert-circle" style={{ flexShrink: 0 }} />
+              {localError || error}
+            </div>
+          )}
+
+          <button type="submit" disabled={loading} className="auth-submit">
+            {loading ? <Spinner size={18} color={C.navyDark} /> : <i className="ti ti-login" />}
+            {loading ? 'ログイン中…' : 'ログイン'}
+          </button>
+        </form>
+      )}
 
       <style>{`
         .auth-label { font-size: 11px; color: rgba(255,255,255,.65); display: block; margin-bottom: 6px; font-weight: 600; }
@@ -97,7 +112,8 @@ export default function Login({ notice, onLoggedIn }) {
         .auth-input:focus { border-color: ${C.gold}; background: rgba(255,255,255,.12); }
         .auth-notice {
           background: rgba(255,255,255,.09); color: #fff; font-size: 12.5px; padding: 10px 14px; border-radius: 9px;
-          margin-bottom: 18px; border: 1px solid rgba(255,255,255,.18); display: flex; align-items: center; gap: 8;
+          margin-bottom: 18px; border: 1px solid rgba(255,255,255,.18); display: flex; align-items: center; gap: 8px;
+          line-height: 1.6;
         }
         .auth-error {
           background: rgba(224,137,122,.16); color: #f4b5a8; font-size: 13px; padding: 10px 14px; border-radius: 9px;
