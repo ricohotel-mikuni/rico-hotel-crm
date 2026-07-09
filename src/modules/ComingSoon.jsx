@@ -9,7 +9,7 @@ import { C } from '../lib/constants'
 //
 // No longer has its own in-content "ホームへ戻る" button — the header's
 // breadcrumb (and, for property/admin routes, the persistent sidebar's
-// own "ホーム" item) already cover that, so a second one here was a
+// own brand-logo header) already cover that, so a second one here was a
 // redundant duplicate.
 export default function ComingSoon({ module, bare }) {
   const content = (

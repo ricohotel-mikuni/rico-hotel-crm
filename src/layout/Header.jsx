@@ -13,7 +13,13 @@ import { C } from '../lib/constants'
 // Layout: [menu?] [logo — fixed] [breadcrumb — flexes/truncates]
 // [NotificationBell] [ProfileMenu — right group never shrinks], so on
 // any viewport width the middle gives way before anything overlaps.
-export default function Header({ onMenuClick }) {
+//
+// `hideLogo` — SidebarShell-based screens (拠点ホーム・管理センター)
+// now show a large brand logo at the top of the sidebar itself
+// (NavSidebar.jsx), so the small header logo here would be a duplicate
+// (承認済み提案書「拠点ダッシュボードUI改善 Ver.5」⑤). Screens without
+// a sidebar (会社ホーム等) keep the header logo as their only one.
+export default function Header({ onMenuClick, hideLogo }) {
   const navigate = useNavigate()
   const brand = useBrand()
 
@@ -25,9 +31,11 @@ export default function Header({ onMenuClick }) {
         </button>
       )}
 
-      <div className="app-header-logo" onClick={() => navigate(brand.homePath)} title={brand.name}>
-        <img src={brand.logo} alt={brand.name} />
-      </div>
+      {!hideLogo && (
+        <div className="app-header-logo" onClick={() => navigate(brand.homePath)} title={brand.name}>
+          <img src={brand.logo} alt={brand.name} />
+        </div>
+      )}
 
       <Breadcrumb />
 

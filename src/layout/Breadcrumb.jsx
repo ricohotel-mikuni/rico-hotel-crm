@@ -37,7 +37,10 @@ export default function Breadcrumb() {
             <span key={c.path + i} className="breadcrumb-item-wrap">
               {i > 0 && <span className="breadcrumb-sep" aria-hidden="true">›</span>}
               {isLast ? (
-                <span className="breadcrumb-item current">{c.icon ? `${c.icon} ` : ''}{c.label}</span>
+                <span className="breadcrumb-item current">
+                  {c.icon && <span className="breadcrumb-item-icon">{c.icon}</span>}
+                  {c.label}
+                </span>
               ) : (
                 <button type="button" onClick={() => navigate(c.path)} className="breadcrumb-item">
                   {c.icon ? `${c.icon} ` : ''}{c.label}
@@ -75,9 +78,13 @@ export default function Breadcrumb() {
         .breadcrumb-item {
           background: none; border: none; padding: 4px 5px; border-radius: 5px;
           font-size: 12.5px; font-family: inherit; cursor: pointer;
-          color: rgba(255,255,255,.62); white-space: nowrap;
+          color: rgba(255,255,255,.55); white-space: nowrap;
         }
-        .breadcrumb-item.current { color: #fff; font-weight: 700; cursor: default; }
+        .breadcrumb-item.current {
+          color: ${C.gold}; font-weight: 700; cursor: default; font-size: 15px;
+          padding-bottom: 5px; border-bottom: 2px solid ${C.gold};
+        }
+        .breadcrumb-item-icon { display: inline-block; transform: scale(1.3); margin-right: 3px; }
         button.breadcrumb-item:hover { background: rgba(255,255,255,.1); color: #fff; }
         .breadcrumb-sep { color: rgba(255,255,255,.3); font-size: 11px; margin: 0 1px; }
         .breadcrumb-current-mobile { display: none; font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

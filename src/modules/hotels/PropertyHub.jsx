@@ -3,12 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useUnreadCounts } from '../../hooks/useNotifications'
 import { useBrand } from '../../branding/BrandContext'
-import ModuleGrid from '../../ui/ModuleGrid'
-import KpiCard from '../../ui/KpiCard'
+import ModuleLauncher from '../../ui/ModuleLauncher'
 import Dai from '../../ai/Dai'
 import { dailyPick } from '../../ai/daiGreeting'
 import { MODULES } from '../registry'
-import { C, today } from '../../lib/constants'
+import { C } from '../../lib/constants'
 
 const TODO_ITEMS = [
   { label: '203号室 エアコン故障対応', priority: '緊急', color: C.red },
@@ -26,32 +25,37 @@ const SUGGESTIONS = [
 
 // NEOの一言 — 日付をシードに選ぶことで「毎日コメントが変わる」演出
 // (承認済み提案書Ver.2 ⑩)。乱数ではないので同じ日に開き直しても
-// ぶれない。実データが無い項目はチェックリスト側で明示する。
-const OPENERS = ['おはようございます。', 'おはようございます、今日も一日よろしくお願いします。', 'おはようございます、本日も張り切っていきましょう。']
-const CLOSERS = ['優先順位順に並べました。', '気になる点から順にまとめています。', 'まずはこちらからご確認ください。']
-const CHECK_ITEMS = ['チェックイン27件', '清掃4室', '未承認3件', 'VIP2組']
+// ぶれない。実データが無い項目はKPI側で明示する。
+const OPENERS = ['おはようございます！', 'おはようございます、今日も一日よろしくお願いします。', 'おはようございます、本日も張り切っていきましょう。']
+const CLOSERS = ['本日も業務をサポートします。', '気になる点があればいつでも聞いてくださいね。', '今日も一緒に頑張りましょう。']
 
+// KPIをNEO TODAYカードへ統合(承認済み提案書「拠点ダッシュボードUI改善
+// Ver.6」②③④) — 「NEOがリアルタイムでホテル状況を教えてくれる」という
+// コンセプトのため、独立したカード群ではなくNEOの右側に直接並べる。
+// アイコン色は添付イメージの指定通り。
 const KPIS = [
-  { label: '本日の売上', value: '548,000', unit: '円', delta: 12, trend: [420, 460, 440, 500, 480, 530, 548], color: C.navy },
-  { label: 'チェックイン', value: '27', unit: '件', delta: 5, trend: [21, 23, 22, 25, 24, 26, 27] },
-  { label: '稼働率', value: '92', unit: '%', delta: 3, deltaUnit: 'pt', trend: [85, 86, 88, 87, 89, 90, 92] },
-  { label: '清掃待ち客室', value: '4', unit: '室', delta: -2, trend: [8, 7, 6, 6, 5, 5, 4] },
-  { label: '未承認', value: '3', unit: '件', delta: 3, trend: [0, 0, 1, 1, 2, 2, 3], alert: true },
+  { icon: 'ti-chart-line',        color: '#FFC107', label: '本日の売上+稼働率', value: '¥548,000', sub: '稼働率 92%' },
+  { icon: 'ti-door-enter',        color: '#4CD964', label: 'チェックイン',      value: '27',    unit: '件' },
+  { icon: 'ti-door-exit',         color: '#B366FF', label: 'チェックアウト',    value: '25',    unit: '件' },
+  { icon: 'ti-brush',             color: '#F59E0B', label: '清掃待ち',          value: '20 / 44', unit: '部屋' },
+  { icon: 'ti-car',               color: '#3A6DFF', label: '駐車場',            value: '1 / 10',  unit: '台' },
+  { icon: 'ti-coffee',            color: '#4CD964', label: '朝食予定+稼働率',   value: '43',    unit: '食', sub: '稼働率 92%' },
+  { icon: 'ti-tools-kitchen-2',   color: '#F59E0B', label: '夕食+稼働率',       value: '18',    unit: '食', sub: '稼働率 92%' },
 ]
 
-// 拠点ホーム(リコホテル三国、/hotels/rico-mikuni)— 「AI Today」実装
-// (承認済み提案書Ver.2)。開いた瞬間は「NEOがデータを分析しています」
-// を短く見せてから、チャット風の吹き出しで要約+チェックリストを話し
-// かける構成にした — ホーム画面は一覧ではなく「今日の判断材料」を
-// 提示する場、という方針に沿って、数値カードは8枚から5枚(前日比+
-// スパークライン付き)に絞っている。既存の持続的サイドバー(HotelsApp.jsx
-// の SidebarShell + buildPropertyNavGroups)をそのまま使うため、新しい
-// ナビゲーションは増やしていない(ERP開発憲章第7条・第8条)。
+// 拠点ホーム(リコホテル三国、/hotels/rico-mikuni)— 「NEO TODAY」実装
+// (承認済み提案書「拠点ダッシュボードUI改善 Ver.5/Ver.6」)。開いた瞬間は
+// 「NEOがデータを分析しています」を短く見せてから、NEO TODAYカード
+// (NEO+挨拶+KPI7項目を1枚に統合)を表示する — KPIは独立したカード群では
+// なくNEOが直接語りかける情報として配置している。既存の持続的サイドバー
+// (HotelsApp.jsx の SidebarShell + buildPropertyNavGroups)をそのまま
+// 使うため、新しいナビゲーションは増やしていない(ERP開発憲章第7条・
+// 第8条)。
 //
 // 下記の指標(売上・稼働率・チェックイン等)は、対応するフロント/清掃/
 // 朝食/夕食モジュールが未実装のため、現時点では実データを持たない。
-// AI開発憲章第12条に基づき「ダミー」表示で明示している — 対応モジュール
-// 実装後、順次実データへ切り替える。
+// AI開発憲章第12条に基づき明示する必要があるため、末尾に注記を残して
+// いる — 対応モジュール実装後、順次実データへ切り替える。
 export default function PropertyHub() {
   const navigate = useNavigate()
   const { profile } = useAuth()
@@ -93,47 +97,54 @@ export default function PropertyHub() {
           `}</style>
         </div>
       ) : (
-        <div className="neo-chat-fade" style={{
+        <div className="neo-today-fade neo-today-card" style={{
           background: `linear-gradient(135deg, ${C.navyDark} 0%, ${C.navy} 65%, #2E5FA3 140%)`,
-          borderRadius: 18, padding: '24px 26px', marginBottom: 28,
-          display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap',
         }}>
-          <Dai expr="talk" size={68} />
-          <div style={{
-            background: 'rgba(255,255,255,.09)', border: '1px solid rgba(255,255,255,.16)',
-            borderRadius: '4px 16px 16px 16px', padding: '14px 18px', flex: 1, minWidth: 220,
-          }}>
-            <div style={{ fontSize: 11, color: C.gold, letterSpacing: 1, marginBottom: 8, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
-              🤖 NEO
+          <div className="neo-today-left">
+            <Dai expr="talk" size={104} />
+            <div>
+              <div className="neo-today-title">NEO TODAY</div>
+              <div className="neo-today-line">
+                {opener}<br/>私はNEOです。{profile?.full_name ? `${profile.full_name}さん、` : ''}<br/>{closer}
+              </div>
             </div>
-            <div style={{ fontSize: 13.5, color: '#fff', marginBottom: 10 }}>
-              {opener}{profile?.full_name ? `${profile.full_name}さん、` : ''}本日は
-            </div>
-            <ul style={{ listStyle: 'none', margin: '0 0 10px', padding: 0, display: 'grid', gap: 6 }}>
-              {CHECK_ITEMS.map((t, i) => (
-                <li key={i} style={{ fontSize: 13, color: '#eef1f6', display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                  <span style={{ color: C.gold, fontSize: 11 }}>✔</span>{t}
-                </li>
-              ))}
-            </ul>
-            <div style={{ fontSize: 12, color: '#cfd9ec' }}>{closer}</div>
           </div>
+
+          <div className="neo-kpi-grid">
+            {KPIS.map((k, i) => (
+              <div key={i} className="neo-kpi">
+                <i className={`ti ${k.icon}`} style={{ fontSize: 24, color: k.color, marginBottom: 6 }} />
+                <div className="neo-kpi-lbl">{k.label}</div>
+                <div className="neo-kpi-val">{k.value}{k.unit && <small>{k.unit}</small>}</div>
+                {k.sub && <div className="neo-kpi-sub">{k.sub}</div>}
+              </div>
+            ))}
+          </div>
+
           <style>{`
-            .neo-chat-fade { animation: neoChatFadeIn .5s ease; }
+            .neo-today-fade { animation: neoChatFadeIn .5s ease; }
             @keyframes neoChatFadeIn { from { opacity: 0; } to { opacity: 1; } }
-            @media (prefers-reduced-motion: reduce) { .neo-chat-fade { animation: none; } }
+            @media (prefers-reduced-motion: reduce) { .neo-today-fade { animation: none; } }
+            .neo-today-card {
+              border-radius: 18px; padding: 26px; margin-bottom: 12px;
+              display: flex; gap: 26px; align-items: center; flex-wrap: wrap;
+            }
+            .neo-today-left { display: flex; align-items: center; gap: 18px; flex-shrink: 0; }
+            .neo-today-title { font-size: 17px; color: ${C.gold}; font-weight: 700; margin-bottom: 8px; letter-spacing: .5px; }
+            .neo-today-line { font-size: 13.5px; color: #fff; line-height: 1.7; }
+            .neo-kpi-grid { flex: 1; min-width: 320px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px 10px; }
+            .neo-kpi { display: flex; flex-direction: column; padding: 0 8px; border-left: 1px solid rgba(255,255,255,.12); }
+            .neo-kpi:nth-child(4n+1) { border-left: none; }
+            .neo-kpi-lbl { font-size: 10.5px; color: #B9C6DF; margin-bottom: 2px; }
+            .neo-kpi-val { font-size: 19px; font-weight: 700; color: #fff; }
+            .neo-kpi-val small { font-size: 10px; font-weight: 500; color: #B9C6DF; margin-left: 2px; }
+            .neo-kpi-sub { font-size: 11px; color: ${C.gold}; font-weight: 700; }
+            @media (max-width: 720px) { .neo-kpi-grid { grid-template-columns: repeat(2, 1fr); } .neo-kpi:nth-child(4n+1) { border-left: 1px solid rgba(255,255,255,.12); } .neo-kpi:nth-child(2n+1) { border-left: none; } }
           `}</style>
         </div>
       )}
-
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 18,
-        marginBottom: 10,
-      }}>
-        {KPIS.map((k, i) => <KpiCard key={i} {...k} dummy />)}
-      </div>
-      <div style={{ fontSize: 11, color: '#B0BEC5', marginBottom: 34 }}>
-        ※ 上記はサンプル表示です。フロント・清掃・朝食・夕食モジュール実装後、順次実データへ切り替わります。
+      <div style={{ fontSize: 11, color: '#B0BEC5', marginBottom: 30 }}>
+        ※ 上記はサンプル表示です。フロント・清掃・朝食・夕食・駐車場モジュール実装後、順次実データへ切り替わります。
       </div>
 
       <div className="dai-today-grid" style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 20, marginBottom: 34 }}>
@@ -170,19 +181,8 @@ export default function PropertyHub() {
         }
       `}</style>
 
-      <div style={{ textAlign: 'center', fontSize: 11.5, color: '#90A4AE', marginBottom: 36 }}>
-        NEOはあなたの業務をサポートします。何でも聞いてください！
-      </div>
-
-      <div style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 2.5, marginBottom: 8 }}>WELCOME</div>
-        <h1 style={{ fontSize: 21, fontWeight: 700, color: C.navy, margin: '0 0 5px' }}>
-          こんにちは、{profile?.full_name || '—'} さん
-        </h1>
-        <div style={{ fontSize: 13, color: '#90A4AE' }}>ご利用になる管理メニューを選択してください — {today()}</div>
-      </div>
-
-      <ModuleGrid modules={MODULES} unreadCounts={unread} onSelect={m => navigate(m.absolute ? m.path : brand.homePath + m.path)} />
+      <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 2.5, marginBottom: 12 }}>業務メニュー</div>
+      <ModuleLauncher modules={MODULES} unreadCounts={unread} onSelect={m => navigate(m.absolute ? m.path : brand.homePath + m.path)} />
     </div>
   )
 }

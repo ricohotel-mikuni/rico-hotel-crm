@@ -1,13 +1,23 @@
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useBrand } from '../branding/BrandContext'
 import { C } from '../lib/constants'
 
 // Generic grouped sidebar — takes `groups: [{ label?, soon?, items:
 // [{icon,label,path,exact?,soon?}] }]` so it can render both the
 // property-wide sidebar (PropertySidebar) and the 管理センター sidebar
 // (AdminCenter) from the same component, keeping their look identical.
+//
+// Top brand-logo header(承認済み提案書「拠点ダッシュボードUI改善
+// Ver.5/Ver.6」⑤⑥) — replaces the old "ホーム" text link that used to
+// live inside a plain 概要 group; clicking the logo now IS the way
+// back to this brand's home. useBrand() already resolves correctly
+// whether this sidebar is rendered under a property's BrandProvider
+// (リコホテル三国) or with no provider at all(管理センターは既定の
+// 大栄商事ブランドを使う — BrandContext.jsxのデフォルト値)。
 export default function NavSidebar({ groups, open, onClose }) {
   const navigate = useNavigate()
   const location = useLocation()
+  const brand = useBrand()
 
   const goto = (path) => {
     navigate(path)
@@ -34,16 +44,21 @@ export default function NavSidebar({ groups, open, onClose }) {
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >
+        <button
+          type="button" onClick={() => goto(brand.homePath)} title={brand.name}
+          style={{
+            border: 'none', background: 'none', cursor: 'pointer', padding: '22px 16px 16px',
+            textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,.08)', flexShrink: 0,
+          }}
+        >
+          <img src={brand.logo} alt={brand.name} style={{ maxWidth: '100%', height: 76, objectFit: 'contain' }} />
+        </button>
+
         <nav style={{ flex: 1, paddingTop: 10, paddingBottom: 20 }}>
           {groups.map((group, gi) => (
             <div key={gi} style={{ marginBottom: 6 }}>
               {group.label && (
-                <div style={{
-                  padding: '12px 16px 5px', fontSize: 10, letterSpacing: '.07em', textTransform: 'uppercase',
-                  color: 'rgba(255,255,255,.35)', fontWeight: 700,
-                }}>
-                  {group.label}
-                </div>
+                <div className="navsidebar-group-label">{group.label}</div>
               )}
               {group.items.map(item => {
                 const active = item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path)
@@ -74,6 +89,12 @@ export default function NavSidebar({ groups, open, onClose }) {
       </aside>
 
       <style>{`
+        .navsidebar-group-label {
+          padding: 12px 16px 6px; margin: 0 4px 3px;
+          font-size: 10px; letter-spacing: .07em; text-transform: uppercase;
+          color: ${C.gold}; font-weight: 700;
+          border-bottom: 1px solid rgba(201,168,76,.22);
+        }
         @media (min-width: ${C.breakpoint.md}px) {
           .navsidebar-overlay { display: none !important; }
           .navsidebar-desktop {

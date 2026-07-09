@@ -10,7 +10,11 @@ import { MODULES } from '../registry'
 // 営業管理's own sub-pages are hardcoded here (not derived from a
 // registry) since the sales module has no separate module-registry of
 // its own — this list is also what src/layout/breadcrumbTrail.js reads
-// for sales sub-page labels.
+// for sales sub-page labels. The sidebar itself only surfaces 3 of
+// these 7 (承認済み提案書「拠点ダッシュボードUI改善 Ver.6」④) — the
+// rest stay reachable via 営業管理 トップ画面(Home.jsx)のKPIカード、
+// またはURLを直接開くことで到達できる(サイドバーから消えるだけで
+// ルート自体は残る)。
 export const SALES_NAV_ITEMS = [
   { seg: '/clients',     icon: 'ti-building-store', label: '営業先管理' },
   { seg: '/reports',     icon: 'ti-file-text',      label: '営業日報' },
@@ -21,36 +25,47 @@ export const SALES_NAV_ITEMS = [
   { seg: '/settings',    icon: 'ti-settings',       label: '営業設定' },
 ]
 
-const OPERATIONS_IDS = ['front', 'cleaning', 'breakfast', 'dinner', 'maintenance', 'shifts']
-const OTHER_IDS = ['payments', 'cashier', 'purchase', 'expenses', 'documents', 'staff', 'settings']
+// サイドバーに実際に出す3項目(承認済み提案書Ver.6の指示通り)。
+const SALES_SIDEBAR_ITEMS = [
+  { seg: '',           icon: 'ti-building-store', label: '営業管理' },
+  { seg: '/cases',      icon: 'ti-clipboard-list', label: '案件管理' },
+  { seg: '/contracts',  icon: 'ti-file-check',     label: '契約管理' },
+]
 
-// Builds the grouped sidebar structure for a given property brand.
-// `salesBase`/`propBase` are the property's own homePath composed with
-// the relevant segment — kept as plain strings so both PropertySidebar
-// (rendering) and breadcrumbTrail.js (lookup) build identical paths.
+const HOTEL_OPS_IDS = ['front', 'cleaning', 'breakfast', 'dinner']
+const MANAGEMENT_IDS = ['maintenance', 'shifts', 'payments', 'cashier', 'purchase', 'expenses', 'documents']
+const SYSTEM_IDS = ['staff', 'settings', 'neo']
+
+// Builds the grouped sidebar structure for a given property brand —
+// ホテル業務／営業／管理／システムの4カテゴリー(承認済み提案書
+// 「拠点ダッシュボードUI改善 Ver.5/Ver.6」④)。旧「概要」グループの
+// 「ホーム」リンクは廃止し、サイドバー上部のブランドロゴ(NavSidebar.jsx)
+// がその役割を引き継ぐ。
 export function buildPropertyNavGroups(brand) {
   const propBase = brand.homePath
   const salesBase = `${propBase}/sales`
 
   return [
     {
-      label: '概要',
-      items: [{ icon: 'ti-home', label: 'ホーム', path: propBase, exact: true }],
-    },
-    {
-      label: '営業',
-      items: SALES_NAV_ITEMS.map(n => ({ icon: n.icon, label: n.label, path: `${salesBase}${n.seg}`, exact: n.seg === '' })),
-    },
-    {
-      label: '運営',
-      soon: true,
-      items: MODULES.filter(m => OPERATIONS_IDS.includes(m.id)).map(m => ({
+      label: 'ホテル業務',
+      items: MODULES.filter(m => HOTEL_OPS_IDS.includes(m.id)).map(m => ({
         icon: m.icon, label: m.label, path: `${propBase}${m.path}`, soon: m.status !== 'active',
       })),
     },
     {
-      label: 'その他',
-      items: MODULES.filter(m => OTHER_IDS.includes(m.id)).map(m => ({
+      label: '営業',
+      items: SALES_SIDEBAR_ITEMS.map(n => ({ icon: n.icon, label: n.label, path: `${salesBase}${n.seg}`, exact: n.seg === '' })),
+    },
+    {
+      label: '管理',
+      soon: true,
+      items: MODULES.filter(m => MANAGEMENT_IDS.includes(m.id)).map(m => ({
+        icon: m.icon, label: m.label, path: `${propBase}${m.path}`, soon: m.status !== 'active',
+      })),
+    },
+    {
+      label: 'システム',
+      items: MODULES.filter(m => SYSTEM_IDS.includes(m.id)).map(m => ({
         icon: m.icon, label: m.label,
         path: m.absolute ? m.path : `${propBase}${m.path}`,
         soon: m.status !== 'active',
