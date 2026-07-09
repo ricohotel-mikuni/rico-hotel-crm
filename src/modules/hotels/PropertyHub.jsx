@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useUnreadCounts } from '../../hooks/useNotifications'
+import { useHotelWeather } from '../../hooks/useHotelWeather'
 import { useBrand } from '../../branding/BrandContext'
 import ModuleLauncher from '../../ui/ModuleLauncher'
 import Dai from '../../ai/Dai'
 import { dailyPick } from '../../ai/daiGreeting'
+import { describeWeatherCode, weatherComment } from '../../ai/weatherInsight'
 import { MODULES } from '../registry'
 import { C } from '../../lib/constants'
 
@@ -35,50 +37,61 @@ const FORECAST = { value: '¥612,000', rate: '89%', note: '現在のペースで
 // NEOの一言・AI総合評価 — 日付をシードに選ぶことで「毎日コメントが
 // 変わる」演出(承認済み提案書Ver.2 ⑩)。乱数ではないので同じ日に開き
 // 直しても表示がぶれない。
-const OPENERS = ['おはようございます！', 'おはようございます、今日も一日よろしくお願いします。', 'おはようございます、本日も張り切っていきましょう。']
-const CLOSERS = ['本日も業務をサポートします。', '気になる点があればいつでも聞いてくださいね。', '今日も一緒に頑張りましょう。']
 const RATINGS = [
   { stars: 4, note: '今日は比較的余裕があります。15時〜17時のみ混雑が予想されます。' },
   { stars: 3, note: '本日はやや慌ただしい一日になりそうです。優先順位を意識して進めましょう。' },
   { stars: 5, note: '今日は全体的に落ち着いた一日になりそうです。' },
 ]
-const WEATHER = { date: '2025年5月20日(火)', text: '晴れ 23℃/15℃' }
 
 // クイックメニューに出す項目(承認済み提案書Ver.7⑦) — MODULES全体では
 // なく、日常的によく使う9項目だけの厳選版。サイドバーは引き続き
 // MODULES全項目を網羅しているため、ここに出ない項目も導線を失わない。
 const QUICK_MENU_IDS = ['front', 'cleaning', 'breakfast', 'dinner', 'parking', 'maintenance', 'shifts', 'payments', 'cashier']
 
+function useNow() {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(t)
+  }, [])
+  return now
+}
+
 // 拠点ホーム(リコホテル三国、/hotels/rico-mikuni)— 「NEO TODAY」実装
-// (承認済み提案書「拠点ダッシュボードUI改善 Ver.5〜Ver.7」)。開いた
+// (承認済み提案書「拠点ダッシュボードUI改善 Ver.5〜Ver.8」)。開いた
 // 瞬間は「NEOがデータを分析しています」を短く見せてから、NEO TODAY
-// カード(NEO+挨拶+AI総合評価+KPI7項目を1枚に統合)を表示する — KPIは
-// 独立したカード群ではなくNEOが直接語りかける情報として配置している。
-// 既存の持続的サイドバー(HotelsApp.jsx の SidebarShell +
-// buildPropertyNavGroups)をそのまま使うため、新しいナビゲーションは
-// 増やしていない(ERP開発憲章第7条・第8条)。
+// カード(NEO+AI総合評価+KPI7項目を1枚に統合)を表示する — KPIは独立
+// したカード群ではなくNEOが直接語りかける情報として配置している。
+// 挨拶文は上部ヘッダー側だけに出し(Ver.8②、NEO TODAY内での重複を
+// 解消)、天気はリコホテル三国の固定座標でOpen-Meteoから取得した実
+// データ+NEOのルールベースコメントに置き換えている(Ver.8⑦)。既存の
+// 持続的サイドバー(HotelsApp.jsx の SidebarShell + buildPropertyNavGroups)
+// をそのまま使うため、新しいナビゲーションは増やしていない(ERP開発
+// 憲章第7条・第8条)。
 //
-// 下記の指標(売上・稼働率・チェックイン・天気等)は、対応するフロント/
-// 清掃/朝食/夕食/駐車場モジュールや外部気象APIが未実装のため、現時点
-// では実データを持たない。AI開発憲章第12条に基づき明示する必要がある
-// ため、末尾に注記を残している — 対応モジュール実装後、順次実データへ
-// 切り替える。
+// 下記のKPI(売上・稼働率・チェックイン等)は、対応するフロント/清掃/
+// 朝食/夕食/駐車場モジュールが未実装のため、現時点では実データを
+// 持たない。AI開発憲章第12条に基づき明示する必要があるため、末尾に
+// 注記を残している — 対応モジュール実装後、順次実データへ切り替える。
 export default function PropertyHub() {
   const navigate = useNavigate()
   const { profile } = useAuth()
   const brand = useBrand()
   const unread = useUnreadCounts()
   const [analyzing, setAnalyzing] = useState(true)
+  const now = useNow()
+  const weather = useHotelWeather()
 
   useEffect(() => {
     const t = setTimeout(() => setAnalyzing(false), 1100)
     return () => clearTimeout(t)
   }, [])
 
-  const opener = dailyPick(OPENERS)
-  const closer = dailyPick(CLOSERS, 1)
   const rating = dailyPick(RATINGS, 2)
   const quickMenuModules = MODULES.filter(m => QUICK_MENU_IDS.includes(m.id))
+
+  const dateLabel = now.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })
+  const timeLabel = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
 
   return (
     <div style={{ maxWidth: 1180, margin: '0 auto', padding: '32px 20px 64px' }}>
@@ -88,11 +101,34 @@ export default function PropertyHub() {
           <h1 style={{ fontSize: 20, fontWeight: 700, color: C.navy, margin: '0 0 4px' }}>
             おはようございます、{profile?.full_name || '—'}さん！
           </h1>
-          <div style={{ fontSize: 12.5, color: '#90A4AE' }}>本日も{brand.shortNameJa || brand.name}の業務をサポートします。</div>
+          <div style={{ fontSize: 12.5, color: '#90A4AE' }}>
+            本日も張り切っていきましょう！<br />
+            私はNEOです。本日も業務をサポートします。
+          </div>
         </div>
-        <div style={{ textAlign: 'right', fontSize: 11.5, color: '#90A4AE', lineHeight: 1.7 }}>
-          <div>{WEATHER.date}</div>
-          <div>☀️ <b style={{ color: '#607D8B' }}>{WEATHER.text}</b> <span style={{ fontSize: 9, color: '#B0BEC5' }}>(ダミー)</span></div>
+
+        <div style={{ background: '#fff', border: '1px solid #ECEFF1', borderRadius: 14, padding: '14px 16px', minWidth: 230, boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
+          <div style={{ fontSize: 10.5, color: '#90A4AE', fontWeight: 700, marginBottom: 8 }}>🌤 本日のホテル周辺情報</div>
+          <div style={{ fontSize: 11, color: '#B0BEC5', marginBottom: 8 }}>{dateLabel} {timeLabel}</div>
+          {weather.loading && <div style={{ fontSize: 11.5, color: '#B0BEC5' }}>天気情報を取得しています…</div>}
+          {weather.error && <div style={{ fontSize: 11.5, color: '#B0BEC5' }}>天気情報を取得できませんでした</div>}
+          {weather.data && (() => {
+            const w = describeWeatherCode(weather.data.code)
+            const comment = weatherComment(weather.data)
+            return (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <span style={{ fontSize: 19 }}>{w.emoji}</span>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: C.navy }}>
+                    {w.label} {Math.round(weather.data.tempNow)}℃
+                  </span>
+                </div>
+                <div style={{ fontSize: 11, color: '#90A4AE', marginBottom: 10 }}>降水確率 {weather.data.precipProb}%</div>
+                <div style={{ fontSize: 10, color: '#90A4AE', fontWeight: 700, marginBottom: 3 }}>NEOコメント</div>
+                <div style={{ fontSize: 11.5, color: '#607D8B', lineHeight: 1.6 }}>「{comment}」</div>
+              </>
+            )
+          })()}
         </div>
       </div>
 
@@ -127,9 +163,6 @@ export default function PropertyHub() {
               <Dai expr="talk" size={90} />
               <div className="neo-today-title">NEO TODAY</div>
             </div>
-            <div className="neo-today-line">
-              {opener}私はNEOです。{profile?.full_name ? `${profile.full_name}さん、` : ''}{closer}
-            </div>
             <div className="neo-rating-box">
               <div className="neo-rating-label"><i className="ti ti-chart-line" style={{ color: C.gold }} />AI総合評価</div>
               <div className="neo-rating-stars">{'★'.repeat(rating.stars)}{'☆'.repeat(5 - rating.stars)}</div>
@@ -158,7 +191,6 @@ export default function PropertyHub() {
             .neo-today-left { display: flex; flex-direction: column; gap: 16px; flex: 1; min-width: 260px; max-width: 300px; }
             .neo-today-head { display: flex; align-items: center; gap: 14px; }
             .neo-today-title { font-size: 17px; color: ${C.gold}; font-weight: 700; letter-spacing: .5px; }
-            .neo-today-line { font-size: 13px; color: #D6DBE7; line-height: 1.75; }
             .neo-rating-box { background: rgba(255,255,255,.06); border-radius: 14px; padding: 14px 16px; }
             .neo-rating-label { font-size: 11px; color: #B9C6DF; display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
             .neo-rating-stars { color: ${C.gold}; font-size: 15px; letter-spacing: 2px; margin-bottom: 6px; }
@@ -169,13 +201,15 @@ export default function PropertyHub() {
         </div>
       )}
       <div style={{ fontSize: 11, color: '#B0BEC5', marginBottom: 30 }}>
-        ※ 上記はサンプル表示です。フロント・清掃・朝食・夕食・駐車場モジュール実装後、順次実データへ切り替わります。
+        ※ KPIの数値はサンプル表示です。フロント・清掃・朝食・夕食・駐車場モジュール実装後、順次実データへ切り替わります。天気は実データです。
       </div>
 
       <div className="dai-today-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1.15fr', gap: 20, marginBottom: 34 }}>
         <div style={{ background: '#fff', borderRadius: 18, border: '1px solid #ECEFF1', boxShadow: '0 1px 4px rgba(0,0,0,.06)', padding: 22 }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>今日やるべきこと(優先順)</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, display: 'flex', alignItems: 'center', gap: 7 }}>
+              💡 今日やるべきこと(優先順位)
+            </div>
             <div style={{ marginLeft: 'auto', fontSize: 11.5, color: C.gold, fontWeight: 600, cursor: 'pointer' }}>もっと見る ›</div>
           </div>
           {TODO_ITEMS.map((t, i) => (
@@ -194,7 +228,9 @@ export default function PropertyHub() {
 
         <div style={{ background: '#fff', borderRadius: 18, border: '1px solid #ECEFF1', boxShadow: '0 1px 4px rgba(0,0,0,.06)', padding: 22 }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>NEOからのお知らせ・提案</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, display: 'flex', alignItems: 'center', gap: 7 }}>
+              🤖 NEOからのお知らせ・提案
+            </div>
             <div style={{ marginLeft: 'auto', fontSize: 11.5, color: C.gold, fontWeight: 600, cursor: 'pointer' }}>もっと見る ›</div>
           </div>
 
@@ -227,13 +263,13 @@ export default function PropertyHub() {
 
 function KpiCell({ icon, color, label, value, unit, sub }) {
   return (
-    <div style={{ background: 'rgba(255,255,255,.06)', borderRadius: 14, padding: 14, display: 'flex', flexDirection: 'column' }}>
+    <div style={{ background: 'rgba(255,255,255,.06)', borderRadius: 14, padding: 14, display: 'flex', flexDirection: 'column', height: '100%' }}>
       <i className={`ti ${icon}`} style={{ fontSize: 22, color }} />
-      <div style={{ fontSize: 10.5, color: '#B9C6DF', margin: '8px 0 2px' }}>{label}</div>
+      <div style={{ fontSize: 10.5, color: '#B9C6DF', margin: '8px 0 2px', minHeight: 28, lineHeight: 1.35 }}>{label}</div>
       <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>
         {value}{unit && <small style={{ fontSize: 10, fontWeight: 500, color: '#B9C6DF', marginLeft: 2 }}>{unit}</small>}
       </div>
-      {sub && <div style={{ fontSize: 10.5, color: C.gold, fontWeight: 700, marginTop: 2 }}>{sub}</div>}
+      <div style={{ fontSize: 10.5, color: C.gold, fontWeight: 700, marginTop: 2, minHeight: 15 }}>{sub || ''}</div>
     </div>
   )
 }
