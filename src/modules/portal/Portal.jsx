@@ -40,26 +40,26 @@ export default function Portal() {
 
   return (
     <HubShell>
-      <div style={{ maxWidth: 1180, margin: '0 auto', padding: '32px 20px 56px' }}>
-        <div style={{ marginBottom: 20 }}>
+      <div style={{ maxWidth: 1180, margin: '0 auto', padding: '36px 20px 64px' }}>
+        <div style={{ marginBottom: 30 }}>
           <WelcomeHero fullName={profile?.full_name} />
-          <div style={{ fontSize: 13, color: '#90A4AE' }}>
+          <div style={{ fontSize: 13, color: '#90A4AE', marginTop: 6 }}>
             ご利用になる管理メニューを選択してください — {today()}
           </div>
         </div>
 
         <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10,
-          marginBottom: 26,
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 14,
+          marginBottom: 34,
         }}>
-          <StatCard icon="ti-checkbox" label="未承認件数" value={pendingApprovals} unit="件" color="#E65100" />
-          <StatCard icon="ti-bell" label="新着通知" value={unreadCount} unit="件" color="#C62828" />
+          <StatCard icon="ti-checkbox" label="未承認件数" value={pendingApprovals} unit="件" color={C.red} />
+          <StatCard icon="ti-bell" label="新着通知" value={unreadCount} unit="件" color={C.gold} />
           <StatCard icon="ti-currency-yen" label="今日の売上" value="1,240" unit="千円" color={C.navy} dummy />
-          <StatCard icon="ti-list-check" label="今日のToDo" value="3" unit="件" color="#5C6BC0" dummy />
-          <StatCard icon="ti-building-store" label="新規営業" value="2" unit="件" color="#009688" dummy />
-          <StatCard icon="ti-file-check" label="新規契約" value="1" unit="件" color="#6A1B9A" dummy />
-          <StatCard icon="ti-calendar-time" label="今日のシフト" value="8" unit="名" color="#00838F" dummy />
-          <StatCard icon="ti-sparkles" label="AIからのお知らせ" value="1" unit="件" color="#B4933D" dummy />
+          <StatCard icon="ti-list-check" label="今日のToDo" value="3" unit="件" color={C.navy} dummy />
+          <StatCard icon="ti-building-store" label="新規営業" value="2" unit="件" color={C.gold} dummy />
+          <StatCard icon="ti-file-check" label="新規契約" value="1" unit="件" color={C.navy} dummy />
+          <StatCard icon="ti-calendar-time" label="今日のシフト" value="8" unit="名" color={C.gold} dummy />
+          <StatCard icon="ti-sparkles" label="AIからのお知らせ" value="1" unit="件" color={C.gold} dummy />
         </div>
 
         <ModuleGrid modules={tiles} unreadCounts={unread} onSelect={m => navigate(m.path)} />

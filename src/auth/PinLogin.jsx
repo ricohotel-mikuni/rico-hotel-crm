@@ -1,17 +1,15 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { C } from '../lib/constants'
-import LogoCarousel from './LogoCarousel'
+import AuthShell from './AuthShell'
 import PinPad from './PinPad'
-import { currentGreeting, WELCOME_WORDS } from '../modules/portal/WelcomeHero'
 import { getDeviceId, getRoster, removeRosterEntry } from './deviceTrust'
 
-const INTRO_MS = 4200
-const WORD_CYCLE_MS = 900
-
-// 2回目以降の画面(信頼済み端末) — ロゴ演出 → 時間帯の挨拶 → 〇〇様 →
-// 世界の「ようこそ」→ (共有端末なら)ユーザー選択 → PIN入力 → 6桁揃った
-// 時点で自動的に画面を開く。
+// 2回目以降の画面(信頼済み端末) — AuthShellが背景・NEO・時間帯挨拶を
+// 常設で表示するため、以前ここにあった「ロゴ演出→世界のようこそ巡回」
+// のイントロは廃止し(承認済み提案書Ver.2 ⑧⑨)、共有端末ならユーザー
+// 選択 → PIN入力 → 6桁揃った時点で自動的に画面を開く、という最短の
+// 流れにした。
 //
 // 設計(2026-07-09確定): PINは新しいSupabaseセッションを作らない。
 // App.jsxがすでに生きたセッション(user)の上にロック画面として重ねて
@@ -21,9 +19,7 @@ const WORD_CYCLE_MS = 900
 // ため原理的に成立しなかった。詳細はAuthContext.jsx冒頭のコメント)。
 export default function PinLogin({ onUnlocked, onUsePassword }) {
   const [roster] = useState(getRoster)
-  const [stage, setStage] = useState('intro') // intro | pick | pin | locked | success
-  const [wordIdx, setWordIdx] = useState(0)
-  const [wordPhase, setWordPhase] = useState('in')
+  const [stage, setStage] = useState(() => (roster.length > 1 ? 'pick' : 'pin'))
   const [activeUser, setActiveUser] = useState(roster.length === 1 ? roster[0] : null)
   const [shakeToken, setShakeToken] = useState(null)
   const [pinMsg, setPinMsg] = useState('')
@@ -31,21 +27,6 @@ export default function PinLogin({ onUnlocked, onUsePassword }) {
   const [lockCount, setLockCount] = useState(0)
   const [lockSeconds, setLockSeconds] = useState(0)
   const [busy, setBusy] = useState(false)
-  const reduceMotion = useRef(typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches).current
-  const greeting = useRef(currentGreeting()).current
-
-  const advanceFromIntro = () => setStage(roster.length > 1 ? 'pick' : 'pin')
-
-  useEffect(() => {
-    if (stage !== 'intro') return
-    if (reduceMotion) { advanceFromIntro(); return }
-    const wordTimer = setInterval(() => {
-      setWordPhase('out')
-      setTimeout(() => { setWordIdx(i => (i + 1) % WELCOME_WORDS.length); setWordPhase('in') }, 300)
-    }, WORD_CYCLE_MS)
-    const advanceTimer = setTimeout(advanceFromIntro, INTRO_MS)
-    return () => { clearInterval(wordTimer); clearTimeout(advanceTimer) }
-  }, [stage]) // eslint-disable-line
 
   useEffect(() => {
     if (stage !== 'locked' || lockSeconds <= 0) return
@@ -107,7 +88,7 @@ export default function PinLogin({ onUnlocked, onUsePassword }) {
 
       setStage('success')
       // セッションはApp.jsx側で既に生きている — ロックを外すだけでよい。
-      setTimeout(onUnlocked, 500)
+      setTimeout(onUnlocked, 550)
       return
     }
 
@@ -137,46 +118,22 @@ export default function PinLogin({ onUnlocked, onUsePassword }) {
 
   if (roster.length === 0) return null
 
+  const cornerAction = stage !== 'success' ? (
+    <button type="button" onClick={() => onUsePassword()} className="auth-corner-btn">
+      パスワードでログイン
+    </button>
+  ) : null
+
   return (
-    <div style={{
-      minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '20px 16px', position: 'relative',
-      background: `linear-gradient(135deg, ${C.navyDark} 0%, ${C.navy} 60%, #2E5FA3 100%)`,
-      color: '#fff',
-    }}>
-      <button
-        type="button"
-        onClick={() => onUsePassword()}
-        style={{
-          position: 'absolute', top: 18, right: 18, background: 'rgba(255,255,255,.1)', border: 'none',
-          color: '#fff', fontSize: 11.5, padding: '7px 13px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
-        }}
-      >
-        パスワードでログイン
-      </button>
-
-      {stage === 'intro' && (
-        <div style={{ textAlign: 'center', cursor: 'pointer' }} onClick={advanceFromIntro}>
-          <LogoCarousel />
-          <div style={{ fontSize: 13, letterSpacing: 2, color: '#cfd9ec', marginTop: 6 }}>{greeting.emoji} {greeting.text}</div>
-          {roster.length === 1 && (
-            <div style={{ fontSize: 20, fontWeight: 600, margin: '8px 0 18px' }}>{roster[0].full_name} 様</div>
-          )}
-          <div style={{
-            fontSize: 15, color: C.gold, minHeight: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            opacity: wordPhase === 'in' ? 1 : 0, transform: wordPhase === 'in' ? 'translateY(0)' : 'translateY(4px)',
-            transition: 'opacity .3s, transform .3s', marginTop: roster.length === 1 ? 0 : 18,
-          }}>
-            <span>{WELCOME_WORDS[wordIdx].flag}</span><span>{WELCOME_WORDS[wordIdx].text}</span>
-          </div>
-          <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,.4)', marginTop: 26 }}>タップして進む</div>
-        </div>
-      )}
-
+    <AuthShell
+      cornerAction={cornerAction}
+      daiExpr={stage === 'success' ? 'joy' : 'smile'}
+      bubbleText={stage === 'success' ? `${activeUser?.full_name} さん、おかえりなさい` : undefined}
+    >
       {stage === 'pick' && (
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 13, color: '#cfd9ec', marginBottom: 20 }}>この端末に登録されている方を選んでください</div>
-          <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap', maxWidth: 380 }}>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,.75)', marginBottom: 20 }}>この端末に登録されている方を選んでください</div>
+          <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
             {roster.map(u => (
               <button
                 key={u.employee_id}
@@ -204,7 +161,7 @@ export default function PinLogin({ onUnlocked, onUsePassword }) {
 
       {stage === 'pin' && activeUser && (
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 13, color: '#cfd9ec', marginBottom: 2 }}>{activeUser.full_name}{activeUser.department_name ? `（${activeUser.department_name}）` : ''}</div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,.85)', marginBottom: 2 }}>{activeUser.full_name}{activeUser.department_name ? `（${activeUser.department_name}）` : ''}</div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', marginBottom: 18 }}>6桁のPINを入力してください</div>
           <PinPad theme="dark" disabled={busy} shakeToken={shakeToken} onComplete={handlePinComplete} />
           <div style={{ fontSize: 12, color: '#f4b5a8', minHeight: 18, marginTop: 8 }}>{pinMsg}</div>
@@ -224,7 +181,7 @@ export default function PinLogin({ onUnlocked, onUsePassword }) {
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 28, marginBottom: 10 }}>🔒</div>
           <div style={{ fontSize: 13.5, color: '#f4b5a8', marginBottom: 6 }}>5回連続で間違えたため、しばらくお待ちください</div>
-          <div style={{ fontSize: 26, fontVariantNumeric: 'tabular-nums', margin: '14px 0' }}>
+          <div style={{ fontSize: 26, color: '#fff', fontVariantNumeric: 'tabular-nums', margin: '14px 0' }}>
             00:{String(lockSeconds).padStart(2, '0')}
           </div>
         </div>
@@ -233,9 +190,16 @@ export default function PinLogin({ onUnlocked, onUsePassword }) {
       {stage === 'success' && (
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 30, marginBottom: 8 }}>✅</div>
-          <div style={{ fontSize: 14 }}>{activeUser?.full_name} さん、おかえりなさい</div>
+          <div style={{ fontSize: 14, color: '#fff' }}>{activeUser?.full_name} さん、おかえりなさい</div>
         </div>
       )}
-    </div>
+
+      <style>{`
+        .auth-corner-btn {
+          background: rgba(255,255,255,.1); border: none; color: #fff; font-size: 11px;
+          padding: 7px 13px; border-radius: 999px; cursor: pointer; font-family: inherit;
+        }
+      `}</style>
+    </AuthShell>
   )
 }
