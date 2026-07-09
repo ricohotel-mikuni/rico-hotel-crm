@@ -21,11 +21,16 @@ const PARTICLES = Array.from({ length: 18 }).map((_, i) => ({
 // 用意し、CSSのメディアクエリで片方だけ表示する(1つのDaiインスタンスを
 // レイアウトごと動かすより、責務が単純で見通しがよいため)。
 //
-// mode/onSelectPassword/onSelectPin — 画面下部(スマホ)・右上(PC)に出す
-// 「パスワードでログイン/PINコードでログイン」切替ボタンの状態と挙動。
-// onSelectPinを渡さない画面は無い想定(常に両方表示、Ver.4最終指示⑥)。
+// mode/onSelectPassword/onSelectPin — 入力エリアの下(PC・スマホ共通)に
+// 出す「パスワードでログイン/PINコードでログイン」切替ボタンの状態と
+// 挙動。onSelectPinを渡さない画面は無い想定(常に両方表示、Ver.4最終
+// 指示⑥)。PCの切替ボタンは以前は右上に固定表示していたが、Ver.5最終
+// 指示①によりフォーム内(送信ボタンの下)へ統一した。
+//
+// desktopBubbleText — PC左側の大きいNEOだけに出す吹き出し文言の上書き
+// (Ver.5最終指示③、自己紹介文はPC限定)。省略時はbubbleTextと同じ。
 export default function AuthShell({
-  children, daiExpr = 'smile', daiPose = 'wave', bubbleText,
+  children, daiExpr = 'smile', daiPose = 'wave', bubbleText, desktopBubbleText,
   mode, onSelectPassword, onSelectPin,
 }) {
   const brand = useBrand()
@@ -69,6 +74,7 @@ export default function AuthShell({
   }, [])
 
   const bubble = bubbleText || daiGreeting()
+  const deskBubble = desktopBubbleText || bubble
 
   const toggle = (
     <>
@@ -119,13 +125,10 @@ export default function AuthShell({
         ))}
       </div>
 
-      {/* PC専用の切替ボタン(右上、常時2つ表示) */}
-      <div className="auth-toggle-row auth-toggle-desktop">{toggle}</div>
-
       {/* 左パネル — NEOが時間帯挨拶とともに出迎える(PCのみ、大きめ) */}
       <div ref={daiRef} className="auth-side">
         <Dai expr={daiExpr} pose={daiPose} size={480} />
-        <div className="auth-bubble">{bubble}</div>
+        <div className="auth-bubble">{deskBubble}</div>
       </div>
 
       {/* 右パネル(PC)/唯一のパネル(スマホ) */}
@@ -144,8 +147,8 @@ export default function AuthShell({
 
           {children}
 
-          {/* スマホ専用の切替ボタン(入力エリアの下、常時2つ表示) */}
-          <div className="auth-toggle-row auth-toggle-mobile">{toggle}</div>
+          {/* 切替ボタン(入力エリアの下、PC・スマホ共通、常時2つ表示) */}
+          <div className="auth-toggle-row auth-toggle-inline">{toggle}</div>
         </div>
       </div>
 
@@ -165,7 +168,7 @@ export default function AuthShell({
           width: 100%; max-width: 380px; display: flex; align-items: center; justify-content: center;
           padding: 30px 20px; margin: 0 auto; position: relative; z-index: 2;
         }
-        @media (min-width: 860px) { .auth-panel-wrap { padding: 46px 40px; } }
+        @media (min-width: 860px) { .auth-panel-wrap { max-width: 430px; padding: 46px 40px; } }
         .auth-panel {
           width: 100%; border-radius: 26px; position: relative; overflow: hidden;
           padding: 18px 26px 30px;
@@ -194,12 +197,8 @@ export default function AuthShell({
           transition: background .18s, color .18s, border-color .18s; text-align: center;
         }
         .auth-toggle-btn.active { background: linear-gradient(135deg,#dcc074,${C.gold}); border-color: ${C.gold}; color: ${C.navyDark}; font-weight: 700; }
-        .auth-toggle-mobile { margin-top: 18px; }
-        @media (min-width: 860px) { .auth-toggle-mobile { display: none; } }
-        .auth-toggle-desktop { display: none; }
-        @media (min-width: 860px) {
-          .auth-toggle-desktop { display: flex; position: absolute; top: 18px; right: 18px; width: 300px; z-index: 3; }
-        }
+        .auth-toggle-inline { margin-top: 18px; }
+        @media (min-width: 860px) { .auth-toggle-inline { margin-top: 22px; } }
 
         .auth-glow { position: absolute; border-radius: 50%; filter: blur(46px); pointer-events: none; transition: transform .35s cubic-bezier(.2,.6,.3,1); will-change: transform; }
         .auth-glow.g1 { width: 400px; height: 400px; left: -90px; top: -70px; background: radial-gradient(circle, rgba(201,168,76,.22), transparent 70%); animation: authDriftA 27s ease-in-out infinite alternate; }

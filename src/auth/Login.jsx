@@ -6,6 +6,12 @@ import { supabase } from '../lib/supabase'
 import { getDeviceId, JUST_PASSWORD_SIGNED_IN_KEY, hasTrustedRoster } from './deviceTrust'
 import AuthShell from './AuthShell'
 
+// PC版NEOの吹き出し専用の自己紹介文(承認済み提案書Ver.5最終指示③)。
+// スマホ版は文字数が多いと直前に直した下部の見切れが再発しかねない
+// ため、スマホは従来どおり時間帯挨拶(daiGreeting())のままにしている
+// — AuthShellのdesktopBubbleTextはPC左側の大きいNEOにしか効かない。
+const NEO_INTRO = 'はじめまして！👋\n私はNEO（ネオ）です🤖\n大栄商事株式会社の公式AIとして、\n皆さまのお仕事をサポートします💪\n今日も一緒に最高の一日にしていきましょう！✨'
+
 export default function Login({ notice, onLoggedIn }) {
   const { signIn, error, unlock } = useAuth()
   const [email, setEmail] = useState('')
@@ -51,7 +57,12 @@ export default function Login({ notice, onLoggedIn }) {
     : 'この端末はまだPINログインが設定されていません。ログイン後に設定できます。'
 
   return (
-    <AuthShell mode={pinTapped ? 'pin' : 'password'} onSelectPassword={() => setPinTapped(false)} onSelectPin={() => setPinTapped(true)}>
+    <AuthShell
+      mode={pinTapped ? 'pin' : 'password'}
+      onSelectPassword={() => setPinTapped(false)}
+      onSelectPin={() => setPinTapped(true)}
+      desktopBubbleText={NEO_INTRO}
+    >
       {notice && (
         <div className="auth-notice">
           <i className="ti ti-info-circle" style={{ flexShrink: 0 }} />
@@ -110,6 +121,11 @@ export default function Login({ notice, onLoggedIn }) {
         }
         .auth-input::placeholder { color: rgba(255,255,255,.38); }
         .auth-input:focus { border-color: ${C.gold}; background: rgba(255,255,255,.12); }
+        @media (min-width: 860px) {
+          .auth-label { font-size: 12.5px; }
+          .auth-input { padding: 14px 16px; font-size: 15px; }
+          .auth-submit { padding: 15px; font-size: 16px; }
+        }
         .auth-notice {
           background: rgba(255,255,255,.09); color: #fff; font-size: 12.5px; padding: 10px 14px; border-radius: 9px;
           margin-bottom: 18px; border: 1px solid rgba(255,255,255,.18); display: flex; align-items: center; gap: 8px;
