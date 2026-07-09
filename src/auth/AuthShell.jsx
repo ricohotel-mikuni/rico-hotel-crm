@@ -1,18 +1,23 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useBrand } from '../branding/BrandContext'
 import { C } from '../lib/constants'
 import Dai from '../ai/Dai'
 import { daiGreeting } from '../ai/daiGreeting'
 
-// 決め打ちの疑似ランダム配置 — 毎レンダーでMath.random()し直すと粒子が
-// 飛び直して不自然になるため、インデックスから一度だけ計算する。
-const PARTICLES = Array.from({ length: 18 }).map((_, i) => ({
-  left: `${(i * 41 + 7) % 100}%`,
-  bottom: `${(i * 17) % 46}px`,
-  size: 1.4 + (i % 4) * 0.7,
-  duration: 14 + (i % 7) * 2.6,
-  delay: (i % 9) * 1.7,
-}))
+// 粒ごとに速度・大きさ・不透明度をランダムにする(承認済み提案書Ver.6
+// ⑤)。AuthShellは画面遷移のたびに新規マウントされるため、SSR一致等の
+// 制約なくMath.random()をそのまま使ってよい — useMemoでマウント中だけ
+// 値を固定し、再レンダーのたびに粒が飛び直すことは防ぐ。
+function makeParticles(n) {
+  return Array.from({ length: n }).map(() => ({
+    left: `${Math.random() * 100}%`,
+    bottom: `${Math.random() * 46}px`,
+    size: 1 + Math.random() * 3.2,
+    opacity: (0.5 + Math.random() * 0.5).toFixed(2),
+    duration: 9 + Math.random() * 16,
+    delay: Math.random() * 12,
+  }))
+}
 
 // ログイン画面とPIN画面の共通の「入れ物」(承認済み提案書 Ver.2〜Ver.4)。
 // 背景の光の粒子・AIライン・ゆっくり流れる光沢・マウス視差・NEO・正式
@@ -34,6 +39,7 @@ export default function AuthShell({
   mode, onSelectPassword, onSelectPin,
 }) {
   const brand = useBrand()
+  const PARTICLES = useMemo(() => makeParticles(18), [])
   const stageRef = useRef(null)
   const glow1Ref = useRef(null)
   const glow2Ref = useRef(null)
@@ -96,11 +102,11 @@ export default function AuthShell({
   return (
     <div ref={stageRef} className="auth-stage" style={{
       minHeight: '100dvh', display: 'flex', position: 'relative', overflow: 'hidden',
-      background: `linear-gradient(150deg, ${C.navyDark} 0%, #16233f 30%, ${C.navy} 60%, ${C.navyLight} 130%)`,
     }}>
       <div ref={glow1Ref} className="auth-glow g1" />
       <div ref={glow2Ref} className="auth-glow g2" />
       <div ref={glow3Ref} className="auth-glow g3" />
+      <div className="auth-aurora"><span className="a1" /><span className="a2" /></div>
       <div className="auth-sheen" />
       <div className="auth-lines">
         <svg viewBox="0 0 800 600" preserveAspectRatio="none">
@@ -119,7 +125,7 @@ export default function AuthShell({
       <div className="auth-particles">
         {PARTICLES.map((p, i) => (
           <span key={i} className="auth-particle" style={{
-            left: p.left, bottom: p.bottom, width: p.size, height: p.size,
+            left: p.left, bottom: p.bottom, width: p.size, height: p.size, opacity: p.opacity,
             animationDuration: `${p.duration}s`, animationDelay: `${p.delay}s`,
           }} />
         ))}
@@ -200,12 +206,38 @@ export default function AuthShell({
         .auth-toggle-inline { margin-top: 18px; }
         @media (min-width: 860px) { .auth-toggle-inline { margin-top: 22px; } }
 
-        .auth-glow { position: absolute; border-radius: 50%; filter: blur(46px); pointer-events: none; transition: transform .35s cubic-bezier(.2,.6,.3,1); will-change: transform; }
-        .auth-glow.g1 { width: 400px; height: 400px; left: -90px; top: -70px; background: radial-gradient(circle, rgba(201,168,76,.22), transparent 70%); animation: authDriftA 27s ease-in-out infinite alternate; }
-        .auth-glow.g2 { width: 340px; height: 340px; right: -70px; bottom: -50px; background: radial-gradient(circle, rgba(111,160,224,.20), transparent 70%); animation: authDriftB 33s ease-in-out infinite alternate; }
-        .auth-glow.g3 { width: 240px; height: 240px; right: 18%; top: 8%; background: radial-gradient(circle, rgba(255,255,255,.10), transparent 70%); animation: authDriftC 23s ease-in-out infinite alternate; }
-        @keyframes authDriftA { 0% { transform: translate(0,0); } 100% { transform: translate(60px, 40px); } }
-        @keyframes authDriftB { 0% { transform: translate(0,0); } 100% { transform: translate(-50px, -30px); } }
+        .auth-stage {
+          background: linear-gradient(150deg, ${C.navyDark} 0%, #16233f 30%, ${C.navy} 60%, ${C.navyLight} 130%);
+          background-size: 200% 200%; animation: authBgShift 34s ease-in-out infinite alternate;
+        }
+        @keyframes authBgShift { 0% { background-position: 0% 30%; } 100% { background-position: 100% 70%; } }
+
+        /* オーロラ — 極薄いシアン〜青の帯を大きくゆっくり流す(承認済み
+           提案書Ver.6①)。screenブレンドで下の紺グラデーションを暗くせず
+           光として重ねる。 */
+        .auth-aurora { position: absolute; inset: -10%; pointer-events: none; mix-blend-mode: screen; filter: blur(2px); z-index: 1; }
+        .auth-aurora span { position: absolute; border-radius: 50%; filter: blur(60px); }
+        .auth-aurora .a1 {
+          width: 70%; height: 60%; left: -10%; top: -15%;
+          background: radial-gradient(ellipse at center, rgba(120,220,255,.09), transparent 70%);
+          animation: authAuroraA 26s ease-in-out infinite alternate;
+        }
+        .auth-aurora .a2 {
+          width: 60%; height: 55%; right: -12%; bottom: -10%;
+          background: radial-gradient(ellipse at center, rgba(160,200,255,.07), transparent 70%);
+          animation: authAuroraB 32s ease-in-out infinite alternate;
+        }
+        @keyframes authAuroraA { 0% { transform: translate(0,0) rotate(0deg); } 100% { transform: translate(6%,4%) rotate(6deg); } }
+        @keyframes authAuroraB { 0% { transform: translate(0,0) rotate(0deg); } 100% { transform: translate(-5%,-6%) rotate(-5deg); } }
+
+        /* 光のオーブ(承認済み提案書Ver.6②) — 大きく・低速に・呼吸する
+           ような拡大縮小を追加。 */
+        .auth-glow { position: absolute; border-radius: 50%; filter: blur(54px); pointer-events: none; transition: transform .35s cubic-bezier(.2,.6,.3,1); will-change: transform; }
+        .auth-glow.g1 { width: 560px; height: 560px; left: -120px; top: -100px; background: radial-gradient(circle, rgba(201,168,76,.20), transparent 70%); animation: authDriftA 34s ease-in-out infinite alternate; }
+        .auth-glow.g2 { width: 480px; height: 480px; right: -100px; bottom: -80px; background: radial-gradient(circle, rgba(111,160,224,.18), transparent 70%); animation: authDriftB 40s ease-in-out infinite alternate; }
+        .auth-glow.g3 { width: 320px; height: 320px; right: 18%; top: 8%; background: radial-gradient(circle, rgba(255,255,255,.09), transparent 70%); animation: authDriftC 30s ease-in-out infinite alternate; }
+        @keyframes authDriftA { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(7%,5%) scale(1.14); } }
+        @keyframes authDriftB { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(-6%,-4%) scale(1.1); } }
         @keyframes authDriftC { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(-30px, 50px) scale(1.15); } }
         .auth-sheen {
           position: absolute; inset: -20% -60%; pointer-events: none; mix-blend-mode: screen; opacity: .5;
@@ -213,15 +245,25 @@ export default function AuthShell({
           animation: authSheenDrift 44s linear infinite;
         }
         @keyframes authSheenDrift { 0% { transform: translateX(-15%); } 100% { transform: translateX(15%); } }
-        .auth-lines { position: absolute; inset: 0; opacity: .32; pointer-events: none; }
+
+        /* AIライン(承認済み提案書Ver.6④) — 全体をごくゆっくり漂わせつつ、
+           線の上に淡い光を流す(stroke-dasharray/dashoffsetの移動)。 */
+        .auth-lines { position: absolute; inset: 0; opacity: .32; pointer-events: none; animation: authLinesDrift 46s ease-in-out infinite alternate; }
         .auth-lines svg { width: 100%; height: 100%; }
-        .auth-line { stroke: url(#authLineGrad); stroke-width: 1; fill: none; opacity: 0; animation: authLineFade 9s ease-in-out infinite; }
+        .auth-line {
+          stroke: url(#authLineGrad); stroke-width: 1; fill: none; opacity: 0;
+          animation: authLineFade 9s ease-in-out infinite, authLineTravel 5s linear infinite;
+          stroke-dasharray: 40 400;
+        }
+        @keyframes authLinesDrift { 0% { transform: translate(0,0); } 100% { transform: translate(1.5%,-1%); } }
         @keyframes authLineFade { 0%,100% { opacity: 0; } 40%,60% { opacity: .5; } }
+        @keyframes authLineTravel { 0% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -440; } }
+
         .auth-particles { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
-        .auth-particle { position: absolute; border-radius: 50%; background: ${C.gold}; animation-name: authRiseUp; animation-timing-function: linear; animation-iteration-count: infinite; }
-        @keyframes authRiseUp { 0% { transform: translateY(0); opacity: 0; } 10% { opacity: .85; } 90% { opacity: .4; } 100% { transform: translateY(-240px); opacity: 0; } }
+        .auth-particle { position: absolute; border-radius: 50%; background: ${C.gold}; animation-name: authRiseUp; animation-timing-function: ease-in-out; animation-iteration-count: infinite; }
+        @keyframes authRiseUp { 0% { transform: translateY(0) translateX(0); opacity: 0; } 10% { opacity: .85; } 50% { transform: translateY(-140px) translateX(6px); } 90% { opacity: .35; } 100% { transform: translateY(-240px) translateX(-4px); opacity: 0; } }
         @media (prefers-reduced-motion: reduce) {
-          .auth-glow, .auth-sheen, .auth-line, .auth-particle, .auth-panel::before { animation: none !important; }
+          .auth-stage, .auth-aurora .a1, .auth-aurora .a2, .auth-glow, .auth-sheen, .auth-lines, .auth-line, .auth-particle, .auth-panel::before { animation: none !important; }
         }
       `}</style>
     </div>
