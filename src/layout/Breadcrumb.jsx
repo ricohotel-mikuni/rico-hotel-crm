@@ -81,10 +81,10 @@ export default function Breadcrumb() {
           color: rgba(255,255,255,.55); white-space: nowrap;
         }
         .breadcrumb-item.current {
-          color: ${C.gold}; font-weight: 700; cursor: default; font-size: 15px;
-          padding-bottom: 5px; border-bottom: 2px solid ${C.gold};
+          background: ${C.gold}; color: ${C.navyDark}; font-weight: 700; cursor: default; font-size: 13px;
+          padding: 5px 12px; border-radius: ${C.radius.pill}px;
         }
-        .breadcrumb-item-icon { display: inline-block; transform: scale(1.3); margin-right: 3px; }
+        .breadcrumb-item-icon { display: inline-block; transform: scale(1.15); margin-right: 3px; }
         button.breadcrumb-item:hover { background: rgba(255,255,255,.1); color: #fff; }
         .breadcrumb-sep { color: rgba(255,255,255,.3); font-size: 11px; margin: 0 1px; }
         .breadcrumb-current-mobile { display: none; font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

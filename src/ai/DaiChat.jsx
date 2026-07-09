@@ -60,7 +60,7 @@ export default function DaiChat() {
         >
           <Dai expr="smile" size={46} />
           <span style={{ color: '#fff', fontSize: 11.5, textAlign: 'left', lineHeight: 1.5 }}>
-            <b style={{ display: 'block', color: C.gold, fontSize: 10.5 }}>NEOに相談する</b>
+            <b style={{ display: 'block', color: C.gold, fontSize: 10.5 }}>NEO 何でも聞いてください</b>
             {hint}
           </span>
         </button>

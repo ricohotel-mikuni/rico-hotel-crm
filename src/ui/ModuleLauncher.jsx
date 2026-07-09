@@ -1,19 +1,20 @@
-import { C } from '../lib/constants'
-
 // Compact icon+label launcher grid — distinct from ModuleGrid (the
 // larger card-with-description tile used by the company Portal).
-// PropertyHub uses this one for its bottom "業務メニュー" row
-// (承認済み提案書「拠点ダッシュボードUI改善 Ver.6」⑤⑧): denser,
-// icon-first, colored per module.color so the row reads as a quick
-// launcher rather than another content section competing with NEO
-// TODAY for attention.
+// PropertyHub uses this one for its bottom "クイックメニュー" row
+// (承認済み提案書「拠点ダッシュボードUI改善 Ver.6〜Ver.9」): denser,
+// icon-first, colored per module.color. Styled dark to match
+// PropertyHub's Ver.9 unified dark-navy dashboard theme — this
+// component is only ever used by PropertyHub, so it's safe to hardcode
+// that palette here rather than threading it through as props.
+const DASH = { card: '#0F2A4D', border: '#1A2A4A', textSub: '#C7D0E0', textFaint: '#8A96AC' }
+
 export default function ModuleLauncher({ modules, unreadCounts = {}, onSelect }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: 10 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: 12 }}>
       {modules.map(m => {
         const soon = m.status !== 'active'
         const count = m.notifiable ? (unreadCounts[m.id] || 0) : 0
-        const color = m.color || C.navy
+        const color = m.color || DASH.textSub
         return (
           <button
             key={m.id}
@@ -32,22 +33,22 @@ export default function ModuleLauncher({ modules, unreadCounts = {}, onSelect })
       <style>{`
         .launcher-tile {
           position: relative; display: flex; flex-direction: column; align-items: center;
-          background: #fff; border: 1px solid #ECEFF1; border-radius: 12px;
-          padding: 14px 8px 12px; cursor: pointer; font-family: inherit;
-          font-size: 11px; color: #37474F; transition: transform .15s, box-shadow .15s, border-color .15s;
+          background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 14px;
+          padding: 16px 8px 12px; cursor: pointer; font-family: inherit;
+          font-size: 11px; color: ${DASH.textSub}; transition: background .15s, border-color .15s;
         }
         .launcher-tile:active { transform: scale(.96); }
         @media (hover: hover) and (pointer: fine) {
-          .launcher-tile:hover { box-shadow: 0 6px 16px rgba(31,56,100,.12); border-color: ${C.gold}; }
+          .launcher-tile:hover { background: rgba(255,255,255,.06); border-color: #D4AF37; }
         }
         .launcher-tile-soon {
-          font-size: 8.5px; color: #B0BEC5; margin-top: 3px;
+          font-size: 8.5px; color: ${DASH.textFaint}; margin-top: 3px;
         }
         .launcher-tile-badge {
           position: absolute; top: -6px; right: -6px;
           min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px;
           background: #E53935; color: #fff; font-size: 9.5px; font-weight: 700;
-          line-height: 17px; text-align: center; border: 2px solid #fff;
+          line-height: 17px; text-align: center; border: 2px solid ${DASH.card};
         }
       `}</style>
     </div>
