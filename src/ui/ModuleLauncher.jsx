@@ -2,11 +2,10 @@
 // larger card-with-description tile used by the company Portal).
 // PropertyHub uses this one for its bottom "クイックメニュー" row
 // (承認済み提案書「拠点ダッシュボードUI改善 Ver.6〜Ver.9」): denser,
-// icon-first, colored per module.color. Styled dark to match
-// PropertyHub's Ver.9 unified dark-navy dashboard theme — this
-// component is only ever used by PropertyHub, so it's safe to hardcode
-// that palette here rather than threading it through as props.
-const DASH = { card: '#0F2A4D', border: '#1A2A4A', textSub: '#C7D0E0', textFaint: '#8A96AC' }
+// icon-first, colored per module.color. Styled dark to match Design
+// System v1.0 (src/lib/designSystem.js) — the single token source, so
+// this no longer keeps its own separately-hardcoded copy of the palette.
+import { DASH } from '../lib/designSystem'
 
 export default function ModuleLauncher({ modules, unreadCounts = {}, onSelect }) {
   return (

@@ -3,23 +3,26 @@ import { useClients } from '../../../hooks/useData'
 import { useCases } from '../../../hooks/useData'
 import { useAuth } from '../../../contexts/AuthContext'
 import { Badge, AsyncBoundary, TableSkeleton } from '../../../ui'
-import { C, fmt, today } from '../../../lib/constants'
+import { today } from '../../../lib/constants'
+import { DASH } from '../../../lib/designSystem'
+import { DarkPage, TodayCard, TodayCardTitle, KpiGrid, KpiCell, DarkPanel } from '../../../ui/DesignSystemKit'
 
-function KPICard({ label, value, unit, color, icon, bg, onClick }) {
-  return (
-    <div onClick={onClick} className={onClick ? 'kpi-card kpi-card-clickable' : 'kpi-card'}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        <div style={{ width: 30, height: 30, borderRadius: 7, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <i className={`ti ${icon}`} style={{ fontSize: 15, color }} />
-        </div>
-        <span style={{ fontSize: 11, color: '#90A4AE', lineHeight: 1.3 }}>{label}</span>
-      </div>
-      <div style={{ fontSize: 22, fontWeight: 700, color, lineHeight: 1 }}>
-        {value}
-        <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 3 }}>{unit}</span>
-      </div>
-    </div>
-  )
+// 営業管理ホーム — Design System v1.0(docs/ui-design-system.md、ERP開発
+// 憲章第37条)の適用第2弾。承認済み指示(「完成版ダッシュボードをベース
+// テンプレートとして営業管理へ置き換える」「コンポーネントの一部流用
+// ではなく世界観をそのまま展開する」)に基づき、PropertyHub.jsx/
+// Portal.jsxと同じsrc/ui/DesignSystemKit.jsxを直接importして組み立てる
+// — 独自にDASHやカードマークアップを再定義しない。データ取得
+// (useClients/useCases)・フィルタ条件・AsyncBoundary/TableSkeletonに
+// よるローディング制御・navigate()の遷移先は一切変更していない
+// (相対パス — SalesAppはHotelsApp.jsx配下にネストされているため)。
+// 既知の限界: TableSkeleton/Badge(src/ui/index.jsx)は他の未移行画面
+// でも共有されているため今回はダーク化せず、ローディング中のみ一瞬
+// 明るいスケルトンが表示される — 今後ダーク化対象画面が増えた段階で
+// 改めて提案する。
+
+function KpiIcon({ icon, color }) {
+  return <i className={`ti ${icon}`} style={{ fontSize: 22, color }} />
 }
 
 export default function Home() {
@@ -44,99 +47,72 @@ export default function Home() {
   // どの拠点のURLにも一致せず /(会社ホーム)へ弾かれてしまう
   // (2026-07-09、実際に発生した不具合を修正)。
   const kpis = [
-    { label: '今日のフォロー',   value: todayFollow.length, unit: '件', color: '#F44336', icon: 'ti-bell',          bg: '#FFEBEE', path: 'clients' },
-    { label: '今週フォロー予定', value: weekFollow.length,  unit: '件', color: '#FF9800', icon: 'ti-calendar',      bg: '#FFF3E0', path: 'clients' },
-    { label: '期限切れ案件',     value: overdue.length,     unit: '件', color: '#9C27B0', icon: 'ti-alert-circle',  bg: '#F3E5F5', path: 'clients' },
-    { label: '成約件数',         value: won.length,         unit: '件', color: C.green,   icon: 'ti-trophy',        bg: '#E8F5E9', path: 'cases'   },
-    { label: '成約売上合計',     value: Math.round(wonRev / 10000), unit: '万円', color: C.navy, icon: 'ti-currency-yen', bg: '#E3F2FD', path: 'cases' },
-    { label: '成果報酬合計',     value: Math.round(wonComm / 10000), unit: '万円', color: '#009688', icon: 'ti-coins', bg: '#E0F2F1', path: 'commissions' },
-    { label: '商談中案件',       value: cases.filter(c => c.status !== '成約' && c.status !== 'キャンセル').length, unit: '件', color: '#5C6BC0', icon: 'ti-briefcase', bg: '#E8EAF6', path: 'cases' },
-    { label: '営業先総数',       value: clients.length,     unit: '社', color: '#455A64', icon: 'ti-building-store', bg: '#ECEFF1', path: 'clients' },
+    { label: '今日のフォロー',   value: todayFollow.length, unit: '件', color: DASH.alert,  icon: 'ti-bell',           path: 'clients' },
+    { label: '今週フォロー予定', value: weekFollow.length,  unit: '件', color: DASH.orange, icon: 'ti-calendar',       path: 'clients' },
+    { label: '期限切れ案件',     value: overdue.length,     unit: '件', color: DASH.purple, icon: 'ti-alert-circle',   path: 'clients' },
+    { label: '成約件数',         value: won.length,         unit: '件', color: DASH.green,  icon: 'ti-trophy',         path: 'cases'   },
+    { label: '成約売上合計',     value: Math.round(wonRev / 10000), unit: '万円', color: DASH.gold, icon: 'ti-currency-yen',  path: 'cases'   },
+    { label: '成果報酬合計',     value: Math.round(wonComm / 10000), unit: '万円', color: DASH.blue, icon: 'ti-coins',         path: 'commissions' },
+    { label: '商談中案件',       value: cases.filter(c => c.status !== '成約' && c.status !== 'キャンセル').length, unit: '件', color: DASH.purple, icon: 'ti-briefcase', path: 'cases' },
+    { label: '営業先総数',       value: clients.length,     unit: '社', color: DASH.blue,   icon: 'ti-building-store', path: 'clients' },
   ]
 
   return (
-    <div style={{ padding: '18px 16px', maxWidth: 1200, margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 }}>
-        <div>
-          <h1 style={{ fontSize: 18, fontWeight: 700, color: C.navy, margin: '0 0 3px' }}>
-            こんにちは、{profile?.full_name || '—'} さん
-          </h1>
-          <div style={{ fontSize: 12, color: '#90A4AE', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <img src="/logo.png" alt="" style={{ width: 14, height: 14, objectFit: 'contain' }} />
-            リコホテル三国 営業管理システム — {todayStr}
-          </div>
+    <DarkPage>
+      <TodayCard>
+        <TodayCardTitle title="SALES TODAY" daiExpr="talk" daiSize={70} />
+        <div style={{ fontSize: 13, color: DASH.textSub, lineHeight: 1.6 }}>
+          こんにちは、{profile?.full_name || '—'} さん<br />
+          リコホテル三国 営業管理システム — {todayStr}
         </div>
-      </div>
+      </TodayCard>
 
-      {/* Only the data-dependent sections below react to loading/error. */}
       <AsyncBoundary loading={cLoading || sLoading} error={cError || sError} onRetry={() => { cRefresh(); sRefresh() }} skeleton={<TableSkeleton rows={4} columns={4} />}>
-        {/* KPI Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10, marginBottom: 16 }}>
+        <KpiGrid>
           {kpis.map(k => (
-            <KPICard key={k.label} {...k} onClick={() => navigate(k.path)} />
+            <KpiCell key={k.label} icon={k.icon} color={k.color} label={k.label} value={k.value} unit={k.unit} onClick={() => navigate(k.path)} />
           ))}
-        </div>
+        </KpiGrid>
 
-        {/* Alert panels */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-          {/* Today's follow */}
-          <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #ECEFF1', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
-            <div style={{ padding: '9px 14px', background: '#FFEBEE', display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 700, color: '#C62828' }}>
-              <i className="ti ti-bell" style={{ fontSize: 13 }} />
-              今日のフォロー（{todayFollow.length}件）
-            </div>
+        <div className="sales-today-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+          <DarkPanel title="🔔 今日のフォロー">
             {todayFollow.length === 0
-              ? <div style={{ padding: '20px', textAlign: 'center', color: '#BDBDBD', fontSize: 12 }}>今日のフォロー予定はありません ✓</div>
-              : todayFollow.map(c => (
-                <div key={c.id} onClick={() => navigate('clients')} style={{ padding: '8px 14px', borderBottom: '1px solid #F5F5F5', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: C.navy }}>{c.company}</div>
-                    <div style={{ fontSize: 11, color: '#90A4AE' }}>{c.contact}</div>
+              ? <div style={{ padding: '18px 0', textAlign: 'center', color: DASH.textFaint, fontSize: 12 }}>今日のフォロー予定はありません ✓</div>
+              : todayFollow.map((c, i) => (
+                <div key={c.id} onClick={() => navigate('clients')} className="sales-row" style={{ borderTop: i > 0 ? `1px solid ${DASH.border}` : 'none' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: DASH.textMain }}>{c.company}</div>
+                    <div style={{ fontSize: 11, color: DASH.textFaint }}>{c.contact}</div>
                   </div>
                   <Badge status={c.status} />
                 </div>
               ))}
-          </div>
+          </DarkPanel>
 
-          {/* Overdue */}
-          <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #ECEFF1', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
-            <div style={{ padding: '9px 14px', background: overdue.length > 0 ? '#FFEBEE' : '#F5F5F5', display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 700, color: overdue.length > 0 ? '#C62828' : '#9E9E9E' }}>
-              <i className="ti ti-alert-circle" style={{ fontSize: 13 }} />
-              期限切れ案件（{overdue.length}件）
-            </div>
+          <DarkPanel title="⚠️ 期限切れ案件">
             {overdue.length === 0
-              ? <div style={{ padding: '20px', textAlign: 'center', color: '#BDBDBD', fontSize: 12 }}>期限切れの案件はありません ✓</div>
-              : overdue.slice(0, 5).map(c => (
-                <div key={c.id} onClick={() => navigate('clients')} style={{ padding: '8px 14px', borderBottom: '1px solid #F5F5F5', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#C62828' }}>⚠ {c.company}</div>
-                    <div style={{ fontSize: 11, color: '#90A4AE' }}>期限: {c.next_follow_date}</div>
+              ? <div style={{ padding: '18px 0', textAlign: 'center', color: DASH.textFaint, fontSize: 12 }}>期限切れの案件はありません ✓</div>
+              : overdue.slice(0, 5).map((c, i) => (
+                <div key={c.id} onClick={() => navigate('clients')} className="sales-row" style={{ borderTop: i > 0 ? `1px solid ${DASH.border}` : 'none' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: DASH.alert }}>⚠ {c.company}</div>
+                    <div style={{ fontSize: 11, color: DASH.textFaint }}>期限: {c.next_follow_date}</div>
                   </div>
                   <Badge status={c.rank} />
                 </div>
               ))}
-          </div>
+          </DarkPanel>
         </div>
 
-        {/* Recent clients */}
-        <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #ECEFF1', padding: '12px 14px', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <i className="ti ti-list" style={{ fontSize: 14 }} />
-            最近の営業先
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
-              <i className="ti ti-wifi" style={{ fontSize: 12, color: '#4CAF50' }} />
-              <span style={{ fontSize: 11, color: '#4CAF50', fontWeight: 500 }}>リアルタイム同期中</span>
-            </div>
-          </div>
-          {clients.slice(0, 6).map(c => (
-            <div key={c.id} onClick={() => navigate('clients')} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid #F5F5F5', cursor: 'pointer', transition: 'background .1s' }}>
-              <div style={{ width: 34, height: 34, borderRadius: 7, background: `${C.navy}12`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <i className="ti ti-building-store" style={{ fontSize: 15, color: C.navy }} />
+        <DarkPanel title="📋 最近の営業先" action={<span style={{ color: DASH.green, display: 'inline-flex', alignItems: 'center', gap: 4 }}><i className="ti ti-wifi" style={{ fontSize: 12 }} />リアルタイム同期中</span>}>
+          {clients.slice(0, 6).map((c, i) => (
+            <div key={c.id} onClick={() => navigate('clients')} className="sales-row" style={{ borderTop: i > 0 ? `1px solid ${DASH.border}` : 'none', gap: 12 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(212,175,55,.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <KpiIcon icon="ti-building-store" color={DASH.gold} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: C.navy, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.company}</div>
-                <div style={{ fontSize: 11, color: '#90A4AE' }}>{c.contact} · {c.phone}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: DASH.textMain, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.company}</div>
+                <div style={{ fontSize: 11, color: DASH.textFaint }}>{c.contact} · {c.phone}</div>
               </div>
               <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
                 <Badge status={c.rank} />
@@ -144,21 +120,17 @@ export default function Home() {
               </div>
             </div>
           ))}
-        </div>
+        </DarkPanel>
       </AsyncBoundary>
 
       <style>{`
-        .kpi-card {
-          background: #fff; border-radius: 8px; padding: 13px 14px;
-          border: 1px solid #ECEFF1; box-shadow: 0 1px 4px rgba(0,0,0,.06);
-          transition: transform .15s, box-shadow .15s;
+        .sales-row {
+          display: flex; align-items: center; justify-content: space-between; padding: 10px 0; cursor: pointer;
         }
-        .kpi-card-clickable { cursor: pointer; }
-        .kpi-card-clickable:active { transform: scale(.98); }
-        @media (hover: hover) and (pointer: fine) {
-          .kpi-card-clickable:hover { box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+        @media (max-width: 720px) {
+          .sales-today-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
-    </div>
+    </DarkPage>
   )
 }
