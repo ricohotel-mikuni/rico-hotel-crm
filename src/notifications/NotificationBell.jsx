@@ -40,14 +40,14 @@ export default function NotificationBell({ compact }) {
       <style>{`
         .notification-bell-btn {
           position: relative; border-radius: 7px; flex-shrink: 0;
-          background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
+          background: none; border: none;
           color: rgba(255,255,255,.85); cursor: pointer;
           display: flex; align-items: center; justify-content: center;
           transition: background .15s;
         }
-        .notification-bell-btn:active { background: rgba(255,255,255,.2); }
+        .notification-bell-btn:active { background: rgba(255,255,255,.14); }
         @media (hover: hover) and (pointer: fine) {
-          .notification-bell-btn:hover { background: rgba(255,255,255,.16); }
+          .notification-bell-btn:hover { background: rgba(255,255,255,.1); }
         }
         .notification-bell-badge {
           position: absolute; top: -5px; right: -5px;

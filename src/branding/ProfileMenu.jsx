@@ -66,14 +66,14 @@ export default function ProfileMenu({ compact }) {
       <style>{`
         .profile-menu-trigger {
           display: flex; align-items: center; gap: 8px;
-          background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
-          border-radius: ${C.radius.pill}px; padding: 4px 10px 4px 4px;
+          background: none; border: none;
+          border-radius: ${C.radius.pill}px; padding: 4px 6px 4px 4px;
           cursor: pointer; transition: background .15s; flex-shrink: 0;
           min-height: 34px;
         }
-        .profile-menu-trigger:active { background: rgba(255,255,255,.18); }
+        .profile-menu-trigger:active { background: rgba(255,255,255,.12); }
         @media (hover: hover) and (pointer: fine) {
-          .profile-menu-trigger:hover { background: rgba(255,255,255,.14); }
+          .profile-menu-trigger:hover { background: rgba(255,255,255,.08); }
         }
         .profile-menu-avatar {
           border-radius: 50%; background: rgba(201,168,76,.25); color: ${C.gold};

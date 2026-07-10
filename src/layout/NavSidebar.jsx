@@ -55,11 +55,14 @@ export default function NavSidebar({ groups, open, onClose }) {
         <button
           type="button" onClick={() => goto(brand.homePath)} title={brand.name}
           style={{
-            border: 'none', background: 'none', cursor: 'pointer', padding: '22px 16px 16px',
+            border: 'none', background: 'none', cursor: 'pointer', padding: '28px 16px 22px',
             textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,.08)', flexShrink: 0,
           }}
         >
-          <img src={brand.logo} alt={brand.name} style={{ maxWidth: '100%', height: 76, objectFit: 'contain' }} />
+          {/* ロゴを約1.5倍(76px→114px)に拡大(承認済み提案書「拠点
+              ダッシュボードUI 追加修正」③) — ブランドとして最初に
+              目に入る存在感を持たせる。余白もサイズに合わせて拡大。 */}
+          <img src={brand.logo} alt={brand.name} style={{ maxWidth: '100%', height: 114, objectFit: 'contain' }} />
         </button>
 
         <nav style={{ flex: 1, paddingTop: 10, paddingBottom: 20 }}>

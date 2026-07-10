@@ -172,7 +172,7 @@ export default function PropertyHub() {
               .neo-rating-stars { color: ${DASH.gold}; font-size: 13px; letter-spacing: 1.5px; margin-bottom: 3px; }
               .neo-rating-note { font-size: 11px; color: ${DASH.textSub}; line-height: 1.5; }
 
-              .neo-weather-box { background: rgba(255,255,255,.05); border-radius: 12px; padding: 14px 16px; flex: 1; min-width: 200px; }
+              .neo-weather-box { flex: 1; min-width: 200px; }
               .neo-weather-label { font-size: 10.5px; color: ${DASH.textFaint}; font-weight: 700; margin-bottom: 8px; }
               .neo-weather-loading { font-size: 11.5px; color: ${DASH.textFaint}; }
               .neo-weather-main { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
