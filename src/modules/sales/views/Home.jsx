@@ -6,6 +6,19 @@ import { Badge, AsyncBoundary, TableSkeleton } from '../../../ui'
 import { today } from '../../../lib/constants'
 import { DASH } from '../../../lib/designSystem'
 import { DarkPage, TodayCard, TodayCardTitle, KpiGrid, KpiCell, DarkPanel } from '../../../ui/DesignSystemKit'
+import ModuleLauncher from '../../../ui/ModuleLauncher'
+
+// クイックメニュー(承認済み提案書「Design System v1.0 最終統一提案」
+// Item A) — 見積書・提案書は帳票テンプレート機能自体が未実装のため
+// 'soon'(準備中)。新規営業先登録/案件追加/契約追加は各一覧画面への
+// 導線のみ(一覧側の「新規登録」ボタンから登録する動線は既存のまま)。
+const SALES_QUICK_ITEMS = [
+  { id: 'new-client',   icon: 'ti-building-store',  label: '新規営業先登録', path: 'clients',   status: 'active' },
+  { id: 'new-case',     icon: 'ti-clipboard-list',  label: '案件追加',       path: 'cases',      status: 'active' },
+  { id: 'new-contract', icon: 'ti-file-check',      label: '契約追加',       path: 'contracts',  status: 'active' },
+  { id: 'quote',        icon: 'ti-receipt',         label: '見積書',         path: '',           status: 'soon' },
+  { id: 'proposal',     icon: 'ti-notes',           label: '提案書',         path: '',           status: 'soon' },
+]
 
 // 営業管理ホーム — Design System v1.0(docs/ui-design-system.md、ERP開発
 // 憲章第37条)の適用第2弾。承認済み指示(「完成版ダッシュボードをベース
@@ -122,6 +135,9 @@ export default function Home() {
           ))}
         </DarkPanel>
       </AsyncBoundary>
+
+      <div style={{ fontSize: 11, color: DASH.gold, fontWeight: 700, letterSpacing: 2.5, margin: '24px 0 12px' }}>クイックメニュー</div>
+      <ModuleLauncher modules={SALES_QUICK_ITEMS} onSelect={m => m.status === 'active' && navigate(m.path)} />
 
       <style>{`
         .sales-row {

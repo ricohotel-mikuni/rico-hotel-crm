@@ -1,5 +1,7 @@
+import { useEffect, useRef, useState } from 'react'
 import { DASH } from '../lib/designSystem'
 import Dai from '../ai/Dai'
+import { downloadFile, fileNameFromUrl } from '../lib/storage'
 
 // 拠点ダッシュボード(リコホテル三国「NEO TODAY」完成版)を唯一の
 // テンプレートとして、全画面がこの完成版から literally 同じ部品を
@@ -131,6 +133,214 @@ export function DarkPage({ children, maxWidth = 1180 }) {
       <div style={{ maxWidth, margin: '0 auto', padding: '24px 20px 56px' }}>
         {children}
       </div>
+    </div>
+  )
+}
+
+// ── ダーク版フォーム部品(ui-design-system.md、承認済み提案書
+// 「Design System v1.0 最終統一提案」Item C) — src/ui/index.jsx の
+// FI/FS/FT/ImageUpload/DocUploadは案件管理・契約管理・承認センター・
+// 社員登録など他複数画面で共有されているため直接ダーク化せず、ここに
+// 同じprops形状の別コンポーネントとして追加する。Modal(dark)を使う
+// 画面だけがこちらを選んでimportする — 既存の共有フォーム部品や、
+// それらを使う他画面には一切影響しない。
+const darkFieldBoxStyle = {
+  width: '100%', padding: '8px 10px',
+  border: `1px solid ${DASH.border}`, borderRadius: 7,
+  fontSize: 13, background: '#0B213F', color: DASH.textMain,
+  boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit',
+}
+
+export function DarkField({ label, value, onChange, type = 'text', placeholder = '', required, readOnly }) {
+  return (
+    <div style={{ marginBottom: 9 }}>
+      <label style={{ fontSize: 11, color: DASH.textFaint, display: 'block', marginBottom: 3, fontWeight: 500 }}>
+        {label}{required && ' *'}
+      </label>
+      <input
+        value={value || ''}
+        onChange={e => onChange(e.target.value)}
+        type={type}
+        placeholder={placeholder}
+        required={required}
+        readOnly={readOnly}
+        className="ds-dark-input"
+        style={{ ...darkFieldBoxStyle, opacity: readOnly ? .6 : 1, cursor: readOnly ? 'default' : 'text' }}
+      />
+      <style>{`.ds-dark-input::placeholder { color: ${DASH.textFaint}; }`}</style>
+    </div>
+  )
+}
+
+export function DarkTextarea({ label, value, onChange, rows = 3 }) {
+  return (
+    <div style={{ marginBottom: 9 }}>
+      <label style={{ fontSize: 11, color: DASH.textFaint, display: 'block', marginBottom: 3, fontWeight: 500 }}>
+        {label}
+      </label>
+      <textarea
+        value={value || ''}
+        onChange={e => onChange(e.target.value)}
+        rows={rows}
+        className="ds-dark-input"
+        style={{ ...darkFieldBoxStyle, resize: 'vertical' }}
+      />
+    </div>
+  )
+}
+
+export function DarkSelect({ label, value, onChange, options }) {
+  return (
+    <div style={{ marginBottom: 9 }}>
+      <label style={{ fontSize: 11, color: DASH.textFaint, display: 'block', marginBottom: 3, fontWeight: 500 }}>
+        {label}
+      </label>
+      <select value={value || ''} onChange={e => onChange(e.target.value)} style={darkFieldBoxStyle}>
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+    </div>
+  )
+}
+
+export function DarkFieldView({ label, value, highlight }) {
+  return (
+    <div>
+      <div style={{ fontSize: 10, color: DASH.textFaint, marginBottom: 2, fontWeight: 600, letterSpacing: .8, textTransform: 'uppercase' }}>
+        {label}
+      </div>
+      <div style={{
+        fontSize: 13, padding: '7px 10px', borderRadius: 7,
+        background: highlight ? 'rgba(212,175,55,.1)' : 'rgba(255,255,255,.03)',
+        border: `1px solid ${highlight ? DASH.gold : DASH.border}`,
+        minHeight: 32, color: DASH.textSub, lineHeight: 1.4,
+      }}>
+        {value || '—'}
+      </div>
+    </div>
+  )
+}
+
+export function DarkDivider() {
+  return <div style={{ height: 1, background: DASH.border, margin: '10px 0' }} />
+}
+
+const UPLOAD_IMAGE_EXT = ['jpg', 'jpeg', 'png', 'webp']
+const UPLOAD_IMAGE_ACCEPT = 'image/jpeg,image/jpg,image/png,image/webp'
+const UPLOAD_DOC_EXT = ['pdf', 'doc', 'docx', 'xlsx']
+const UPLOAD_DOC_ACCEPT = '.pdf,.doc,.docx,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+const extOfUpload = (name) => (name.split('.').pop() || '').toLowerCase()
+
+export function DarkImageUpload({ label, icon, value, file, onFile }) {
+  const inputRef = useRef(null)
+  const [dragOver, setDragOver] = useState(false)
+  const [preview, setPreview] = useState(null)
+  const [err, setErr] = useState(null)
+
+  useEffect(() => {
+    if (!file) { setPreview(null); return }
+    const url = URL.createObjectURL(file)
+    setPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [file])
+
+  const displayUrl = preview || value
+
+  const handleFiles = (files) => {
+    const f = files?.[0]
+    if (!f) return
+    if (!UPLOAD_IMAGE_EXT.includes(extOfUpload(f.name))) { setErr('対応していない形式です(JPG / PNG / WEBP)'); return }
+    setErr(null)
+    onFile(f)
+  }
+
+  return (
+    <div style={{ marginBottom: 9 }}>
+      <label style={{ fontSize: 11, color: DASH.textFaint, display: 'block', marginBottom: 3, fontWeight: 500 }}>{label}</label>
+      <div
+        onClick={() => inputRef.current?.click()}
+        onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={e => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files) }}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          border: `1.5px dashed ${dragOver ? DASH.gold : DASH.border}`,
+          borderRadius: 7, padding: 8, cursor: 'pointer',
+          background: dragOver ? 'rgba(212,175,55,.06)' : '#0B213F',
+          transition: 'border-color .15s, background .15s',
+        }}
+      >
+        {displayUrl
+          ? <img src={displayUrl} alt={label} style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 6, flexShrink: 0, border: `1px solid ${DASH.border}` }} />
+          : <div style={{ width: 48, height: 48, borderRadius: 6, background: 'rgba(212,175,55,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <i className={`ti ${icon || 'ti-photo'}`} style={{ fontSize: 20, color: DASH.gold }} />
+            </div>
+        }
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 12, color: DASH.textMain, fontWeight: 600 }}>
+            {file ? '選択済み(保存で反映)' : displayUrl ? '画像を変更' : 'ファイルを選択'}
+          </div>
+          <div style={{ fontSize: 10, color: DASH.textFaint, marginTop: 2 }}>クリックまたはドラッグ＆ドロップ(JPG/PNG/WEBP)</div>
+        </div>
+      </div>
+      {err && <div style={{ fontSize: 11, color: DASH.alert, marginTop: 4 }}>{err}</div>}
+      <input ref={inputRef} type="file" accept={UPLOAD_IMAGE_ACCEPT} onChange={e => { handleFiles(e.target.files); e.target.value = '' }} style={{ display: 'none' }} />
+    </div>
+  )
+}
+
+export function DarkDocUpload({ label, icon, value, file, onFile }) {
+  const inputRef = useRef(null)
+  const [dragOver, setDragOver] = useState(false)
+  const [err, setErr] = useState(null)
+
+  const fileName = file ? file.name : value ? fileNameFromUrl(value) : null
+
+  const handleFiles = (files) => {
+    const f = files?.[0]
+    if (!f) return
+    if (!UPLOAD_DOC_EXT.includes(extOfUpload(f.name))) { setErr('対応していない形式です(PDF / DOC / DOCX / XLSX)'); return }
+    setErr(null)
+    onFile(f)
+  }
+
+  return (
+    <div style={{ marginBottom: 9 }}>
+      <label style={{ fontSize: 11, color: DASH.textFaint, display: 'block', marginBottom: 3, fontWeight: 500 }}>{label}</label>
+      <div
+        onClick={() => inputRef.current?.click()}
+        onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={e => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files) }}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          border: `1.5px dashed ${dragOver ? DASH.gold : DASH.border}`,
+          borderRadius: 7, padding: 8, cursor: 'pointer',
+          background: dragOver ? 'rgba(212,175,55,.06)' : '#0B213F',
+          transition: 'border-color .15s, background .15s',
+        }}
+      >
+        <div style={{ width: 48, height: 48, borderRadius: 6, background: 'rgba(212,175,55,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <i className={`ti ${icon || 'ti-file'}`} style={{ fontSize: 20, color: DASH.gold }} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 12, color: DASH.textMain, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {fileName || 'ファイルを選択'}
+          </div>
+          <div style={{ fontSize: 10, color: DASH.textFaint, marginTop: 2 }}>クリックまたはドラッグ＆ドロップ(PDF/DOC/DOCX/XLSX)</div>
+        </div>
+        {value && !file && (
+          <div onClick={e => e.stopPropagation()} style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+            <a href={value} target="_blank" rel="noopener noreferrer" title="開く" style={{ width: 28, height: 28, borderRadius: 6, background: '#0F2A4D', border: `1px solid ${DASH.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: DASH.gold }}>
+              <i className="ti ti-external-link" style={{ fontSize: 13 }} />
+            </a>
+            <button type="button" onClick={() => downloadFile(value, fileName)} title="ダウンロード" style={{ width: 28, height: 28, borderRadius: 6, background: '#0F2A4D', border: `1px solid ${DASH.border}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: DASH.gold }}>
+              <i className="ti ti-download" style={{ fontSize: 13 }} />
+            </button>
+          </div>
+        )}
+      </div>
+      {err && <div style={{ fontSize: 11, color: DASH.alert, marginTop: 4 }}>{err}</div>}
+      <input ref={inputRef} type="file" accept={UPLOAD_DOC_ACCEPT} onChange={e => { handleFiles(e.target.files); e.target.value = '' }} style={{ display: 'none' }} />
     </div>
   )
 }
