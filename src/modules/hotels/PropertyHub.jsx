@@ -157,16 +157,6 @@ export default function PropertyHub() {
               })()}
             </div>
 
-            <div className="neo-kpi-grid">
-              <KpiCell icon="ti-chart-line" color={DASH.gold} label="本日の売上+稼働率" value="¥548,000" sub="稼働率 92%" />
-              <KpiCell icon="ti-door-enter" color="#4CD964" label="チェックイン" value="27" unit="件" />
-              <KpiCell icon="ti-door-exit" color="#B366FF" label="チェックアウト" value="25" unit="件" />
-              <KpiCell icon="ti-brush" color="#F59E0B" label="清掃待ち" value="20 / 44" unit="部屋" />
-              <KpiCell icon="ti-car" color="#3A6DFF" label="駐車場" value="1 / 10" unit="台" />
-              <KpiCell icon="ti-coffee" color="#4CD964" label="朝食予定+稼働率" value="43" unit="食" sub="稼働率 92%" />
-              <KpiCell icon="ti-tools-kitchen-2" color="#F59E0B" label="夕食予定+稼働率" value="18" unit="食" sub="稼働率 92%" />
-            </div>
-
             <style>{`
               .neo-today-fade { animation: neoChatFadeIn .5s ease; }
               @keyframes neoChatFadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -191,13 +181,31 @@ export default function PropertyHub() {
               .neo-weather-precip { font-size: 11px; color: ${DASH.textFaint}; margin-bottom: 8px; }
               .neo-weather-comment-lbl { font-size: 10px; color: ${DASH.textFaint}; font-weight: 700; margin-bottom: 2px; }
               .neo-weather-comment { font-size: 11.5px; color: ${DASH.textSub}; line-height: 1.55; }
-
-              .neo-kpi-grid { flex-basis: 100%; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 4px; }
-              @media (max-width: 1180px) and (min-width: 760px) { .neo-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
-              @media (max-width: 560px) { .neo-kpi-grid { grid-template-columns: 1fr; } }
             `}</style>
           </div>
         )}
+
+        {/* KPIはNEO TODAYカードの外の独立したセクション(承認済み
+            提案書「拠点ダッシュボードUI レイアウト再構成 Ver.10」) —
+            以前はNEO TODAYカードに同居させていたが、それだとカードの
+            背が高くなりKPIの開始位置が下がってしまうため、個別に枠を
+            持つカードとして外へ出し、NEO TODAY自体をコンパクトにした。 */}
+        {!analyzing && (
+          <div className="dash-kpi-grid">
+            <KpiCell icon="ti-chart-line" color={DASH.gold} label="本日の売上+稼働率" value="¥548,000" sub="稼働率 92%" />
+            <KpiCell icon="ti-door-enter" color="#4CD964" label="チェックイン" value="27" unit="件" />
+            <KpiCell icon="ti-door-exit" color="#B366FF" label="チェックアウト" value="25" unit="件" />
+            <KpiCell icon="ti-brush" color="#F59E0B" label="清掃待ち" value="20 / 44" unit="部屋" />
+            <KpiCell icon="ti-car" color="#3A6DFF" label="駐車場" value="1 / 10" unit="台" />
+            <KpiCell icon="ti-coffee" color="#4CD964" label="朝食予定+稼働率" value="43" unit="食" sub="稼働率 92%" />
+            <KpiCell icon="ti-tools-kitchen-2" color="#F59E0B" label="夕食予定+稼働率" value="18" unit="食" sub="稼働率 92%" />
+          </div>
+        )}
+        <style>{`
+          .dash-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+          @media (max-width: 1180px) and (min-width: 760px) { .dash-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+          @media (max-width: 759px) { .dash-kpi-grid { grid-template-columns: 1fr; } }
+        `}</style>
         <div style={{ fontSize: 11, color: DASH.textFaint, marginBottom: 24 }}>
           ※ KPIの数値はサンプル表示です。フロント・清掃・朝食・夕食・駐車場モジュール実装後、順次実データへ切り替わります。天気は実データです。
         </div>
@@ -264,7 +272,7 @@ export default function PropertyHub() {
 
 function KpiCell({ icon, color, label, value, unit, sub }) {
   return (
-    <div style={{ background: 'rgba(255,255,255,.05)', borderRadius: 14, padding: 14, display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ background: DASH.card, border: `1px solid ${DASH.border}`, borderRadius: 14, padding: 14, display: 'flex', flexDirection: 'column', height: '100%' }}>
       <i className={`ti ${icon}`} style={{ fontSize: 22, color }} />
       <div style={{ fontSize: 10.5, color: DASH.textFaint, margin: '8px 0 2px', minHeight: 28, lineHeight: 1.35 }}>{label}</div>
       <div style={{ fontSize: 18, fontWeight: 700, color: DASH.textMain }}>
