@@ -6,8 +6,9 @@ import { uploadEmployeeFile } from '../../lib/storage'
 import HubShell from '../../layout/HubShell'
 import EmployeeAvatar from './EmployeeAvatar'
 import EmployeeForm from './EmployeeForm'
-import { AsyncBoundary, TableSkeleton, Btn, Badge, Empty, FV, G2, Toast } from '../../ui'
-import { C } from '../../lib/constants'
+import { AsyncBoundary, TableSkeleton, Btn, Badge, Empty, G2, Toast } from '../../ui'
+import { DASH } from '../../lib/designSystem'
+import { DarkPage, DarkFieldView } from '../../ui/DesignSystemKit'
 
 const STATUS_LABEL = { active: '在籍中', inactive: '退職済み' }
 
@@ -44,8 +45,8 @@ function TabPanel({ tabId, employeeId }) {
         ? <Empty icon={TABS.find(t => t.id === tabId).icon} title="まだデータがありません" />
         : (
           <div>
-            {data.map(row => (
-              <div key={row.id} style={{ background: '#F8F9FA', borderRadius: 7, padding: '10px 12px', marginBottom: 8, border: '1px solid #ECEFF1', fontSize: 12, color: '#455A64' }}>
+            {data.map((row, i) => (
+              <div key={row.id} style={{ background: DASH.surface1, borderRadius: 9, padding: '10px 12px', marginBottom: i < data.length - 1 ? 8 : 0, border: `1px solid ${DASH.border}`, fontSize: 12, color: DASH.textSub }}>
                 <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>{JSON.stringify(row, null, 2)}</pre>
               </div>
             ))}
@@ -57,7 +58,8 @@ function TabPanel({ tabId, employeeId }) {
 }
 
 // 社員プロフィール(/employees/:id) — 将来 評価/資格/契約書/面談履歴/
-// 日報/AI分析 を追加できるようタブ構造にした拡張前提の画面。
+// 日報/AI分析 を追加できるようタブ構造にした拡張前提の画面。Design
+// System v1.0(承認済み提案書「Design System v1.0 仕様変更」)。
 export default function EmployeeProfile() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -108,10 +110,10 @@ export default function EmployeeProfile() {
 
   return (
     <HubShell>
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 20px 56px' }}>
+      <DarkPage maxWidth={900}>
         <button
           onClick={() => navigate('/employees')}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#90A4AE', fontSize: 12, padding: 0, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'inherit' }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: DASH.textFaint, fontSize: 12, padding: 0, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'inherit' }}
         >
           <i className="ti ti-chevron-left" style={{ fontSize: 13 }} /> 社員一覧へ戻る
         </button>
@@ -119,17 +121,17 @@ export default function EmployeeProfile() {
         {/* Profile card frame always renders — the back button above and
             this frame stay visible through loading/error, only the
             content inside changes. */}
-        <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #ECEFF1', padding: '20px', boxShadow: '0 1px 4px rgba(0,0,0,.06)', marginBottom: 16 }}>
+        <div style={{ background: DASH.card, borderRadius: 14, border: `1px solid ${DASH.border}`, padding: '20px', boxShadow: DASH.cardShadow, marginBottom: 16 }}>
           {loading ? (
-            <div style={{ textAlign: 'center', color: '#90A4AE', fontSize: 12, padding: '24px 0' }}>
+            <div style={{ textAlign: 'center', color: DASH.textFaint, fontSize: 12, padding: '24px 0' }}>
               <i className="ti ti-loader-2" style={{ fontSize: 15, marginRight: 6 }} />読み込み中…
             </div>
           ) : error ? (
             <div style={{ textAlign: 'center', padding: '24px 0' }}>
-              <div style={{ color: '#C62828', fontSize: 12, marginBottom: 8 }}>
+              <div style={{ color: DASH.alert, fontSize: 12, marginBottom: 8 }}>
                 <i className="ti ti-alert-circle" style={{ fontSize: 15, marginRight: 6 }} />社員情報を取得できませんでした
               </div>
-              <Btn onClick={refresh} icon="ti-refresh" label="再試行" color={C.navy} sm />
+              <Btn onClick={refresh} icon="ti-refresh" label="再試行" color={DASH.gold} sm />
             </div>
           ) : !emp ? (
             <Empty icon="ti-user-off" title="社員が見つかりません" />
@@ -138,37 +140,37 @@ export default function EmployeeProfile() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
                 <EmployeeAvatar photoUrl={emp.photo_url} name={emp.full_name} size={72} />
                 <div style={{ flex: 1, minWidth: 200 }}>
-                  <h1 style={{ fontSize: 19, fontWeight: 700, color: C.navy, margin: '0 0 3px' }}>{emp.full_name}</h1>
-                  <div style={{ fontSize: 12, color: '#90A4AE', marginBottom: 6 }}>{emp.kana}</div>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 12, color: '#607D8B' }}>
+                  <h1 style={{ fontSize: 19, fontWeight: 700, color: DASH.textMain, margin: '0 0 3px' }}>{emp.full_name}</h1>
+                  <div style={{ fontSize: 12, color: DASH.textFaint, marginBottom: 6 }}>{emp.kana}</div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 12, color: DASH.textSub }}>
                     <span>{emp.position || '役職未設定'}</span>
                     <span>/ {emp.department_name || '部署未設定'}</span>
                     <span>/ {emp.location_name || '配属先未設定'}</span>
                     <Badge status={STATUS_LABEL[emp.status] || emp.status} />
                   </div>
                 </div>
-                {permissions.canWrite && <Btn onClick={openEdit} icon="ti-edit" label="編集" color={C.navy} outline sm />}
+                {permissions.canWrite && <Btn onClick={openEdit} icon="ti-edit" label="編集" color={DASH.gold} outline sm />}
               </div>
 
-              <div style={{ height: 1, background: '#ECEFF1', margin: '16px 0' }} />
+              <div style={{ height: 1, background: DASH.border, margin: '16px 0' }} />
 
               <G2>
-                <FV label="社員番号" value={emp.employee_no} />
-                <FV label="雇用区分" value={emp.employment_type} />
-                <FV label="メールアドレス" value={emp.email} />
-                <FV label="電話番号" value={emp.phone} />
-                <FV label="入社日" value={emp.hire_date} />
-                <FV label="退職日" value={emp.retirement_date} />
+                <DarkFieldView label="社員番号" value={emp.employee_no} />
+                <DarkFieldView label="雇用区分" value={emp.employment_type} />
+                <DarkFieldView label="メールアドレス" value={emp.email} />
+                <DarkFieldView label="電話番号" value={emp.phone} />
+                <DarkFieldView label="入社日" value={emp.hire_date} />
+                <DarkFieldView label="退職日" value={emp.retirement_date} />
               </G2>
               <div style={{ height: 8 }} />
-              <FV label="住所" value={emp.address} />
+              <DarkFieldView label="住所" value={emp.address} />
               <div style={{ height: 8 }} />
               <G2>
-                <FV label="緊急連絡先(氏名)" value={emp.emergency_contact_name} />
-                <FV label="緊急連絡先(電話)" value={emp.emergency_contact_phone} />
+                <DarkFieldView label="緊急連絡先(氏名)" value={emp.emergency_contact_name} />
+                <DarkFieldView label="緊急連絡先(電話)" value={emp.emergency_contact_phone} />
               </G2>
               <div style={{ height: 8 }} />
-              <FV
+              <DarkFieldView
                 label="社会保険"
                 value={['health', 'pension', 'employment']
                   .filter(k => emp.social_insurance?.[k])
@@ -176,15 +178,15 @@ export default function EmployeeProfile() {
                   .join(' / ') || undefined}
               />
               <div style={{ height: 8 }} />
-              <FV label="メモ" value={emp.notes} />
+              <DarkFieldView label="メモ" value={emp.notes} />
             </>
           )}
         </div>
 
         {/* Extensible tabs — only meaningful once we actually have emp */}
         {!loading && !error && emp && (
-          <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #ECEFF1', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
-            <div style={{ display: 'flex', borderBottom: '2px solid #ECEFF1', overflowX: 'auto' }}>
+          <div style={{ background: DASH.card, borderRadius: 14, border: `1px solid ${DASH.border}`, boxShadow: DASH.cardShadow }}>
+            <div style={{ display: 'flex', borderBottom: `2px solid ${DASH.border}`, overflowX: 'auto' }}>
               {TABS.map(t => (
                 <button
                   key={t.id}
@@ -192,14 +194,14 @@ export default function EmployeeProfile() {
                   style={{
                     padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer',
                     fontSize: 12, fontWeight: tab === t.id ? 700 : 400, whiteSpace: 'nowrap',
-                    color: tab === t.id ? C.navy : '#90A4AE',
-                    borderBottom: tab === t.id ? `2px solid ${C.gold}` : '2px solid transparent',
+                    color: tab === t.id ? DASH.textMain : DASH.textFaint,
+                    borderBottom: tab === t.id ? `2px solid ${DASH.gold}` : '2px solid transparent',
                     marginBottom: -2, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
                   }}
                 >
                   <i className={`ti ${t.icon}`} style={{ fontSize: 14 }} />
                   {t.label}
-                  {!t.real && <span style={{ fontSize: 9, color: '#BDBDBD' }}>(準備中)</span>}
+                  {!t.real && <span style={{ fontSize: 9, color: DASH.textFaint }}>(準備中)</span>}
                 </button>
               ))}
             </div>
@@ -211,7 +213,7 @@ export default function EmployeeProfile() {
             </div>
           </div>
         )}
-      </div>
+      </DarkPage>
 
       {modalOpen && (
         <EmployeeForm

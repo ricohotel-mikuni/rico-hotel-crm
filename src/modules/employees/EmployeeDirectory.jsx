@@ -7,7 +7,8 @@ import HubShell from '../../layout/HubShell'
 import EmployeeAvatar from './EmployeeAvatar'
 import EmployeeForm from './EmployeeForm'
 import { Btn, Badge, Toast } from '../../ui'
-import { C } from '../../lib/constants'
+import { DASH } from '../../lib/designSystem'
+import { DarkPage } from '../../ui/DesignSystemKit'
 
 const STATUS_LABEL = { active: '在籍中', inactive: '退職済み' }
 
@@ -21,6 +22,7 @@ const EMPTY_EMPLOYEE = {
 }
 
 // 社員管理 — 大栄商事株式会社に所属する社員の一覧+追加・編集。
+// Design System v1.0(承認済み提案書「Design System v1.0 仕様変更」)。
 // ホテルではなく会社(companies)に所属し、拠点/部署は
 // employee_assignments 経由の配属として別管理(EmployeeForm参照)。
 // 実際のロール・権限編集は既存のスタッフ設定画面(Settings.jsx)への
@@ -76,37 +78,37 @@ export default function EmployeeDirectory() {
 
   return (
     <HubShell>
-      <div style={{ maxWidth: 960, margin: '0 auto', padding: '32px 20px 56px' }}>
+      <DarkPage maxWidth={960}>
         {/* Page chrome always renders, regardless of data-fetch state —
             a failed/slow fetch must never blank the title or actions. */}
         <div style={{ marginBottom: 22, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 2.5, marginBottom: 8 }}>
+            <div style={{ fontSize: 11, color: DASH.gold, fontWeight: 700, letterSpacing: 2.5, marginBottom: 8 }}>
               社員管理
             </div>
-            <h1 style={{ fontSize: 21, fontWeight: 700, color: C.navy, margin: '0 0 5px' }}>
+            <h1 style={{ fontSize: 21, fontWeight: 700, color: DASH.textMain, margin: '0 0 5px' }}>
               社員ディレクトリ
             </h1>
-            <div style={{ fontSize: 13, color: '#90A4AE' }}>
+            <div style={{ fontSize: 13, color: DASH.textFaint }}>
               大栄商事株式会社に所属する社員の一覧
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            {permissions.canWrite && <Btn onClick={openNew} icon="ti-plus" label="社員を追加" color="#4CAF50" />}
-            <Btn onClick={() => navigate('/hotels/rico-mikuni/sales/settings')} icon="ti-settings" label="スタッフ・権限設定へ" color={C.navy} outline />
+            {permissions.canWrite && <Btn onClick={openNew} icon="ti-plus" label="社員を追加" color={DASH.green} />}
+            <Btn onClick={() => navigate('/hotels/rico-mikuni/sales/settings')} icon="ti-settings" label="スタッフ・権限設定へ" color={DASH.gold} outline />
           </div>
         </div>
 
         {/* The table frame (headers, borders) always renders — only the
             body row changes between loading/error/empty/data, so a
             failed or slow fetch never removes the table itself. */}
-        <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #ECEFF1', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
+        <div style={{ background: DASH.card, borderRadius: 14, border: `1px solid ${DASH.border}`, overflow: 'hidden', boxShadow: DASH.cardShadow }}>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
-                <tr style={{ background: '#F5F7FA' }}>
+                <tr style={{ background: 'rgba(212,175,55,.08)' }}>
                   {['', '社員番号', '氏名', '役職', '部署', '配属先', '状態', ''].map((h, i) => (
-                    <th key={i} style={{ padding: '9px 14px', textAlign: 'left', fontSize: 11, color: '#607D8B', fontWeight: 600, borderBottom: '1px solid #ECEFF1', whiteSpace: 'nowrap' }}>
+                    <th key={i} style={{ padding: '9px 14px', textAlign: 'left', fontSize: 11, color: DASH.gold, fontWeight: 700, whiteSpace: 'nowrap' }}>
                       {h}
                     </th>
                   ))}
@@ -115,22 +117,22 @@ export default function EmployeeDirectory() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={8} style={{ padding: '28px', textAlign: 'center', color: '#90A4AE', fontSize: 12 }}>
+                    <td colSpan={8} style={{ padding: '28px', textAlign: 'center', color: DASH.textFaint, fontSize: 12 }}>
                       <i className="ti ti-loader-2" style={{ fontSize: 15, marginRight: 6 }} />読み込み中…
                     </td>
                   </tr>
                 ) : error ? (
                   <tr>
                     <td colSpan={8} style={{ padding: '28px', textAlign: 'center' }}>
-                      <div style={{ color: '#C62828', fontSize: 12, marginBottom: 8 }}>
+                      <div style={{ color: DASH.alert, fontSize: 12, marginBottom: 8 }}>
                         <i className="ti ti-alert-circle" style={{ fontSize: 15, marginRight: 6 }} />社員データを取得できませんでした
                       </div>
-                      <Btn onClick={refresh} icon="ti-refresh" label="再試行" color={C.navy} sm />
+                      <Btn onClick={refresh} icon="ti-refresh" label="再試行" color={DASH.gold} sm />
                     </td>
                   </tr>
                 ) : employees.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ padding: '28px', textAlign: 'center', color: '#BDBDBD', fontSize: 12 }}>
+                    <td colSpan={8} style={{ padding: '28px', textAlign: 'center', color: DASH.textFaint, fontSize: 12 }}>
                       社員データがありません
                     </td>
                   </tr>
@@ -138,18 +140,18 @@ export default function EmployeeDirectory() {
                   <tr
                     key={e.id}
                     onClick={() => navigate(`/employees/${e.id}`)}
-                    style={{ background: i % 2 ? '#FAFAFA' : '#fff', borderBottom: '1px solid #F5F5F5', cursor: 'pointer' }}
+                    style={{ borderTop: i > 0 ? `1px solid ${DASH.border}` : 'none', cursor: 'pointer' }}
                   >
                     <td style={{ padding: '9px 0 9px 14px' }}><EmployeeAvatar photoUrl={e.photo_url} name={e.full_name} size={28} /></td>
-                    <td style={{ padding: '9px 14px', color: '#607D8B', whiteSpace: 'nowrap' }}>{e.employee_no || '—'}</td>
-                    <td style={{ padding: '9px 14px', fontWeight: 600, color: C.navy, whiteSpace: 'nowrap' }}>{e.full_name}</td>
-                    <td style={{ padding: '9px 14px', color: '#607D8B' }}>{e.position || '—'}</td>
-                    <td style={{ padding: '9px 14px', color: '#607D8B' }}>{e.department_name || '—'}</td>
-                    <td style={{ padding: '9px 14px', color: '#607D8B' }}>{e.location_name || '—'}</td>
+                    <td style={{ padding: '9px 14px', color: DASH.textFaint, whiteSpace: 'nowrap' }}>{e.employee_no || '—'}</td>
+                    <td style={{ padding: '9px 14px', fontWeight: 600, color: DASH.textMain, whiteSpace: 'nowrap' }}>{e.full_name}</td>
+                    <td style={{ padding: '9px 14px', color: DASH.textSub }}>{e.position || '—'}</td>
+                    <td style={{ padding: '9px 14px', color: DASH.textSub }}>{e.department_name || '—'}</td>
+                    <td style={{ padding: '9px 14px', color: DASH.textSub }}>{e.location_name || '—'}</td>
                     <td style={{ padding: '9px 14px' }}><Badge status={STATUS_LABEL[e.status] || e.status} /></td>
                     <td style={{ padding: '9px 14px' }}>
                       {permissions.canWrite && (
-                        <button onClick={openEdit(e)} title="編集" style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.navyLight, padding: 4 }}>
+                        <button onClick={openEdit(e)} title="編集" style={{ background: 'none', border: 'none', cursor: 'pointer', color: DASH.gold, padding: 4 }}>
                           <i className="ti ti-edit" style={{ fontSize: 15 }} />
                         </button>
                       )}
@@ -160,7 +162,7 @@ export default function EmployeeDirectory() {
             </table>
           </div>
         </div>
-      </div>
+      </DarkPage>
 
       {modalOpen && (
         <EmployeeForm

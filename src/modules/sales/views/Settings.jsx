@@ -2,12 +2,17 @@ import { useState } from 'react'
 import { useUsers } from '../../../hooks/useData'
 import { useAuth } from '../../../contexts/AuthContext'
 import { supabase } from '../../../lib/supabase'
-import { Btn, Badge, FI, FS, AsyncBoundary, TableSkeleton, Toast } from '../../../ui'
-import { C, ROLES } from '../../../lib/constants'
+import { Btn, Badge, AsyncBoundary, TableSkeleton, Toast } from '../../../ui'
+import { ROLES } from '../../../lib/constants'
+import { DASH } from '../../../lib/designSystem'
+import { DarkPage, DarkPanel, DarkField, DarkSelect } from '../../../ui/DesignSystemKit'
 
+// 設定(ユーザー管理・システム情報) — Design System v1.0(承認済み
+// 提案書「Design System v1.0 仕様変更」)。認証・ユーザー招待・権限
+// 変更のロジックは一切変更していない。
 export default function Settings() {
   const { users, loading, error: loadError, refresh, updateRole } = useUsers()
-  const { profile, permissions, refetchProfile } = useAuth()
+  const { profile, permissions } = useAuth()
   const [newUser, setNewUser] = useState({ email: '', full_name: '', password: '', role: 'sales' })
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(null)
@@ -44,94 +49,90 @@ export default function Settings() {
   }
 
   return (
-    <div style={{ padding: '18px 16px', maxWidth: 800, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 16, fontWeight: 700, color: C.navy, margin: '0 0 16px' }}>設定</h1>
+    <DarkPage maxWidth={800}>
+      <h1 style={{ fontSize: 16, fontWeight: 700, color: DASH.textMain, margin: '0 0 16px' }}>設定</h1>
 
       {/* User list — only this reacts to loading/error */}
       <AsyncBoundary loading={loading} error={loadError} onRetry={refresh} skeleton={<TableSkeleton rows={4} columns={4} />}>
-      <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #ECEFF1', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.06)', marginBottom: 16 }}>
-        <div style={{ padding: '10px 16px', background: C.navy, fontSize: 13, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <i className="ti ti-users" style={{ fontSize: 14 }} />
-          ユーザー管理
-          <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 400, opacity: .7 }}>全 {users.length} 名</span>
-        </div>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead>
-            <tr style={{ background: '#F5F7FA' }}>
-              {['氏名', 'メールアドレス', '権限', '変更'].map(h => (
-                <th key={h} style={{ padding: '8px 14px', textAlign: 'left', fontSize: 11, color: '#607D8B', fontWeight: 600, borderBottom: '1px solid #ECEFF1' }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((u, i) => (
-              <tr key={u.id} style={{ background: i % 2 ? '#FAFAFA' : '#fff', borderBottom: '1px solid #F5F5F5' }}>
-                <td style={{ padding: '10px 14px' }}>
-                  <div style={{ fontWeight: 600, color: C.navy }}>{u.full_name}</div>
-                  {u.id === profile?.id && <span style={{ fontSize: 10, color: '#4CAF50' }}>（あなた）</span>}
-                </td>
-                <td style={{ padding: '10px 14px', color: '#607D8B', fontSize: 12 }}>{u.email}</td>
-                <td style={{ padding: '10px 14px' }}>
-                  <Badge status={ROLES[u.role]?.label || u.role} />
-                </td>
-                <td style={{ padding: '10px 14px' }}>
-                  {permissions.canManageUsers && u.id !== profile?.id ? (
-                    <select
-                      value={u.role}
-                      onChange={e => changeRole(u.id, e.target.value)}
-                      style={{ padding: '5px 8px', border: '1px solid #E0E0E0', borderRadius: 5, fontSize: 12, background: '#FFFDE7', fontFamily: 'inherit' }}
-                    >
-                      {Object.entries(ROLES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                    </select>
-                  ) : (
-                    <span style={{ fontSize: 11, color: '#BDBDBD' }}>—</span>
-                  )}
-                </td>
+      <div style={{ marginBottom: 16 }}>
+        <DarkPanel title={<>ユーザー管理 <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 400, color: DASH.textFaint }}>全 {users.length} 名</span></>}>
+          <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr>
+                {['氏名', 'メールアドレス', '権限', '変更'].map(h => (
+                  <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontSize: 11, color: DASH.gold, fontWeight: 700, borderBottom: `1px solid ${DASH.border}` }}>{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {users.map((u, i) => (
+                <tr key={u.id} style={{ borderTop: i > 0 ? `1px solid ${DASH.border}` : 'none' }}>
+                  <td style={{ padding: '10px' }}>
+                    <div style={{ fontWeight: 600, color: DASH.textMain }}>{u.full_name}</div>
+                    {u.id === profile?.id && <span style={{ fontSize: 10, color: DASH.green }}>（あなた）</span>}
+                  </td>
+                  <td style={{ padding: '10px', color: DASH.textFaint, fontSize: 12 }}>{u.email}</td>
+                  <td style={{ padding: '10px' }}>
+                    <Badge status={ROLES[u.role]?.label || u.role} />
+                  </td>
+                  <td style={{ padding: '10px' }}>
+                    {permissions.canManageUsers && u.id !== profile?.id ? (
+                      <select
+                        value={u.role}
+                        onChange={e => changeRole(u.id, e.target.value)}
+                        style={{ padding: '5px 8px', border: `1px solid ${DASH.border}`, borderRadius: 7, fontSize: 12, background: DASH.inputBg, color: DASH.textMain, fontFamily: 'inherit' }}
+                      >
+                        {Object.entries(ROLES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                      </select>
+                    ) : (
+                      <span style={{ fontSize: 11, color: DASH.textFaint }}>—</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          </div>
+        </DarkPanel>
       </div>
       </AsyncBoundary>
 
       {/* Add user */}
       {permissions.canManageUsers && (
-        <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #ECEFF1', padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,.06)', marginBottom: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid #ECEFF1', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <i className="ti ti-user-plus" style={{ fontSize: 14 }} />
-            新しいスタッフを追加
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px' }}>
-            <FI label="氏名" value={newUser.full_name} onChange={v => setNewUser(p => ({ ...p, full_name: v }))} placeholder="山田 太郎" />
-            <FI label="メールアドレス" value={newUser.email} onChange={v => setNewUser(p => ({ ...p, email: v }))} type="email" placeholder="yamada@example.com" />
-            <FI label="初期パスワード（8文字以上）" value={newUser.password} onChange={v => setNewUser(p => ({ ...p, password: v }))} type="password" />
-            <FS label="権限" value={newUser.role} onChange={v => setNewUser(p => ({ ...p, role: v }))} options={Object.entries(ROLES).map(([k, v]) => k)} />
-          </div>
-          <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
-            <Btn onClick={inviteUser} icon={saving ? 'ti-loader' : 'ti-user-plus'} label={saving ? '追加中…' : 'スタッフを追加'} color={C.navy} disabled={saving} />
-            <span style={{ fontSize: 11, color: '#90A4AE' }}>追加後、スタッフは上記のメール・パスワードでログインできます</span>
-          </div>
+        <div style={{ marginBottom: 16 }}>
+          <DarkPanel title="新しいスタッフを追加">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px' }}>
+              <DarkField label="氏名" value={newUser.full_name} onChange={v => setNewUser(p => ({ ...p, full_name: v }))} placeholder="山田 太郎" />
+              <DarkField label="メールアドレス" value={newUser.email} onChange={v => setNewUser(p => ({ ...p, email: v }))} type="email" placeholder="yamada@example.com" />
+              <DarkField label="初期パスワード（8文字以上）" value={newUser.password} onChange={v => setNewUser(p => ({ ...p, password: v }))} type="password" />
+              <DarkSelect label="権限" value={newUser.role} onChange={v => setNewUser(p => ({ ...p, role: v }))} options={Object.entries(ROLES).map(([k]) => k)} />
+            </div>
+            <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+              <Btn onClick={inviteUser} icon={saving ? 'ti-loader' : 'ti-user-plus'} label={saving ? '追加中…' : 'スタッフを追加'} color={DASH.gold} disabled={saving} />
+              <span style={{ fontSize: 11, color: DASH.textFaint }}>追加後、スタッフは上記のメール・パスワードでログインできます</span>
+            </div>
+          </DarkPanel>
         </div>
       )}
 
       {/* System info */}
-      <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #ECEFF1', padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #ECEFF1' }}>システム情報</div>
+      <DarkPanel title="システム情報">
         {[
           ['システム名', 'リコホテル三国 営業管理システム v5.0'],
           ['データベース', 'Supabase (PostgreSQL) — クラウド保存'],
           ['リアルタイム同期', '有効 — 全デバイスで自動同期'],
           ['データバックアップ', 'Supabase が毎日自動バックアップ'],
           ['対応デバイス', 'PC / Mac / iPhone / iPad / Android'],
-        ].map(([l, v]) => (
-          <div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #F5F5F5', fontSize: 12 }}>
-            <span style={{ color: '#90A4AE', fontWeight: 500 }}>{l}</span>
-            <span style={{ color: C.navy, fontWeight: 500 }}>{v}</span>
+        ].map(([l, v], i) => (
+          <div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderTop: i > 0 ? `1px solid ${DASH.border}` : 'none', fontSize: 12 }}>
+            <span style={{ color: DASH.textFaint, fontWeight: 500 }}>{l}</span>
+            <span style={{ color: DASH.textMain, fontWeight: 500 }}>{v}</span>
           </div>
         ))}
-      </div>
+      </DarkPanel>
 
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
-    </div>
+    </DarkPage>
   )
 }

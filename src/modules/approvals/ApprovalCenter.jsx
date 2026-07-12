@@ -3,13 +3,16 @@ import { useApprovalRequests, useMyEmployee, useRoles } from '../../hooks/useDat
 import { usePermission } from '../../permissions/PermissionContext'
 import HubShell from '../../layout/HubShell'
 import Modal from '../../ui/Modal'
-import { Btn, Badge, FI, FT, G2, Toast } from '../../ui'
-import { C, fmt } from '../../lib/constants'
+import { Btn, Badge, G2, Toast } from '../../ui'
+import { fmt } from '../../lib/constants'
+import { DASH } from '../../lib/designSystem'
+import { DarkPage, DarkField, DarkTextarea } from '../../ui/DesignSystemKit'
 
 // 申請の種類 — 購入申請/経費申請/休暇申請/稟議書/契約は今後それぞれ
 // 独自の画面を持つが、電子承認の土台としては同じ approval_requests に
 // 自分の module タグでINSERTするだけで乗る(src/modules/registry.js の
 // purchase/expenses と同じ id を使い、Hubの未読バッジとも自然に繋がる)。
+// Design System v1.0(承認済み提案書「Design System v1.0 仕様変更」)。
 const REQUEST_MODULES = [
   { module: 'purchase', label: '購入申請' },
   { module: 'expenses', label: '経費申請' },
@@ -28,13 +31,13 @@ function ApprovalRow({ request, onDecide }) {
   const moduleLabel = REQUEST_MODULES.find(m => m.module === request.module)?.label || request.module
 
   return (
-    <div style={{ background: '#F8F9FA', borderRadius: 8, padding: '12px 14px', marginBottom: 10, border: '1px solid #ECEFF1' }}>
+    <div style={{ background: DASH.surface1, borderRadius: 9, padding: '12px 14px', marginBottom: 10, border: `1px solid ${DASH.border}` }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 10, color: '#90A4AE', fontWeight: 700, letterSpacing: .5, marginBottom: 2 }}>{moduleLabel}</div>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: C.navy }}>{request.title}</div>
-          {request.description && <div style={{ fontSize: 12, color: '#607D8B', marginTop: 3 }}>{request.description}</div>}
-          <div style={{ fontSize: 11, color: '#90A4AE', marginTop: 5 }}>
+          <div style={{ fontSize: 10, color: DASH.textFaint, fontWeight: 700, letterSpacing: .5, marginBottom: 2 }}>{moduleLabel}</div>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: DASH.textMain }}>{request.title}</div>
+          {request.description && <div style={{ fontSize: 12, color: DASH.textSub, marginTop: 3 }}>{request.description}</div>}
+          <div style={{ fontSize: 11, color: DASH.textFaint, marginTop: 5 }}>
             申請者: {request.requester?.full_name || '—'} / {new Date(request.created_at).toLocaleDateString('ja-JP')}
             {request.amount != null && <> / 金額: {fmt(request.amount)}円</>}
           </div>
@@ -43,8 +46,8 @@ function ApprovalRow({ request, onDecide }) {
           <Badge status={STATUS_LABEL[request.status] || request.status} />
           {request.status === 'pending' && canApprove && step && (
             <>
-              <Btn onClick={() => onDecide(request, step, 'approved')} icon="ti-check" label="承認" color="#4CAF50" sm />
-              <Btn onClick={() => onDecide(request, step, 'rejected')} icon="ti-x" label="却下" color="#F44336" outline sm />
+              <Btn onClick={() => onDecide(request, step, 'approved')} icon="ti-check" label="承認" color={DASH.green} sm />
+              <Btn onClick={() => onDecide(request, step, 'rejected')} icon="ti-x" label="却下" color={DASH.alert} outline sm />
             </>
           )}
         </div>
@@ -99,38 +102,38 @@ export default function ApprovalCenter() {
 
   return (
     <HubShell>
-      <div style={{ maxWidth: 800, margin: '0 auto', padding: '32px 20px 56px' }}>
+      <DarkPage maxWidth={800}>
         {/* Page chrome always renders, regardless of data-fetch state. */}
         <div style={{ marginBottom: 22, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <div style={{ fontSize: 11, color: C.gold, fontWeight: 700, letterSpacing: 2.5, marginBottom: 8 }}>電子承認</div>
-            <h1 style={{ fontSize: 21, fontWeight: 700, color: C.navy, margin: '0 0 5px' }}>承認センター</h1>
-            <div style={{ fontSize: 13, color: '#90A4AE' }}>
+            <div style={{ fontSize: 11, color: DASH.gold, fontWeight: 700, letterSpacing: 2.5, marginBottom: 8 }}>電子承認</div>
+            <h1 style={{ fontSize: 21, fontWeight: 700, color: DASH.textMain, margin: '0 0 5px' }}>承認センター</h1>
+            <div style={{ fontSize: 13, color: DASH.textFaint }}>
               購入・経費・休暇・稟議・契約など、あらゆる申請がここに集まります
             </div>
           </div>
-          <Btn onClick={openNew} icon="ti-plus" label="新規申請" color="#4CAF50" />
+          <Btn onClick={openNew} icon="ti-plus" label="新規申請" color={DASH.green} />
         </div>
 
         {/* This frame always renders — only its inner content reacts to
             loading/error, so a failed/slow fetch never removes the
             "承認待ち" section itself. */}
         <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 10 }}>承認待ち（{loading || error ? '—' : pending.length}）</div>
-          <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #ECEFF1', minHeight: 60 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: DASH.textMain, marginBottom: 10 }}>承認待ち（{loading || error ? '—' : pending.length}）</div>
+          <div style={{ background: DASH.card, borderRadius: 14, border: `1px solid ${DASH.border}`, boxShadow: DASH.cardShadow, minHeight: 60 }}>
             {loading ? (
-              <div style={{ padding: '20px', textAlign: 'center', color: '#90A4AE', fontSize: 12 }}>
+              <div style={{ padding: '20px', textAlign: 'center', color: DASH.textFaint, fontSize: 12 }}>
                 <i className="ti ti-loader-2" style={{ fontSize: 15, marginRight: 6 }} />読み込み中…
               </div>
             ) : error ? (
               <div style={{ padding: '20px', textAlign: 'center' }}>
-                <div style={{ color: '#C62828', fontSize: 12, marginBottom: 8 }}>
+                <div style={{ color: DASH.alert, fontSize: 12, marginBottom: 8 }}>
                   <i className="ti ti-alert-circle" style={{ fontSize: 15, marginRight: 6 }} />申請データを取得できませんでした
                 </div>
-                <Btn onClick={refresh} icon="ti-refresh" label="再試行" color={C.navy} sm />
+                <Btn onClick={refresh} icon="ti-refresh" label="再試行" color={DASH.gold} sm />
               </div>
             ) : pending.length === 0 ? (
-              <div style={{ padding: '20px', textAlign: 'center', color: '#BDBDBD', fontSize: 12 }}>承認待ちの申請はありません</div>
+              <div style={{ padding: '20px', textAlign: 'center', color: DASH.textFaint, fontSize: 12 }}>承認待ちの申請はありません</div>
             ) : (
               <div style={{ padding: 10 }}>{pending.map(r => <ApprovalRow key={r.id} request={r} onDecide={onDecide} />)}</div>
             )}
@@ -139,34 +142,34 @@ export default function ApprovalCenter() {
 
         {!loading && !error && done.length > 0 && (
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 10 }}>履歴</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: DASH.textMain, marginBottom: 10 }}>履歴</div>
             {done.map(r => <ApprovalRow key={r.id} request={r} onDecide={onDecide} />)}
           </div>
         )}
-      </div>
+      </DarkPage>
 
       {modalOpen && (
-        <Modal title="新規申請" icon="ti-file-plus" onClose={() => setModalOpen(false)} onSave={save} saving={saving} width={480}>
+        <Modal dark title="新規申請" icon="ti-file-plus" onClose={() => setModalOpen(false)} onSave={save} saving={saving} width={480}>
           <div style={{ marginBottom: 9 }}>
-            <label style={{ fontSize: 11, color: '#607D8B', display: 'block', marginBottom: 3, fontWeight: 500 }}>申請種別</label>
+            <label style={{ fontSize: 11, color: DASH.textFaint, display: 'block', marginBottom: 3, fontWeight: 500 }}>申請種別</label>
             <select
               value={form.module}
               onChange={e => set('module')(e.target.value)}
-              style={{ width: '100%', padding: '8px 10px', border: '1px solid #E0E0E0', borderRadius: 5, fontSize: 13, background: '#FFFDE7', fontFamily: 'inherit', outline: 'none' }}
+              style={{ width: '100%', padding: '8px 10px', border: `1px solid ${DASH.border}`, borderRadius: 7, fontSize: 13, background: DASH.inputBg, color: DASH.textMain, fontFamily: 'inherit', outline: 'none' }}
             >
               {REQUEST_MODULES.map(m => <option key={m.module} value={m.module}>{m.label}</option>)}
             </select>
           </div>
-          <FI label="件名" value={form.title} onChange={set('title')} required />
-          <FT label="内容" value={form.description} onChange={set('description')} />
+          <DarkField label="件名" value={form.title} onChange={set('title')} required />
+          <DarkTextarea label="内容" value={form.description} onChange={set('description')} />
           <G2>
-            <FI label="金額(任意)" value={form.amount} onChange={set('amount')} type="number" />
+            <DarkField label="金額(任意)" value={form.amount} onChange={set('amount')} type="number" />
             <div style={{ marginBottom: 9 }}>
-              <label style={{ fontSize: 11, color: '#607D8B', display: 'block', marginBottom: 3, fontWeight: 500 }}>承認者ロール</label>
+              <label style={{ fontSize: 11, color: DASH.textFaint, display: 'block', marginBottom: 3, fontWeight: 500 }}>承認者ロール</label>
               <select
                 value={form.approverRoleId}
                 onChange={e => set('approverRoleId')(e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #E0E0E0', borderRadius: 5, fontSize: 13, background: '#FFFDE7', fontFamily: 'inherit', outline: 'none' }}
+                style={{ width: '100%', padding: '8px 10px', border: `1px solid ${DASH.border}`, borderRadius: 7, fontSize: 13, background: DASH.inputBg, color: DASH.textMain, fontFamily: 'inherit', outline: 'none' }}
               >
                 <option value="">未指定</option>
                 {roles.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}

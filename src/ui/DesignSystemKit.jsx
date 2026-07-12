@@ -18,7 +18,7 @@ export function TodayCard({ children, style }) {
       {children}
       <style>{`
         .ds-today-card {
-          background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 18px; padding: 24px;
+          background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 18px; padding: 24px; box-shadow: ${DASH.cardShadow};
           display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 24px;
         }
       `}</style>
@@ -51,7 +51,7 @@ export function AnalyzingCard({ message = 'NEOがデータを分析していま�
       </span>
       <style>{`
         .ds-analyzing {
-          background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 18px; padding: 24px 26px;
+          background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 18px; padding: 24px 26px; box-shadow: ${DASH.cardShadow};
           margin-bottom: 24px; display: flex; align-items: center; gap: 14px; color: ${DASH.textMain}; fontSize: 13px;
         }
         .ds-analyzing-dots { display: inline-flex; gap: 4px; margin-left: 8px; }
@@ -92,7 +92,7 @@ export function KpiCell({ icon, color, label, value, unit, sub, dummy, onClick }
       <div className="ds-kpi-val">{value}{unit && <small>{unit}</small>}</div>
       <div className="ds-kpi-sub">{sub || ''}</div>
       <style>{`
-        .ds-kpi-cell { background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; height: 100%; position: relative; transition: border-color .15s; }
+        .ds-kpi-cell { background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 14px; padding: 14px; box-shadow: ${DASH.cardShadow}; display: flex; flex-direction: column; height: 100%; position: relative; transition: border-color .15s; }
         .ds-kpi-cell-clickable:active { transform: scale(.98); }
         @media (hover: hover) and (pointer: fine) { .ds-kpi-cell-clickable:hover { border-color: ${DASH.gold}; } }
         .ds-kpi-dummy { position: absolute; top: 10px; right: 12px; font-size: 9px; color: ${DASH.textFaint}; font-weight: 700; }
@@ -115,7 +115,7 @@ export function DarkPanel({ title, action, children }) {
       </div>
       {children}
       <style>{`
-        .ds-panel { background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 18px; padding: 22px; }
+        .ds-panel { background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 18px; padding: 22px; box-shadow: ${DASH.cardShadow}; }
         .ds-panel-head { display: flex; align-items: center; margin-bottom: 14px; }
         .ds-panel-title { font-size: 13px; font-weight: 700; color: ${DASH.textMain}; display: flex; align-items: center; gap: 7px; }
         .ds-more { margin-left: auto; font-size: 11.5px; color: ${DASH.gold}; font-weight: 600; cursor: pointer; flex-shrink: 0; }
@@ -147,7 +147,7 @@ export function DarkPage({ children, maxWidth = 1180 }) {
 const darkFieldBoxStyle = {
   width: '100%', padding: '8px 10px',
   border: `1px solid ${DASH.border}`, borderRadius: 7,
-  fontSize: 13, background: '#0B213F', color: DASH.textMain,
+  fontSize: 13, background: DASH.inputBg, color: DASH.textMain,
   boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit',
 }
 
@@ -210,7 +210,7 @@ export function DarkFieldView({ label, value, highlight }) {
       </div>
       <div style={{
         fontSize: 13, padding: '7px 10px', borderRadius: 7,
-        background: highlight ? 'rgba(212,175,55,.1)' : 'rgba(255,255,255,.03)',
+        background: highlight ? 'rgba(212,175,55,.1)' : DASH.surface1,
         border: `1px solid ${highlight ? DASH.gold : DASH.border}`,
         minHeight: 32, color: DASH.textSub, lineHeight: 1.4,
       }}>
@@ -265,7 +265,7 @@ export function DarkImageUpload({ label, icon, value, file, onFile }) {
           display: 'flex', alignItems: 'center', gap: 10,
           border: `1.5px dashed ${dragOver ? DASH.gold : DASH.border}`,
           borderRadius: 7, padding: 8, cursor: 'pointer',
-          background: dragOver ? 'rgba(212,175,55,.06)' : '#0B213F',
+          background: dragOver ? 'rgba(212,175,55,.06)' : DASH.inputBg,
           transition: 'border-color .15s, background .15s',
         }}
       >
@@ -315,7 +315,7 @@ export function DarkDocUpload({ label, icon, value, file, onFile }) {
           display: 'flex', alignItems: 'center', gap: 10,
           border: `1.5px dashed ${dragOver ? DASH.gold : DASH.border}`,
           borderRadius: 7, padding: 8, cursor: 'pointer',
-          background: dragOver ? 'rgba(212,175,55,.06)' : '#0B213F',
+          background: dragOver ? 'rgba(212,175,55,.06)' : DASH.inputBg,
           transition: 'border-color .15s, background .15s',
         }}
       >
@@ -330,10 +330,10 @@ export function DarkDocUpload({ label, icon, value, file, onFile }) {
         </div>
         {value && !file && (
           <div onClick={e => e.stopPropagation()} style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-            <a href={value} target="_blank" rel="noopener noreferrer" title="開く" style={{ width: 28, height: 28, borderRadius: 6, background: '#0F2A4D', border: `1px solid ${DASH.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: DASH.gold }}>
+            <a href={value} target="_blank" rel="noopener noreferrer" title="開く" style={{ width: 28, height: 28, borderRadius: 6, background: DASH.card, border: `1px solid ${DASH.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: DASH.gold }}>
               <i className="ti ti-external-link" style={{ fontSize: 13 }} />
             </a>
-            <button type="button" onClick={() => downloadFile(value, fileName)} title="ダウンロード" style={{ width: 28, height: 28, borderRadius: 6, background: '#0F2A4D', border: `1px solid ${DASH.border}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: DASH.gold }}>
+            <button type="button" onClick={() => downloadFile(value, fileName)} title="ダウンロード" style={{ width: 28, height: 28, borderRadius: 6, background: DASH.card, border: `1px solid ${DASH.border}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: DASH.gold }}>
               <i className="ti ti-download" style={{ fontSize: 13 }} />
             </button>
           </div>

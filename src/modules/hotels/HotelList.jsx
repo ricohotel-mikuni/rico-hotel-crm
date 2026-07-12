@@ -40,7 +40,7 @@ export default function HotelList() {
                 {soon && <span className="hotel-card-badge">準備中</span>}
                 <div style={{
                   width: 46, height: 46, borderRadius: 12,
-                  background: soon ? 'rgba(255,255,255,.06)' : 'rgba(212,175,55,.16)',
+                  background: soon ? DASH.surface3 : 'rgba(212,175,55,.16)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14,
                 }}>
                   <i className="ti ti-building-store" style={{ fontSize: 21, color: soon ? DASH.textFaint : DASH.gold }} />
@@ -62,7 +62,7 @@ export default function HotelList() {
         <style>{`
           .hotel-card {
             background: ${DASH.card}; border-radius: 14px; padding: 22px 20px; position: relative;
-            border: 1px solid ${DASH.border};
+            border: 1px solid ${DASH.border}; box-shadow: ${DASH.cardShadow};
             cursor: pointer; transition: transform .18s ease, border-color .18s ease;
           }
           .hotel-card:active { transform: scale(.98); }
@@ -80,7 +80,7 @@ export default function HotelList() {
           .hotel-card-badge {
             position: absolute; top: 14px; right: 14px;
             font-size: 10px; font-weight: 700; letter-spacing: .5px;
-            color: ${DASH.textFaint}; background: rgba(255,255,255,.06);
+            color: ${DASH.textFaint}; background: ${DASH.surface3};
             padding: 3px 9px; border-radius: 20px;
           }
         `}</style>

@@ -88,7 +88,7 @@ export default function Portal() {
         <style>{`
           .dash-tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px,1fr)); gap: 16px; }
           .dash-tile {
-            background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 16px; padding: 20px;
+            background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 16px; padding: 20px; box-shadow: ${DASH.cardShadow};
             display: flex; flex-direction: column; gap: 12px; position: relative; cursor: pointer;
             transition: border-color .18s, transform .15s;
           }
@@ -99,7 +99,7 @@ export default function Portal() {
           .dash-tile-icon { width: 42px; height: 42px; border-radius: 11px; background: rgba(212,175,55,.14); display: flex; align-items: center; justify-content: center; }
           .dash-tile-name { font-size: 14px; font-weight: 700; color: ${DASH.textMain}; }
           .dash-tile-desc { font-size: 11.5px; color: ${DASH.textFaint}; line-height: 1.5; }
-          .dash-tile-soon { position: absolute; top: 14px; right: 14px; font-size: 9px; color: ${DASH.textFaint}; background: rgba(255,255,255,.06); padding: 3px 8px; border-radius: 999px; }
+          .dash-tile-soon { position: absolute; top: 14px; right: 14px; font-size: 9px; color: ${DASH.textFaint}; background: ${DASH.surface3}; padding: 3px 8px; border-radius: 999px; }
           .dash-tile-badge {
             position: absolute; top: 14px; right: 14px; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
             background: #E53935; color: #fff; font-size: 10.5px; font-weight: 700; line-height: 20px; text-align: center;

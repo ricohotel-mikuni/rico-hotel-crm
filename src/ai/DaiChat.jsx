@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { C } from '../lib/constants'
+import { DASH } from '../lib/designSystem'
 import Dai from './Dai'
 
 // 常設チャット — 右下固定。閉じた状態も「待機中のDAI」カードとして
 // 存在感を持たせ、円形の小アイコンにはしない(ユーザーからのフィード
 // バックを反映)。今回の簡易版はダミー応答(AI開発憲章 第6章・第35条:
-// ルールベース案Aを踏襲、外部AI APIは呼び出さない)。
+// ルールベース案Aを踏襲、外部AI APIは呼び出さない)。Design System
+// v1.0(承認済み提案書「Design System v1.0 仕様変更」)。
 const CANNED_REPLIES = [
   { match: /売上|稼働|レポート/, reply: '今日は売上、ええ感じで伸びてますよ😊' },
   { match: /予定|フォロー|案件/, reply: '本日のフォロー予定、まとめてお伝えできますよ！' },
@@ -52,15 +53,16 @@ export default function DaiChat() {
           type="button"
           onClick={() => setOpen(true)}
           style={{
-            display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', border: 'none',
-            background: `linear-gradient(160deg, ${C.navyDark}, ${C.navy} 70%, #2E5FA3 140%)`,
-            borderRadius: 14, padding: '8px 14px 8px 8px', boxShadow: '0 12px 32px rgba(0,0,0,.35)',
+            display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+            border: `1px solid ${DASH.border}`,
+            background: DASH.card,
+            borderRadius: 14, padding: '8px 14px 8px 8px', boxShadow: '0 12px 32px rgba(0,0,0,.2)',
             fontFamily: 'inherit', maxWidth: 220,
           }}
         >
           <Dai expr="smile" size={46} />
-          <span style={{ color: '#fff', fontSize: 11.5, textAlign: 'left', lineHeight: 1.5 }}>
-            <b style={{ display: 'block', color: C.gold, fontSize: 10.5 }}>NEO 何でも聞いてください</b>
+          <span style={{ color: DASH.textSub, fontSize: 11.5, textAlign: 'left', lineHeight: 1.5 }}>
+            <b style={{ display: 'block', color: DASH.gold, fontSize: 10.5 }}>NEO 何でも聞いてください</b>
             {hint}
           </span>
         </button>
@@ -68,28 +70,28 @@ export default function DaiChat() {
 
       {open && (
         <div style={{
-          width: 300, maxWidth: 'calc(100vw - 40px)', background: '#fff', borderRadius: 16, overflow: 'hidden',
-          boxShadow: '0 24px 60px rgba(0,0,0,.4)', display: 'flex', flexDirection: 'column', maxHeight: 440,
+          width: 300, maxWidth: 'calc(100vw - 40px)', background: DASH.card, borderRadius: 16, overflow: 'hidden',
+          border: `1px solid ${DASH.border}`, boxShadow: '0 24px 60px rgba(0,0,0,.3)', display: 'flex', flexDirection: 'column', maxHeight: 440,
         }}>
           <div style={{
-            background: `linear-gradient(135deg, ${C.navyDark}, ${C.navy})`, padding: '12px 14px',
+            background: DASH.card, borderBottom: `1px solid ${DASH.border}`, padding: '12px 14px',
             display: 'flex', alignItems: 'center', gap: 10,
           }}>
             <Dai expr="talk" size={44} />
             <div style={{ flex: 1 }}>
-              <div style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>NEO</div>
-              <div style={{ color: C.gold, fontSize: 10.5 }}>● オンライン</div>
+              <div style={{ color: DASH.textMain, fontSize: 13, fontWeight: 700 }}>NEO</div>
+              <div style={{ color: DASH.green, fontSize: 10.5 }}>● オンライン</div>
             </div>
             <button
               type="button" onClick={() => setOpen(false)}
-              style={{ background: 'rgba(255,255,255,.12)', border: 'none', color: '#fff', width: 26, height: 26, borderRadius: '50%', cursor: 'pointer', fontSize: 13 }}
+              style={{ background: DASH.surface2, border: 'none', color: DASH.textFaint, width: 26, height: 26, borderRadius: '50%', cursor: 'pointer', fontSize: 13 }}
             >✕</button>
           </div>
 
           <div style={{ padding: 14, flex: 1, overflowY: 'auto', minHeight: 160 }}>
             {messages.map((m, i) => (
               <div key={i} style={{
-                background: m.from === 'me' ? C.navy : '#F5F7FA', color: m.from === 'me' ? '#fff' : C.navyDark,
+                background: m.from === 'me' ? DASH.gold : DASH.surface1, color: m.from === 'me' ? DASH.onGold : DASH.textMain,
                 borderRadius: 10, padding: '8px 12px', marginBottom: 9, fontSize: 12.5, maxWidth: '85%',
                 marginLeft: m.from === 'me' ? 'auto' : 0, whiteSpace: 'pre-line',
               }}>
@@ -98,19 +100,19 @@ export default function DaiChat() {
             ))}
           </div>
 
-          <div style={{ display: 'flex', gap: 8, padding: 12, borderTop: '1px solid #ECEFF1' }}>
+          <div style={{ display: 'flex', gap: 8, padding: 12, borderTop: `1px solid ${DASH.border}` }}>
             <input
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && send()}
               placeholder="メッセージを入力してください…"
-              style={{ flex: 1, border: '1px solid #E0E0E0', borderRadius: 8, padding: '8px 11px', fontSize: 12.5, outline: 'none', fontFamily: 'inherit' }}
+              style={{ flex: 1, border: `1px solid ${DASH.border}`, borderRadius: 8, padding: '8px 11px', fontSize: 12.5, outline: 'none', fontFamily: 'inherit', background: DASH.inputBg, color: DASH.textMain }}
             />
             <button
               type="button" onClick={send}
-              style={{ background: C.gold, border: 'none', borderRadius: 8, width: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              style={{ background: DASH.gold, border: 'none', borderRadius: 8, width: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
             >
-              <i className="ti ti-send" style={{ color: '#fff', fontSize: 15 }} />
+              <i className="ti ti-send" style={{ color: DASH.onGold, fontSize: 15 }} />
             </button>
           </div>
         </div>

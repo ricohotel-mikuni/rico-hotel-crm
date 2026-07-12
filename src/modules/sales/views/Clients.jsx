@@ -147,13 +147,13 @@ export default function Clients() {
         <div style={{ flex: 1 }} />
         <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
           <i className="ti ti-search" style={{ position: 'absolute', left: 8, color: DASH.textFaint, fontSize: 13, pointerEvents: 'none' }} />
-          <input value={search} onChange={e => { setSearch(e.target.value); setCidx(0) }} placeholder="会社名・担当者・電話" className="sales-tb-input" style={{ padding: '6px 8px 6px 27px', border: `1px solid ${DASH.border}`, borderRadius: 7, fontSize: 12, width: 190, outline: 'none', background: '#0B213F', color: DASH.textSub }} />
+          <input value={search} onChange={e => { setSearch(e.target.value); setCidx(0) }} placeholder="会社名・担当者・電話" className="sales-tb-input" style={{ padding: '6px 8px 6px 27px', border: `1px solid ${DASH.border}`, borderRadius: 7, fontSize: 12, width: 190, outline: 'none', background: DASH.inputBg, color: DASH.textSub }} />
         </div>
-        <select value={rankF} onChange={e => { setRankF(e.target.value); setCidx(0) }} className="sales-tb-input" style={{ fontSize: 12, padding: '6px 8px', border: `1px solid ${DASH.border}`, borderRadius: 7, background: '#0B213F', color: DASH.textSub }}>
+        <select value={rankF} onChange={e => { setRankF(e.target.value); setCidx(0) }} className="sales-tb-input" style={{ fontSize: 12, padding: '6px 8px', border: `1px solid ${DASH.border}`, borderRadius: 7, background: DASH.inputBg, color: DASH.textSub }}>
           <option value="">ランク</option>
           {RANKS.map(r => <option key={r} value={r}>ランク{r}</option>)}
         </select>
-        <select value={statusF} onChange={e => { setStatusF(e.target.value); setCidx(0) }} className="sales-tb-input" style={{ fontSize: 12, padding: '6px 8px', border: `1px solid ${DASH.border}`, borderRadius: 7, background: '#0B213F', color: DASH.textSub }}>
+        <select value={statusF} onChange={e => { setStatusF(e.target.value); setCidx(0) }} className="sales-tb-input" style={{ fontSize: 12, padding: '6px 8px', border: `1px solid ${DASH.border}`, borderRadius: 7, background: DASH.inputBg, color: DASH.textSub }}>
           <option value="">状況</option>
           {CLIENT_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
@@ -194,11 +194,11 @@ export default function Clients() {
         <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
           {/* Navigator */}
           <div className="no-print" style={{ padding: '7px 12px', background: DASH.card, borderBottom: `1px solid ${DASH.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button onClick={() => setCidx(Math.max(0, cidx - 1))} disabled={cidx === 0} style={{ background: '#0B213F', border: `1px solid ${DASH.border}`, borderRadius: 6, padding: '3px 9px', cursor: 'pointer', color: DASH.textSub, opacity: cidx === 0 ? .4 : 1 }}>
+            <button onClick={() => setCidx(Math.max(0, cidx - 1))} disabled={cidx === 0} style={{ background: DASH.inputBg, border: `1px solid ${DASH.border}`, borderRadius: 6, padding: '3px 9px', cursor: 'pointer', color: DASH.textSub, opacity: cidx === 0 ? .4 : 1 }}>
               <i className="ti ti-chevron-left" style={{ fontSize: 13 }} />
             </button>
             <span style={{ fontSize: 12, color: DASH.textFaint, minWidth: 80, textAlign: 'center' }}>{cidx + 1} / {filtered.length} 件</span>
-            <button onClick={() => setCidx(Math.min(filtered.length - 1, cidx + 1))} disabled={cidx >= filtered.length - 1} style={{ background: '#0B213F', border: `1px solid ${DASH.border}`, borderRadius: 6, padding: '3px 9px', cursor: 'pointer', color: DASH.textSub, opacity: cidx >= filtered.length - 1 ? .4 : 1 }}>
+            <button onClick={() => setCidx(Math.min(filtered.length - 1, cidx + 1))} disabled={cidx >= filtered.length - 1} style={{ background: DASH.inputBg, border: `1px solid ${DASH.border}`, borderRadius: 6, padding: '3px 9px', cursor: 'pointer', color: DASH.textSub, opacity: cidx >= filtered.length - 1 ? .4 : 1 }}>
               <i className="ti ti-chevron-right" style={{ fontSize: 13 }} />
             </button>
             <div style={{ flex: 1 }} />
@@ -270,7 +270,7 @@ export default function Clients() {
                     {[...cur.client_history].sort((a, b) => b.visit_date?.localeCompare(a.visit_date)).map((h, i) => (
                       <div key={h.id || i} style={{ position: 'relative', marginBottom: 10, paddingLeft: 16 }}>
                         <div style={{ position: 'absolute', left: -5, top: 9, width: 10, height: 10, borderRadius: '50%', background: DASH.gold, border: `2px solid ${DASH.card}` }} />
-                        <div style={{ background: 'rgba(255,255,255,.03)', borderRadius: 9, padding: '8px 12px', border: `1px solid ${DASH.border}` }}>
+                        <div style={{ background: DASH.surface1, borderRadius: 9, padding: '8px 12px', border: `1px solid ${DASH.border}` }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
                             <span style={{ fontSize: 12, fontWeight: 700, color: DASH.textMain }}>{h.action}</span>
                             <span style={{ fontSize: 11, color: DASH.textFaint }}>{h.visit_date} / {h.person}</span>
@@ -288,7 +288,7 @@ export default function Clients() {
                 {relCases.length === 0
                   ? <Empty icon="ti-clipboard-list" title="関連案件がありません" />
                   : relCases.map(c => (
-                    <div key={c.id} style={{ background: 'rgba(255,255,255,.03)', borderRadius: 9, padding: '10px 12px', marginBottom: 8, border: `1px solid ${DASH.border}` }}>
+                    <div key={c.id} style={{ background: DASH.surface1, borderRadius: 9, padding: '10px 12px', marginBottom: 8, border: `1px solid ${DASH.border}` }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
                         <span style={{ fontSize: 13, fontWeight: 700, color: DASH.textMain }}>{c.title}</span>
                         <Badge status={c.status} />
@@ -306,11 +306,11 @@ export default function Clients() {
             )}
             {ctab === 'photos' && (
               <div>
-                <div style={{ fontSize: 11, color: DASH.textFaint, marginBottom: 10, padding: '6px 10px', background: 'rgba(255,255,255,.03)', borderRadius: 7 }}>
+                <div style={{ fontSize: 11, color: DASH.textFaint, marginBottom: 10, padding: '6px 10px', background: DASH.surface1, borderRadius: 7 }}>
                   画像はクリックすると拡大表示できます。ファイルの追加・変更は「編集」から行えます
                 </div>
                 {FILE_FIELDS.map(({ key: k, label: l, icon: ico, kind }) => (
-                  <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, padding: '10px 12px', background: 'rgba(255,255,255,.03)', borderRadius: 9, border: `1px solid ${DASH.border}` }}>
+                  <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, padding: '10px 12px', background: DASH.surface1, borderRadius: 9, border: `1px solid ${DASH.border}` }}>
                     {kind === 'image' && cur[k] ? (
                       <img
                         src={cur[k]} alt={l} onClick={() => setLightbox(cur[k])}

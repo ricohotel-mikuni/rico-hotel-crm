@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useBrand } from '../branding/BrandContext'
 import { C } from '../lib/constants'
+import { DASH } from '../lib/designSystem'
 
 // Generic grouped sidebar — takes `groups: [{ label?, soon?, items:
 // [{icon,label,path,exact?,soon?}] }]` so it can render both the
@@ -41,13 +42,14 @@ export default function NavSidebar({ groups, open, onClose }) {
       <aside
         className="navsidebar-desktop"
         style={{
-          width: C.sidebarWidth, background: C.navyDark,
+          width: C.sidebarWidth, background: DASH.card,
           display: 'flex', flexDirection: 'column',
           flexShrink: 0, overflowY: 'auto',
           position: 'fixed', top: 0, left: open ? 0 : -C.sidebarWidth,
           height: '100%', zIndex: 200,
           transition: 'left .25s ease',
-          boxShadow: open ? '4px 0 20px rgba(0,0,0,.3)' : 'none',
+          borderRight: `1px solid ${DASH.border}`,
+          boxShadow: open ? '4px 0 20px rgba(0,0,0,.15)' : 'none',
           paddingTop: 'env(safe-area-inset-top)',
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}
@@ -56,7 +58,7 @@ export default function NavSidebar({ groups, open, onClose }) {
           type="button" onClick={() => goto(brand.homePath)} title={brand.name}
           style={{
             border: 'none', background: 'none', cursor: 'pointer', padding: '28px 16px 22px',
-            textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,.08)', flexShrink: 0,
+            textAlign: 'center', borderBottom: `1px solid ${DASH.border}`, flexShrink: 0,
           }}
         >
           {/* ロゴを約1.5倍(76px→114px)に拡大(承認済み提案書「拠点
@@ -100,8 +102,8 @@ export default function NavSidebar({ groups, open, onClose }) {
           background: none; border: none; font-family: inherit;
           padding: 12px 16px 6px; margin: 0 4px 3px;
           font-size: 10px; letter-spacing: .07em; text-transform: uppercase;
-          color: ${C.gold}; font-weight: 700;
-          border-bottom: 1px solid rgba(201,168,76,.22);
+          color: ${DASH.gold}; font-weight: 700;
+          border-bottom: 1px solid rgba(212,175,55,.22);
         }
         .navsidebar-chevron { margin-left: auto; font-size: 13px; opacity: .6; transition: transform .2s; }
         .navsidebar-chevron.is-collapsed { transform: rotate(-90deg); }
@@ -128,10 +130,10 @@ function NavButton({ item, location, onClick, pinned }) {
         display: 'flex', alignItems: 'center', gap: 10,
         width: '100%', padding: pinned ? '10px 14px' : '10px 16px',
         border: 'none',
-        borderLeft: !pinned && active ? `3px solid ${C.gold}` : '3px solid transparent',
+        borderLeft: !pinned && active ? `3px solid ${DASH.gold}` : '3px solid transparent',
         borderRadius: pinned ? 10 : 0,
-        background: active ? 'rgba(201,168,76,.15)' : 'transparent',
-        color: active ? C.gold : 'rgba(255,255,255,.68)',
+        background: active ? 'rgba(212,175,55,.13)' : 'transparent',
+        color: active ? DASH.gold : DASH.textSub,
         cursor: 'pointer', fontSize: pinned ? 12.5 : 13,
         fontFamily: 'inherit', fontWeight: active ? 700 : 400,
         transition: 'all .15s', textAlign: 'left',
@@ -139,7 +141,7 @@ function NavButton({ item, location, onClick, pinned }) {
     >
       <i className={`ti ${item.icon}`} style={{ fontSize: 16, flexShrink: 0 }} />
       {item.label}
-      {item.soon && <span style={{ marginLeft: 'auto', fontSize: 9, color: 'rgba(255,255,255,.35)', flexShrink: 0 }}>準備中</span>}
+      {item.soon && <span style={{ marginLeft: 'auto', fontSize: 9, color: DASH.textFaint, flexShrink: 0 }}>準備中</span>}
     </button>
   )
 }

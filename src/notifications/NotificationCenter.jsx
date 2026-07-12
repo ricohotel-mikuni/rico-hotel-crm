@@ -1,4 +1,4 @@
-import { C } from '../lib/constants'
+import { DASH } from '../lib/designSystem'
 
 function timeAgo(iso) {
   const diffMs = Date.now() - new Date(iso).getTime()
@@ -20,14 +20,14 @@ export default function NotificationCenter({ items, loading, onMarkRead, onMarkA
     <div style={{ width: 340, maxHeight: 440, display: 'flex', flexDirection: 'column' }}>
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '12px 16px', borderBottom: '1px solid #ECEFF1',
+        padding: '12px 16px', borderBottom: `1px solid ${DASH.border}`,
       }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>通知</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: DASH.textMain }}>通知</div>
         <button
           onClick={onMarkAllRead}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            fontSize: 11, color: C.navyLight, fontFamily: 'inherit', fontWeight: 600,
+            fontSize: 11, color: DASH.gold, fontFamily: 'inherit', fontWeight: 600,
           }}
         >
           すべて既読にする
@@ -36,21 +36,21 @@ export default function NotificationCenter({ items, loading, onMarkRead, onMarkA
 
       <div style={{ overflowY: 'auto', flex: 1 }}>
         {loading && (
-          <div style={{ padding: '28px', textAlign: 'center', color: '#BDBDBD', fontSize: 12 }}>読み込み中…</div>
+          <div style={{ padding: '28px', textAlign: 'center', color: DASH.textFaint, fontSize: 12 }}>読み込み中…</div>
         )}
         {!loading && items.length === 0 && (
-          <div style={{ padding: '28px', textAlign: 'center', color: '#BDBDBD', fontSize: 12 }}>
+          <div style={{ padding: '28px', textAlign: 'center', color: DASH.textFaint, fontSize: 12 }}>
             通知はありません
           </div>
         )}
-        {!loading && items.map(n => (
+        {!loading && items.map((n, i) => (
           <div
             key={n.id}
             onClick={() => !n.readByMe && onMarkRead(n.id)}
             style={{
-              padding: '10px 16px', borderBottom: '1px solid #F5F5F5',
+              padding: '10px 16px', borderTop: i > 0 ? `1px solid ${DASH.border}` : 'none',
               cursor: n.readByMe ? 'default' : 'pointer',
-              background: n.readByMe ? '#fff' : `${C.gold}0D`,
+              background: n.readByMe ? 'transparent' : 'rgba(212,175,55,.08)',
               display: 'flex', gap: 10, alignItems: 'flex-start',
             }}
           >
@@ -59,13 +59,13 @@ export default function NotificationCenter({ items, loading, onMarkRead, onMarkA
               background: n.readByMe ? 'transparent' : '#E53935',
             }} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12.5, fontWeight: n.readByMe ? 500 : 700, color: C.navy, lineHeight: 1.4 }}>
+              <div style={{ fontSize: 12.5, fontWeight: n.readByMe ? 500 : 700, color: DASH.textMain, lineHeight: 1.4 }}>
                 {n.title}
               </div>
               {n.body && (
-                <div style={{ fontSize: 11.5, color: '#90A4AE', marginTop: 2, lineHeight: 1.5 }}>{n.body}</div>
+                <div style={{ fontSize: 11.5, color: DASH.textFaint, marginTop: 2, lineHeight: 1.5 }}>{n.body}</div>
               )}
-              <div style={{ fontSize: 10.5, color: '#BDBDBD', marginTop: 4 }}>{timeAgo(n.created_at)}</div>
+              <div style={{ fontSize: 10.5, color: DASH.textFaint, marginTop: 4 }}>{timeAgo(n.created_at)}</div>
             </div>
           </div>
         ))}

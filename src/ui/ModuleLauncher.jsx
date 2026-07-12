@@ -32,13 +32,13 @@ export default function ModuleLauncher({ modules, unreadCounts = {}, onSelect })
       <style>{`
         .launcher-tile {
           position: relative; display: flex; flex-direction: column; align-items: center;
-          background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 14px;
+          background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 14px; box-shadow: ${DASH.cardShadow};
           padding: 16px 8px 12px; cursor: pointer; font-family: inherit;
           font-size: 11px; color: ${DASH.textSub}; transition: background .15s, border-color .15s;
         }
         .launcher-tile:active { transform: scale(.96); }
         @media (hover: hover) and (pointer: fine) {
-          .launcher-tile:hover { background: rgba(255,255,255,.06); border-color: #D4AF37; }
+          .launcher-tile:hover { background: ${DASH.surface3}; border-color: ${DASH.gold}; }
         }
         .launcher-tile-soon {
           font-size: 8.5px; color: ${DASH.textFaint}; margin-top: 3px;

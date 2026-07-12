@@ -121,7 +121,7 @@ export default function PropertyHub() {
 
           <style>{`
             .neo-today-left { display: flex; flex-direction: column; gap: 12px; min-width: 200px; }
-            .neo-rating-box { background: rgba(255,255,255,.05); border-radius: 12px; padding: 10px 14px; }
+            .neo-rating-box { background: ${DASH.surface2}; border-radius: 12px; padding: 10px 14px; }
             .neo-rating-stars { color: ${DASH.gold}; font-size: 13px; letter-spacing: 1.5px; margin-bottom: 3px; }
             .neo-rating-note { font-size: 11px; color: ${DASH.textSub}; line-height: 1.5; }
 
@@ -159,7 +159,7 @@ export default function PropertyHub() {
             <div key={i} className="dash-todo-item" style={{ borderTop: i > 0 ? `1px solid ${DASH.border}` : 'none' }}>
               <span className="dash-todo-badge">{i + 1}</span>
               <span style={{ fontSize: 12.5, color: DASH.textSub, flex: 1 }}>{t.label}</span>
-              <span style={{ fontSize: 9.5, fontWeight: 700, color: t.color, background: `${t.color}22`, padding: '3px 9px', borderRadius: 999, flexShrink: 0 }}>
+              <span style={{ fontSize: 9.5, fontWeight: 700, color: t.color, background: `color-mix(in srgb, ${t.color} 16%, transparent)`, padding: '3px 9px', borderRadius: 999, flexShrink: 0 }}>
                 {t.priority}
               </span>
             </div>
@@ -184,7 +184,7 @@ export default function PropertyHub() {
       <style>{`
         .dash-todo-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; }
         .dash-todo-badge {
-          width: 22px; height: 22px; border-radius: 50%; background: ${DASH.gold}; color: #0B1C3A;
+          width: 22px; height: 22px; border-radius: 50%; background: ${DASH.gold}; color: ${DASH.onGold};
           font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
         }
         @media (max-width: 720px) {

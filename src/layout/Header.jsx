@@ -4,6 +4,7 @@ import Breadcrumb from './Breadcrumb'
 import ProfileMenu from '../branding/ProfileMenu'
 import NotificationBell from '../notifications/NotificationBell'
 import { C } from '../lib/constants'
+import { DASH } from '../lib/designSystem'
 
 // The ONE header used everywhere — company Portal, ComingSoon,
 // PropertyHub, 管理センター, the sales module, and every future screen.
@@ -52,13 +53,13 @@ export default function Header({ onMenuClick, hideLogo }) {
           padding-top: max(6px, env(safe-area-inset-top));
           padding-left: max(14px, env(safe-area-inset-left));
           padding-right: max(14px, env(safe-area-inset-right));
-          background: linear-gradient(135deg, ${C.navyDark} 0%, ${C.navy} 100%);
-          border-bottom: 1px solid rgba(255,255,255,.08);
-          box-shadow: 0 2px 14px rgba(0,0,0,.18);
+          background: ${DASH.card};
+          border-bottom: 1px solid ${DASH.border};
+          box-shadow: ${DASH.cardShadow};
           position: sticky; top: 0; z-index: 100;
         }
         .app-header-menu-btn {
-          background: none; border: none; color: #fff; cursor: pointer;
+          background: none; border: none; color: ${DASH.textMain}; cursor: pointer;
           padding: 4px; font-size: 21px; line-height: 1; flex-shrink: 0;
           min-width: 40px; min-height: 40px;
           display: flex; align-items: center; justify-content: center;

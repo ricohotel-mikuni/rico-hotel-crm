@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useTheme } from '../contexts/ThemeContext'
 import { useMyEmployee } from '../hooks/useData'
 import { hasTrustedRoster } from '../auth/deviceTrust'
 import { C, ROLES } from '../lib/constants'
+import { DASH } from '../lib/designSystem'
 
 // Replaces the old cramped "name / role / bell / logout" row (which
 // broke as soon as a real name+role got long, e.g. "銭 自強 / ホテル
@@ -16,6 +18,7 @@ export default function ProfileMenu({ compact }) {
   const [open, setOpen] = useState(false)
   const { profile, role, signOut, lock } = useAuth()
   const { employee } = useMyEmployee()
+  const { theme, setTheme } = useTheme()
   const navigate = useNavigate()
 
   const go = (path) => { navigate(path); setOpen(false) }
@@ -40,7 +43,7 @@ export default function ProfileMenu({ compact }) {
           <div className="profile-menu-name">{profile?.full_name || '—'}</div>
           <div className="profile-menu-role">{ROLES[role]?.label || '—'}</div>
         </div>
-        <i className="ti ti-chevron-down" style={{ fontSize: 11, color: 'rgba(255,255,255,.6)', flexShrink: 0 }} />
+        <i className="ti ti-chevron-down" style={{ fontSize: 11, color: DASH.textFaint, flexShrink: 0 }} />
       </button>
 
       {open && (
@@ -55,6 +58,22 @@ export default function ProfileMenu({ compact }) {
             <button onClick={() => go('/hotels/rico-mikuni/sales/settings')} className="profile-menu-item">
               <i className="ti ti-settings" /> 設定
             </button>
+            <div className="profile-menu-divider" />
+            <div className="profile-menu-theme">
+              <span><i className="ti ti-sun-moon" /> 表示テーマ</span>
+              <div className="profile-menu-theme-switch">
+                <button
+                  type="button"
+                  onClick={() => setTheme('light')}
+                  className={theme === 'light' ? 'on' : ''}
+                >ライト</button>
+                <button
+                  type="button"
+                  onClick={() => setTheme('dark')}
+                  className={theme === 'dark' ? 'on' : ''}
+                >ダーク</button>
+              </div>
+            </div>
             <div className="profile-menu-divider" />
             <button onClick={handleLogout} className="profile-menu-item profile-menu-item-danger">
               <i className="ti ti-logout" /> ログアウト
@@ -71,43 +90,57 @@ export default function ProfileMenu({ compact }) {
           cursor: pointer; transition: background .15s; flex-shrink: 0;
           min-height: 34px;
         }
-        .profile-menu-trigger:active { background: rgba(255,255,255,.12); }
+        .profile-menu-trigger:active { background: ${DASH.surface3}; }
         @media (hover: hover) and (pointer: fine) {
-          .profile-menu-trigger:hover { background: rgba(255,255,255,.08); }
+          .profile-menu-trigger:hover { background: ${DASH.surface2}; }
         }
         .profile-menu-avatar {
-          border-radius: 50%; background: rgba(201,168,76,.25); color: ${C.gold};
+          border-radius: 50%; background: rgba(212,175,55,.22); color: ${DASH.gold};
           display: flex; align-items: center; justify-content: center; flex-shrink: 0;
         }
         .profile-menu-info { display: none; text-align: left; min-width: 0; }
         .profile-menu-name {
-          font-size: 12px; font-weight: 600; color: #fff; line-height: 1.3;
+          font-size: 12px; font-weight: 600; color: ${DASH.textMain}; line-height: 1.3;
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;
         }
-        .profile-menu-role { font-size: 10px; color: rgba(255,255,255,.55); line-height: 1.3; }
+        .profile-menu-role { font-size: 10px; color: ${DASH.textFaint}; line-height: 1.3; }
         @media (min-width: ${C.breakpoint.sm}px) {
           .profile-menu-info { display: block; }
         }
         .profile-menu-backdrop { position: fixed; inset: 0; z-index: 998; background: transparent; }
         .profile-menu-dropdown {
           position: absolute; top: calc(100% + 8px); right: 0; z-index: 999;
-          background: #fff; border-radius: ${C.radius.md}px; overflow: hidden;
-          box-shadow: ${C.shadow.lg}; border: 1px solid #ECEFF1;
+          background: ${DASH.card}; border-radius: ${C.radius.md}px; overflow: hidden;
+          box-shadow: ${C.shadow.lg}; border: 1px solid ${DASH.border};
           min-width: 180px; padding: 6px;
         }
         .profile-menu-item {
           display: flex; align-items: center; gap: 9px; width: 100%;
           padding: 9px 10px; border: none; background: none; cursor: pointer;
-          font-size: 13px; color: #455A64; font-family: inherit; border-radius: ${C.radius.sm}px;
+          font-size: 13px; color: ${DASH.textSub}; font-family: inherit; border-radius: ${C.radius.sm}px;
           text-align: left;
         }
-        .profile-menu-item i { font-size: 14px; color: #90A4AE; width: 16px; text-align: center; }
+        .profile-menu-item i { font-size: 14px; color: ${DASH.textFaint}; width: 16px; text-align: center; }
         @media (hover: hover) and (pointer: fine) {
-          .profile-menu-item:hover { background: #F5F7FA; }
+          .profile-menu-item:hover { background: ${DASH.surface2}; }
         }
         .profile-menu-item-danger { color: #C62828; }
         .profile-menu-item-danger i { color: #E57373; }
-        .profile-menu-divider { height: 1px; background: #ECEFF1; margin: 4px 2px; }
+        .profile-menu-divider { height: 1px; background: ${DASH.border}; margin: 4px 2px; }
+        .profile-menu-theme {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 6px 10px; font-size: 12px; color: ${DASH.textSub}; gap: 8px;
+        }
+        .profile-menu-theme span { display: flex; align-items: center; gap: 7px; }
+        .profile-menu-theme i { font-size: 14px; color: ${DASH.textFaint}; }
+        .profile-menu-theme-switch {
+          display: flex; background: ${DASH.surface2}; border-radius: 999px; padding: 2px; flex-shrink: 0;
+        }
+        .profile-menu-theme-switch button {
+          font-size: 10.5px; font-weight: 600; padding: 4px 9px; border-radius: 999px;
+          border: none; background: none; cursor: pointer; color: ${DASH.textFaint}; font-family: inherit;
+        }
+        .profile-menu-theme-switch button.on { background: ${DASH.gold}; color: ${DASH.onGold}; }
       `}</style>
     </div>
   )

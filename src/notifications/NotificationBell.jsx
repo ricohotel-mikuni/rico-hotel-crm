@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMyNotifications } from '../hooks/useNotifications'
 import NotificationCenter from './NotificationCenter'
+import { DASH } from '../lib/designSystem'
 
 // Common bell icon + unread badge, mounted once inside the shared
 // Header (src/layout/Header.jsx) so any current or future screen
@@ -41,28 +42,28 @@ export default function NotificationBell({ compact }) {
         .notification-bell-btn {
           position: relative; border-radius: 7px; flex-shrink: 0;
           background: none; border: none;
-          color: rgba(255,255,255,.85); cursor: pointer;
+          color: ${DASH.textSub}; cursor: pointer;
           display: flex; align-items: center; justify-content: center;
           transition: background .15s;
         }
-        .notification-bell-btn:active { background: rgba(255,255,255,.14); }
+        .notification-bell-btn:active { background: ${DASH.surface3}; }
         @media (hover: hover) and (pointer: fine) {
-          .notification-bell-btn:hover { background: rgba(255,255,255,.1); }
+          .notification-bell-btn:hover { background: ${DASH.surface2}; }
         }
         .notification-bell-badge {
           position: absolute; top: -5px; right: -5px;
           min-width: 17px; height: 17px; padding: 0 4px;
           border-radius: 999px; background: #E53935; color: #fff;
           font-size: 10px; font-weight: 700; line-height: 17px;
-          text-align: center; border: 2px solid #162847;
+          text-align: center; border: 2px solid ${DASH.card};
         }
         .notification-bell-backdrop {
           position: fixed; inset: 0; z-index: 998; background: transparent;
         }
         .notification-bell-panel {
           position: absolute; top: calc(100% + 8px); right: 0; z-index: 999;
-          background: #fff; border-radius: 12px; overflow: hidden;
-          box-shadow: 0 12px 36px rgba(0,0,0,.22); border: 1px solid #ECEFF1;
+          background: ${DASH.card}; border-radius: 12px; overflow: hidden;
+          box-shadow: 0 12px 36px rgba(0,0,0,.22); border: 1px solid ${DASH.border};
         }
         @media (max-width: 420px) {
           .notification-bell-panel { position: fixed; top: 60px; right: 8px; left: 8px; }

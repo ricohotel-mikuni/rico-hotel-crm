@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import NavSidebar from './NavSidebar'
 import Header from './Header'
+import { DASH } from '../lib/designSystem'
 
 // Persistent-sidebar shell shared by every section that needs a
 // standing menu instead of a tile grid — the property hub (ホテル業務 +
@@ -26,7 +27,7 @@ export default function SidebarShell({ groups, children }) {
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <Header onMenuClick={() => setOpen(true)} hideLogo />
-        <main style={{ flex: 1, overflowY: 'auto', background: '#F5F7FA' }}>
+        <main style={{ flex: 1, overflowY: 'auto', background: DASH.bg }}>
           {children}
         </main>
       </div>
