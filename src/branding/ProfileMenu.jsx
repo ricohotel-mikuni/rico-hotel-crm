@@ -43,7 +43,7 @@ export default function ProfileMenu({ compact }) {
           <div className="profile-menu-name">{profile?.full_name || '—'}</div>
           <div className="profile-menu-role">{ROLES[role]?.label || '—'}</div>
         </div>
-        <i className="ti ti-chevron-down" style={{ fontSize: 11, color: DASH.textFaint, flexShrink: 0 }} />
+        <i className="ti ti-chevron-down" style={{ fontSize: 11, color: 'rgba(255,255,255,.6)', flexShrink: 0 }} />
       </button>
 
       {open && (
@@ -90,9 +90,9 @@ export default function ProfileMenu({ compact }) {
           cursor: pointer; transition: background .15s; flex-shrink: 0;
           min-height: 34px;
         }
-        .profile-menu-trigger:active { background: ${DASH.surface3}; }
+        .profile-menu-trigger:active { background: rgba(255,255,255,.12); }
         @media (hover: hover) and (pointer: fine) {
-          .profile-menu-trigger:hover { background: ${DASH.surface2}; }
+          .profile-menu-trigger:hover { background: rgba(255,255,255,.08); }
         }
         .profile-menu-avatar {
           border-radius: 50%; background: rgba(212,175,55,.22); color: ${DASH.gold};
@@ -100,10 +100,10 @@ export default function ProfileMenu({ compact }) {
         }
         .profile-menu-info { display: none; text-align: left; min-width: 0; }
         .profile-menu-name {
-          font-size: 12px; font-weight: 600; color: ${DASH.textMain}; line-height: 1.3;
+          font-size: 12px; font-weight: 600; color: #fff; line-height: 1.3;
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;
         }
-        .profile-menu-role { font-size: 10px; color: ${DASH.textFaint}; line-height: 1.3; }
+        .profile-menu-role { font-size: 10px; color: rgba(255,255,255,.55); line-height: 1.3; }
         @media (min-width: ${C.breakpoint.sm}px) {
           .profile-menu-info { display: block; }
         }

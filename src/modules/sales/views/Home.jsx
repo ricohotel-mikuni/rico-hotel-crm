@@ -5,7 +5,7 @@ import { useAuth } from '../../../contexts/AuthContext'
 import { Badge, AsyncBoundary, TableSkeleton } from '../../../ui'
 import { today } from '../../../lib/constants'
 import { DASH } from '../../../lib/designSystem'
-import { DarkPage, TodayCard, TodayCardTitle, KpiGrid, KpiCell, DarkPanel } from '../../../ui/DesignSystemKit'
+import { DarkPage, TodayCard, TodayCardTitle, KpiGrid, KpiCell, DarkPanel, ChartGrid, ChartCard } from '../../../ui/DesignSystemKit'
 import ModuleLauncher from '../../../ui/ModuleLauncher'
 
 // クイックメニュー(承認済み提案書「Design System v1.0 最終統一提案」
@@ -54,6 +54,22 @@ export default function Home() {
   const wonRev      = won.reduce((s, c) => s + (c.revenue || 0), 0)
   const wonComm     = won.reduce((s, c) => s + (c.commission || 0), 0)
 
+  // グラフ(HotelOS Design System v1.0 §6.3、標準レイアウト HERO→KPI→
+  // グラフ→AI提案→ToDo→クイックメニュー)— 成約案件のチェックイン月を
+  // 軸に集計した実データ(ダミーではない、フロント等と違い営業モジュールは
+  // 実データを保有しているため)。
+  const revenueByMonth = {}
+  const countByMonth = {}
+  won.forEach(c => {
+    const key = c.check_in_date?.slice(0, 7)
+    if (!key) return
+    revenueByMonth[key] = (revenueByMonth[key] || 0) + (c.revenue || 0)
+    countByMonth[key] = (countByMonth[key] || 0) + 1
+  })
+  const monthKeys = Object.keys(revenueByMonth).sort()
+  const revenueTrend = monthKeys.map(k => ({ label: `${Number(k.slice(5))}月`, value: revenueByMonth[k] }))
+  const countTrend = monthKeys.map(k => ({ label: `${Number(k.slice(5))}月`, value: countByMonth[k] }))
+
   // 相対パス(先頭スラッシュ無し) — この画面はSalesAppのネスト
   // ルート内('.../sales/'配下)にマウントされているため、絶対パス
   // ('/clients'等)を渡すとアプリのルート直下として解釈され、
@@ -86,6 +102,34 @@ export default function Home() {
             <KpiCell key={k.label} icon={k.icon} color={k.color} label={k.label} value={k.value} unit={k.unit} onClick={() => navigate(k.path)} />
           ))}
         </KpiGrid>
+
+        {monthKeys.length > 0 ? (
+          <ChartGrid>
+            <ChartCard title="成約売上推移(月別)" data={revenueTrend} color={DASH.gold} unit="円" />
+            <ChartCard title="成約件数推移(月別)" data={countTrend} color={DASH.blue} unit="件" />
+          </ChartGrid>
+        ) : (
+          <div style={{ fontSize: 12, color: DASH.textFaint, marginBottom: 24 }}>※ 成約実績が蓄積すると、ここに売上・件数の推移グラフが表示されます。</div>
+        )}
+
+        <div style={{ marginBottom: 20 }}>
+          <DarkPanel title="🤖 NEOからのお知らせ・提案">
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: DASH.textSub, marginBottom: 8 }}>📢 お知らせ</div>
+            <div style={{ fontSize: 12, color: DASH.textSub, marginBottom: 7, paddingLeft: 14, position: 'relative', lineHeight: 1.6 }}>
+              <span style={{ position: 'absolute', left: 0, color: DASH.gold }}>・</span>
+              {overdue.length > 0 ? `期限切れの案件が${overdue.length}件あります` : '期限切れの案件はありません'}
+            </div>
+            {won.length > 0 && (
+              <>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: DASH.green, marginTop: 10, marginBottom: 8 }}>📈 AI分析・提案</div>
+                <div style={{ fontSize: 12, color: DASH.textSub, marginBottom: 7, paddingLeft: 14, position: 'relative', lineHeight: 1.6 }}>
+                  <span style={{ position: 'absolute', left: 0, color: DASH.gold }}>・</span>
+                  成約率は現在{cases.length ? Math.round(won.length / cases.length * 100) : 0}%です。商談中案件のフォローを優先すると、さらなる成約が期待できます
+                </div>
+              </>
+            )}
+          </DarkPanel>
+        </div>
 
         <div className="sales-today-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
           <DarkPanel title="🔔 今日のフォロー">

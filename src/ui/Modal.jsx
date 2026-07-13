@@ -82,7 +82,7 @@ export default function Modal({ title, icon, onClose, onSave, saveLabel, width =
                   font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: 8px; cursor: pointer;
                   font-family: inherit; background: transparent; color: ${DASH.textSub}; border: 1px solid ${DASH.border};
                 }
-                .ds-modal-btn.primary { background: ${DASH.gold}; color: ${DASH.onGold}; border-color: ${DASH.gold}; }
+                .ds-modal-btn.primary { background: ${DASH.brandNavy}; color: #fff; border-color: ${DASH.brandNavy}; }
                 .ds-modal-btn:disabled { opacity: .6; cursor: not-allowed; }
                 .ds-modal-btn:active { transform: scale(.97); }
               `}</style>

@@ -18,7 +18,7 @@ export function TodayCard({ children, style }) {
       {children}
       <style>{`
         .ds-today-card {
-          background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 18px; padding: 24px; box-shadow: ${DASH.cardShadow};
+          background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 16px; padding: 24px; box-shadow: ${DASH.cardShadow};
           display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 24px;
         }
       `}</style>
@@ -51,7 +51,7 @@ export function AnalyzingCard({ message = 'NEOがデータを分析していま�
       </span>
       <style>{`
         .ds-analyzing {
-          background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 18px; padding: 24px 26px; box-shadow: ${DASH.cardShadow};
+          background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 16px; padding: 24px; box-shadow: ${DASH.cardShadow};
           margin-bottom: 24px; display: flex; align-items: center; gap: 14px; color: ${DASH.textMain}; fontSize: 13px;
         }
         .ds-analyzing-dots { display: inline-flex; gap: 4px; margin-left: 8px; }
@@ -92,7 +92,7 @@ export function KpiCell({ icon, color, label, value, unit, sub, dummy, onClick }
       <div className="ds-kpi-val">{value}{unit && <small>{unit}</small>}</div>
       <div className="ds-kpi-sub">{sub || ''}</div>
       <style>{`
-        .ds-kpi-cell { background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 14px; padding: 14px; box-shadow: ${DASH.cardShadow}; display: flex; flex-direction: column; height: 100%; position: relative; transition: border-color .15s; }
+        .ds-kpi-cell { background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 16px; padding: 24px; box-shadow: ${DASH.cardShadow}; display: flex; flex-direction: column; height: 100%; position: relative; transition: border-color .15s; }
         .ds-kpi-cell-clickable:active { transform: scale(.98); }
         @media (hover: hover) and (pointer: fine) { .ds-kpi-cell-clickable:hover { border-color: ${DASH.gold}; } }
         .ds-kpi-dummy { position: absolute; top: 10px; right: 12px; font-size: 9px; color: ${DASH.textFaint}; font-weight: 700; }
@@ -100,6 +100,74 @@ export function KpiCell({ icon, color, label, value, unit, sub, dummy, onClick }
         .ds-kpi-val { font-size: 18px; font-weight: 700; color: ${DASH.textMain}; }
         .ds-kpi-val small { font-size: 10px; font-weight: 500; color: ${DASH.textFaint}; margin-left: 2px; }
         .ds-kpi-sub { font-size: 10.5px; color: ${DASH.gold}; font-weight: 700; margin-top: 2px; min-height: 15px; }
+      `}</style>
+    </div>
+  )
+}
+
+// ── グラフ(HotelOS Design System v1.0 §6.3) — 標準レイアウトの
+// HERO→KPI→グラフ→AI提案→ToDo→クイックメニュー のうち「グラフ」枠。
+// 外部チャートライブラリは導入せず(ビルド未検証環境のため)、
+// 依存ゼロの軽量SVG折れ線+塗りで実装する。実データが無い指標は
+// dummy を渡し、AI開発憲章第12条に基づき「ダミー」表示を必須とする。
+let chartUidCounter = 0
+
+export function ChartGrid({ children }) {
+  return (
+    <div className="ds-chart-grid">
+      {children}
+      <style>{`
+        .ds-chart-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-bottom: 24px; }
+        @media (max-width: 900px) { .ds-chart-grid { grid-template-columns: 1fr; } }
+      `}</style>
+    </div>
+  )
+}
+
+export function ChartCard({ title, data, color, unit = '', dummy }) {
+  const uid = `chart${chartUidCounter++}-`
+  const w = 100, h = 100
+  const values = data.map(d => d.value)
+  const max = Math.max(...values, 1)
+  const min = Math.min(...values, 0)
+  const range = max - min || 1
+  const pts = data.map((d, i) => {
+    const x = data.length > 1 ? (i / (data.length - 1)) * w : w / 2
+    const y = h - ((d.value - min) / range) * h
+    return `${x},${y}`
+  }).join(' ')
+  const areaPts = `0,${h} ${pts} ${w},${h}`
+  const last = data[data.length - 1]
+
+  return (
+    <div className="ds-chart-card">
+      <div className="ds-chart-head">
+        <div className="ds-chart-title">{title}</div>
+        {dummy && <span className="ds-chart-dummy">ダミー</span>}
+      </div>
+      <div className="ds-chart-value">{typeof last?.value === 'number' ? last.value.toLocaleString('ja-JP') : last?.value}<small>{unit}</small></div>
+      <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="ds-chart-svg">
+        <defs>
+          <linearGradient id={`${uid}fill`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.22" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <polygon points={areaPts} fill={`url(#${uid}fill)`} />
+        <polyline points={pts} fill="none" stroke={color} strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+      </svg>
+      <div className="ds-chart-labels">
+        {data.map((d, i) => <span key={i}>{d.label}</span>)}
+      </div>
+      <style>{`
+        .ds-chart-card { background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 16px; padding: 24px; box-shadow: ${DASH.cardShadow}; }
+        .ds-chart-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+        .ds-chart-title { font-size: 12.5px; font-weight: 700; color: ${DASH.textMain}; }
+        .ds-chart-dummy { font-size: 9px; color: ${DASH.textFaint}; font-weight: 700; }
+        .ds-chart-value { font-size: 22px; font-weight: 800; color: ${DASH.textMain}; margin-bottom: 10px; }
+        .ds-chart-value small { font-size: 11px; font-weight: 500; color: ${DASH.textFaint}; margin-left: 3px; }
+        .ds-chart-svg { width: 100%; height: 72px; display: block; }
+        .ds-chart-labels { display: flex; justify-content: space-between; margin-top: 6px; font-size: 9.5px; color: ${DASH.textFaint}; }
       `}</style>
     </div>
   )
@@ -115,7 +183,7 @@ export function DarkPanel({ title, action, children }) {
       </div>
       {children}
       <style>{`
-        .ds-panel { background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 18px; padding: 22px; box-shadow: ${DASH.cardShadow}; }
+        .ds-panel { background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 16px; padding: 24px; box-shadow: ${DASH.cardShadow}; }
         .ds-panel-head { display: flex; align-items: center; margin-bottom: 14px; }
         .ds-panel-title { font-size: 13px; font-weight: 700; color: ${DASH.textMain}; display: flex; align-items: center; gap: 7px; }
         .ds-more { margin-left: auto; font-size: 11.5px; color: ${DASH.gold}; font-weight: 600; cursor: pointer; flex-shrink: 0; }

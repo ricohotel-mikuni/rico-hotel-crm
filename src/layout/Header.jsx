@@ -53,13 +53,13 @@ export default function Header({ onMenuClick, hideLogo }) {
           padding-top: max(6px, env(safe-area-inset-top));
           padding-left: max(14px, env(safe-area-inset-left));
           padding-right: max(14px, env(safe-area-inset-right));
-          background: ${DASH.card};
-          border-bottom: 1px solid ${DASH.border};
-          box-shadow: ${DASH.cardShadow};
+          background: linear-gradient(135deg, ${DASH.brandNavyDark} 0%, ${DASH.brandNavy} 100%);
+          border-bottom: 1px solid rgba(255,255,255,.08);
+          box-shadow: 0 2px 14px rgba(0,0,0,.18);
           position: sticky; top: 0; z-index: 100;
         }
         .app-header-menu-btn {
-          background: none; border: none; color: ${DASH.textMain}; cursor: pointer;
+          background: none; border: none; color: #fff; cursor: pointer;
           padding: 4px; font-size: 21px; line-height: 1; flex-shrink: 0;
           min-width: 40px; min-height: 40px;
           display: flex; align-items: center; justify-content: center;

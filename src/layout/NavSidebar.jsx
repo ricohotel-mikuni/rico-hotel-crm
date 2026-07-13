@@ -42,14 +42,13 @@ export default function NavSidebar({ groups, open, onClose }) {
       <aside
         className="navsidebar-desktop"
         style={{
-          width: C.sidebarWidth, background: DASH.card,
+          width: C.sidebarWidth, background: DASH.brandNavyDark,
           display: 'flex', flexDirection: 'column',
           flexShrink: 0, overflowY: 'auto',
           position: 'fixed', top: 0, left: open ? 0 : -C.sidebarWidth,
           height: '100%', zIndex: 200,
           transition: 'left .25s ease',
-          borderRight: `1px solid ${DASH.border}`,
-          boxShadow: open ? '4px 0 20px rgba(0,0,0,.15)' : 'none',
+          boxShadow: open ? '4px 0 20px rgba(0,0,0,.3)' : 'none',
           paddingTop: 'env(safe-area-inset-top)',
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}
@@ -58,7 +57,7 @@ export default function NavSidebar({ groups, open, onClose }) {
           type="button" onClick={() => goto(brand.homePath)} title={brand.name}
           style={{
             border: 'none', background: 'none', cursor: 'pointer', padding: '28px 16px 22px',
-            textAlign: 'center', borderBottom: `1px solid ${DASH.border}`, flexShrink: 0,
+            textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,.08)', flexShrink: 0,
           }}
         >
           {/* ロゴを約1.5倍(76px→114px)に拡大(承認済み提案書「拠点
@@ -133,7 +132,7 @@ function NavButton({ item, location, onClick, pinned }) {
         borderLeft: !pinned && active ? `3px solid ${DASH.gold}` : '3px solid transparent',
         borderRadius: pinned ? 10 : 0,
         background: active ? 'rgba(212,175,55,.13)' : 'transparent',
-        color: active ? DASH.gold : DASH.textSub,
+        color: active ? DASH.gold : 'rgba(255,255,255,.68)',
         cursor: 'pointer', fontSize: pinned ? 12.5 : 13,
         fontFamily: 'inherit', fontWeight: active ? 700 : 400,
         transition: 'all .15s', textAlign: 'left',
@@ -141,7 +140,7 @@ function NavButton({ item, location, onClick, pinned }) {
     >
       <i className={`ti ${item.icon}`} style={{ fontSize: 16, flexShrink: 0 }} />
       {item.label}
-      {item.soon && <span style={{ marginLeft: 'auto', fontSize: 9, color: DASH.textFaint, flexShrink: 0 }}>準備中</span>}
+      {item.soon && <span style={{ marginLeft: 'auto', fontSize: 9, color: 'rgba(255,255,255,.35)', flexShrink: 0 }}>準備中</span>}
     </button>
   )
 }

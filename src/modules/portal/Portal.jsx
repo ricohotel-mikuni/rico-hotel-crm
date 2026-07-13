@@ -7,7 +7,7 @@ import HubShell from '../../layout/HubShell'
 import { daiGreeting } from '../../ai/daiGreeting'
 import { COMPANY_MODULES } from './registry'
 import { DASH } from '../../lib/designSystem'
-import { DarkPage, TodayCard, TodayCardTitle, KpiGrid, KpiCell } from '../../ui/DesignSystemKit'
+import { DarkPage, TodayCard, TodayCardTitle, KpiGrid, KpiCell, ChartGrid, ChartCard, DarkPanel } from '../../ui/DesignSystemKit'
 
 // 拠点ダッシュボードで確立したDesign System v1.0(docs/ui-design-system.md、
 // ERP開発憲章第37条)の第1弾展開先(会社ホーム)。TodayCard/KpiGrid/
@@ -29,6 +29,23 @@ const ADMIN_CENTER_TILE = {
   id: 'admin-center', label: '管理センター', icon: 'ti-shield', path: '/admin',
   status: 'active', notifiable: false, desc: '経営・システム管理機能(管理者専用)',
 }
+
+// グラフ・AI提案/ToDo(HotelOS Design System v1.0 §6.3、標準レイアウト
+// HERO→KPI→グラフ→AI提案→ToDo→クイックメニュー)— 全社の売上・案件は
+// 営業モジュール側に実データがあるが、会社ホーム自身は集計クエリを
+// 持たないため、拠点ダッシュボードと同様にダミー表示とする。
+const REVENUE_TREND = [
+  { label: '4月', value: 8200000 }, { label: '5月', value: 8900000 }, { label: '6月', value: 9400000 },
+]
+const APPROVAL_TREND = [
+  { label: '4月', value: 12 }, { label: '5月', value: 9 }, { label: '6月', value: 15 },
+]
+const NOTICES = ['未承認の申請が3件あります', '新規営業先が2件登録されました']
+const SUGGESTIONS = ['月末に向けて経費精算の締切が近づいています']
+const TODO_ITEMS = [
+  { label: '購入申請の承認', priority: '高', color: DASH.orange },
+  { label: '新規営業先のフォロー', priority: '中', color: DASH.gold },
+]
 
 export default function Portal() {
   const navigate = useNavigate()
@@ -68,6 +85,39 @@ export default function Portal() {
           ))}
         </KpiGrid>
 
+        <ChartGrid>
+          <ChartCard title="全社売上推移" data={REVENUE_TREND} color={DASH.gold} unit="円" dummy />
+          <ChartCard title="申請・承認件数推移" data={APPROVAL_TREND} color={DASH.blue} unit="件" dummy />
+        </ChartGrid>
+
+        <div className="portal-panel-grid" style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: 20, marginBottom: 30 }}>
+          <DarkPanel title="🤖 NEOからのお知らせ・提案">
+            {NOTICES.map((n, i) => (
+              <div key={i} style={{ fontSize: 12, color: DASH.textSub, marginBottom: 7, paddingLeft: 14, position: 'relative', lineHeight: 1.6 }}>
+                <span style={{ position: 'absolute', left: 0, color: DASH.gold }}>・</span>{n}
+              </div>
+            ))}
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: DASH.green, marginTop: 10, marginBottom: 8 }}>📈 AI分析・提案</div>
+            {SUGGESTIONS.map((s, i) => (
+              <div key={i} style={{ fontSize: 12, color: DASH.textSub, marginBottom: 7, paddingLeft: 14, position: 'relative', lineHeight: 1.6 }}>
+                <span style={{ position: 'absolute', left: 0, color: DASH.gold }}>・</span>{s}
+              </div>
+            ))}
+          </DarkPanel>
+          <DarkPanel title="💡 今日やるべきこと(優先順位)">
+            {TODO_ITEMS.map((t, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderTop: i > 0 ? `1px solid ${DASH.border}` : 'none' }}>
+                <span style={{ width: 22, height: 22, borderRadius: '50%', background: DASH.gold, color: DASH.onGold, fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</span>
+                <span style={{ fontSize: 12.5, color: DASH.textSub, flex: 1 }}>{t.label}</span>
+                <span style={{ fontSize: 9.5, fontWeight: 700, color: t.color, background: `color-mix(in srgb, ${t.color} 16%, transparent)`, padding: '3px 9px', borderRadius: 999, flexShrink: 0 }}>{t.priority}</span>
+              </div>
+            ))}
+          </DarkPanel>
+        </div>
+        <style>{`
+          @media (max-width: 720px) { .portal-panel-grid { grid-template-columns: 1fr !important; } }
+        `}</style>
+
         <div style={{ fontSize: 11, color: DASH.gold, fontWeight: 700, letterSpacing: 2.5, marginBottom: 14 }}>業務メニュー</div>
         <div className="dash-tile-grid">
           {tiles.map(m => {
@@ -88,7 +138,7 @@ export default function Portal() {
         <style>{`
           .dash-tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px,1fr)); gap: 16px; }
           .dash-tile {
-            background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 16px; padding: 20px; box-shadow: ${DASH.cardShadow};
+            background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 16px; padding: 24px; box-shadow: ${DASH.cardShadow};
             display: flex; flex-direction: column; gap: 12px; position: relative; cursor: pointer;
             transition: border-color .18s, transform .15s;
           }

@@ -5,7 +5,7 @@ import { useUnreadCounts } from '../../hooks/useNotifications'
 import { useHotelWeather } from '../../hooks/useHotelWeather'
 import { useBrand } from '../../branding/BrandContext'
 import ModuleLauncher from '../../ui/ModuleLauncher'
-import { DarkPage, AnalyzingCard, TodayCard, TodayCardTitle, KpiGrid, KpiCell, DarkPanel } from '../../ui/DesignSystemKit'
+import { DarkPage, AnalyzingCard, TodayCard, TodayCardTitle, KpiGrid, KpiCell, DarkPanel, ChartGrid, ChartCard } from '../../ui/DesignSystemKit'
 import { dailyPick } from '../../ai/daiGreeting'
 import { describeWeatherCode, weatherComment } from '../../ai/weatherInsight'
 import { MODULES } from '../registry'
@@ -47,6 +47,27 @@ const RATINGS = [
 // なく、日常的によく使う9項目だけの厳選版。サイドバーは引き続き
 // MODULES全項目を網羅しているため、ここに出ない項目も導線を失わない。
 const QUICK_MENU_IDS = ['front', 'cleaning', 'breakfast', 'dinner', 'parking', 'maintenance', 'shifts', 'payments', 'cashier']
+
+// グラフ(HotelOS Design System v1.0 §6.3、標準レイアウト HERO→KPI→
+// グラフ→AI提案→ToDo→クイックメニュー)— フロント/清掃等が未実装のため
+// 裏付けとなる実データが無く、KPIグリッドと同様「ダミー」表示とする
+// (AI開発憲章第12条)。対応モジュール実装後、順次実データへ切り替える。
+const REVENUE_TREND = [
+  { label: '6/1', value: 420000 }, { label: '6/8', value: 465000 }, { label: '6/15', value: 501000 },
+  { label: '6/22', value: 480000 }, { label: '6/29', value: 548000 },
+]
+const OCCUPANCY_TREND = [
+  { label: '6/1', value: 78 }, { label: '6/8', value: 82 }, { label: '6/15', value: 88 },
+  { label: '6/22', value: 85 }, { label: '6/29', value: 92 },
+]
+const ADR_TREND = [
+  { label: '6/1', value: 14200 }, { label: '6/8', value: 14500 }, { label: '6/15', value: 15100 },
+  { label: '6/22', value: 14800 }, { label: '6/29', value: 15600 },
+]
+const REVPAR_TREND = [
+  { label: '6/1', value: 11076 }, { label: '6/8', value: 11890 }, { label: '6/15', value: 13288 },
+  { label: '6/22', value: 12580 }, { label: '6/29', value: 14352 },
+]
 
 // 拠点ホーム(リコホテル三国、/hotels/rico-mikuni)— Design System v1.0
 // (docs/ui-design-system.md、ERP開発憲章第十一章)の基準画面そのもの。
@@ -153,19 +174,16 @@ export default function PropertyHub() {
         ※ KPIの数値はサンプル表示です。フロント・清掃・朝食・夕食・駐車場モジュール実装後、順次実データへ切り替わります。天気は実データです。
       </div>
 
-      <div className="dai-today-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1.15fr', gap: 20, marginBottom: 30 }}>
-        <DarkPanel title="💡 今日やるべきこと(優先順位)" action="もっと見る ›">
-          {TODO_ITEMS.map((t, i) => (
-            <div key={i} className="dash-todo-item" style={{ borderTop: i > 0 ? `1px solid ${DASH.border}` : 'none' }}>
-              <span className="dash-todo-badge">{i + 1}</span>
-              <span style={{ fontSize: 12.5, color: DASH.textSub, flex: 1 }}>{t.label}</span>
-              <span style={{ fontSize: 9.5, fontWeight: 700, color: t.color, background: `color-mix(in srgb, ${t.color} 16%, transparent)`, padding: '3px 9px', borderRadius: 999, flexShrink: 0 }}>
-                {t.priority}
-              </span>
-            </div>
-          ))}
-        </DarkPanel>
+      {!analyzing && (
+        <ChartGrid>
+          <ChartCard title="売上推移" data={REVENUE_TREND} color={DASH.gold} unit="円" dummy />
+          <ChartCard title="稼働率推移" data={OCCUPANCY_TREND} color={DASH.blue} unit="%" dummy />
+          <ChartCard title="ADR(平均客室単価)" data={ADR_TREND} color={DASH.green} unit="円" dummy />
+          <ChartCard title="RevPAR" data={REVPAR_TREND} color={DASH.purple} unit="円" dummy />
+        </ChartGrid>
+      )}
 
+      <div className="dai-today-grid" style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: 20, marginBottom: 30 }}>
         <DarkPanel title="🤖 NEOからのお知らせ・提案" action="もっと見る ›">
           <InsightSection emoji="📢" title="お知らせ" items={NOTICES} />
           <InsightSection emoji="📈" title="AI分析・提案" items={SUGGESTIONS} titleColor={DASH.green} />
@@ -179,6 +197,18 @@ export default function PropertyHub() {
             </div>
             <div style={{ fontSize: 11, color: DASH.textFaint, marginTop: 2 }}>{FORECAST.note}</div>
           </div>
+        </DarkPanel>
+
+        <DarkPanel title="💡 今日やるべきこと(優先順位)" action="もっと見る ›">
+          {TODO_ITEMS.map((t, i) => (
+            <div key={i} className="dash-todo-item" style={{ borderTop: i > 0 ? `1px solid ${DASH.border}` : 'none' }}>
+              <span className="dash-todo-badge">{i + 1}</span>
+              <span style={{ fontSize: 12.5, color: DASH.textSub, flex: 1 }}>{t.label}</span>
+              <span style={{ fontSize: 9.5, fontWeight: 700, color: t.color, background: `color-mix(in srgb, ${t.color} 16%, transparent)`, padding: '3px 9px', borderRadius: 999, flexShrink: 0 }}>
+                {t.priority}
+              </span>
+            </div>
+          ))}
         </DarkPanel>
       </div>
       <style>{`

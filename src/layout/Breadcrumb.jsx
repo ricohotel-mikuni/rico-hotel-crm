@@ -61,15 +61,15 @@ export default function Breadcrumb() {
         }
         .breadcrumb-back {
           display: flex; align-items: center; gap: 5px; flex-shrink: 0;
-          background: ${DASH.surface2}; border: 1px solid ${DASH.border};
+          background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2);
           border-radius: ${C.radius.pill}px; padding: 6px 12px;
-          color: ${DASH.textMain}; font-weight: 700; font-size: 12px; font-family: inherit;
+          color: #fff; font-weight: 700; font-size: 12px; font-family: inherit;
           cursor: pointer; white-space: nowrap; min-height: 34px;
           transition: background .15s, transform .1s;
         }
-        .breadcrumb-back:active { transform: scale(.95); background: ${DASH.surface3}; }
+        .breadcrumb-back:active { transform: scale(.95); background: rgba(255,255,255,.2); }
         @media (hover: hover) and (pointer: fine) {
-          .breadcrumb-back:hover { background: ${DASH.surface3}; }
+          .breadcrumb-back:hover { background: rgba(255,255,255,.18); }
         }
         .breadcrumb-trail {
           display: flex; align-items: center; flex-wrap: nowrap; overflow: hidden;
@@ -79,16 +79,16 @@ export default function Breadcrumb() {
         .breadcrumb-item {
           background: none; border: none; padding: 4px 5px; border-radius: 5px;
           font-size: 12.5px; font-family: inherit; cursor: pointer;
-          color: ${DASH.textFaint}; white-space: nowrap;
+          color: rgba(255,255,255,.55); white-space: nowrap;
         }
         .breadcrumb-item.current {
           background: ${DASH.gold}; color: ${DASH.onGold}; font-weight: 700; cursor: default; font-size: 13px;
           padding: 5px 12px; border-radius: ${C.radius.pill}px;
         }
         .breadcrumb-item-icon { display: inline-block; transform: scale(1.15); margin-right: 3px; }
-        button.breadcrumb-item:hover { background: ${DASH.surface2}; color: ${DASH.textMain}; }
-        .breadcrumb-sep { color: ${DASH.textFaint}; font-size: 11px; margin: 0 1px; }
-        .breadcrumb-current-mobile { display: none; font-size: 13px; font-weight: 700; color: ${DASH.textMain}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        button.breadcrumb-item:hover { background: rgba(255,255,255,.1); color: #fff; }
+        .breadcrumb-sep { color: rgba(255,255,255,.3); font-size: 11px; margin: 0 1px; }
+        .breadcrumb-current-mobile { display: none; font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .breadcrumb-back-label { display: inline; }
 
         @media (max-width: ${C.breakpoint.md - 1}px) {

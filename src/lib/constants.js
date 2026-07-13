@@ -21,7 +21,7 @@ export const C = {
     lg: '0 12px 28px rgba(31,56,100,.14)',
   },
   headerHeight: 56,
-  sidebarWidth: 200,
+  sidebarWidth: 260,
   breakpoint: { sm: 480, md: 768, lg: 1024 },
 }
 
