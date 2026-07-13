@@ -165,7 +165,7 @@ export default function Clients() {
       {listMode ? (
         <div style={{ flex: 1, overflow: 'auto', padding: 12 }}>
           <div style={{ fontSize: 11, color: DASH.textFaint, marginBottom: 8 }}>全 {filtered.length} 件</div>
-          <div style={{ background: DASH.card, borderRadius: 12, overflow: 'hidden', border: `1px solid ${DASH.border}` }}>
+          <div style={{ background: DASH.card, borderRadius: 16, overflow: 'hidden', border: `1px solid ${DASH.border}` }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
                 <tr style={{ background: 'rgba(212,175,55,.08)' }}>
@@ -260,7 +260,7 @@ export default function Clients() {
               <div>
                 <div className="no-print" style={{ marginBottom: 12 }}>
                   {permissions.canWrite && (
-                    <Btn onClick={() => { setForm({ visit_date: todayStr, action: '', detail: '', person: PERSONS[0] }); setModal('history') }} icon="ti-plus" label="訪問記録を追加" color={DASH.gold} sm />
+                    <Btn onClick={() => { setForm({ visit_date: todayStr, action: '', detail: '', person: PERSONS[0] }); setModal('history') }} icon="ti-plus" label="訪問記録を追加" color={DASH.brandNavy} sm />
                   )}
                 </div>
                 {(!cur.client_history || cur.client_history.length === 0)
@@ -342,7 +342,7 @@ export default function Clients() {
           </div>
         </div>
       ) : (
-        <Empty icon="ti-building-store" title="営業先が見つかりません" action={permissions.canWrite && <Btn onClick={openNew} icon="ti-plus" label="最初の営業先を登録" color={DASH.gold} />} />
+        <Empty icon="ti-building-store" title="営業先が見つかりません" action={permissions.canWrite && <Btn onClick={openNew} icon="ti-plus" label="最初の営業先を登録" color={DASH.brandNavy} />} />
       )}
       </AsyncBoundary>
 
