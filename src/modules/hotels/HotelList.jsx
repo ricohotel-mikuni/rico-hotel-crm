@@ -61,7 +61,7 @@ export default function HotelList() {
 
         <style>{`
           .hotel-card {
-            background: ${DASH.card}; border-radius: 14px; padding: 22px 20px; position: relative;
+            background: ${DASH.card}; border-radius: 16px; padding: 24px; position: relative;
             border: 1px solid ${DASH.border}; box-shadow: ${DASH.cardShadow};
             cursor: pointer; transition: transform .18s ease, border-color .18s ease;
           }
