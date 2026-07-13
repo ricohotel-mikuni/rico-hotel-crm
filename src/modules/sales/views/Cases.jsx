@@ -55,7 +55,7 @@ export default function Cases() {
       <AsyncBoundary loading={loading} error={loadError} onRetry={refresh} skeleton={<TableSkeleton rows={4} columns={4} />}>
         {cases.length===0 ? <Empty icon="ti-clipboard-list" title="案件がありません" /> :
           cases.map((c,i)=>(
-            <div key={c.id} style={{ background:DASH.card, borderRadius:14, padding:'12px 14px', marginBottom:10, border:`1px solid ${DASH.border}`, boxShadow:DASH.cardShadow }}>
+            <div key={c.id} style={{ background:DASH.card, borderRadius:16, padding:'16px', marginBottom:10, border:`1px solid ${DASH.border}`, boxShadow:DASH.cardShadow }}>
               <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
                 <div style={{ display:'flex', gap:8, alignItems:'center', flex:1, minWidth:0 }}>
                   <span style={{ fontSize:14, fontWeight:700, color:DASH.textMain, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c.title}</span>
