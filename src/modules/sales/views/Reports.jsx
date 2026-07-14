@@ -51,7 +51,7 @@ export default function Reports() {
       <AsyncBoundary loading={loading} error={loadError} onRetry={refresh} skeleton={<TableSkeleton rows={4} columns={4} />}>
         {reports.length===0 ? <Empty icon="ti-file-text" title="日報がありません。「日報を追加」から記録してください。" /> :
           reports.map(r => (
-            <div key={r.id} style={{ background:DASH.card, borderRadius:14, padding:'12px 14px', marginBottom:10, border:`1px solid ${DASH.border}`, boxShadow:DASH.cardShadow }}>
+            <div key={r.id} style={{ background:DASH.card, borderRadius:16, padding:'16px', marginBottom:10, border:`1px solid ${DASH.border}`, boxShadow:DASH.cardShadow }}>
               <div style={{ display:'flex', justifyContent:'space-between', marginBottom:7 }}>
                 <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
                   <span style={{ fontSize:12, fontWeight:700, color:DASH.textMain }}>{r.report_date}</span>
