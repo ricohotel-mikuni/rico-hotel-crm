@@ -24,7 +24,7 @@ export default function Dashboard() {
       <AsyncBoundary loading={cl||sl} error={ce||se} onRetry={() => { cr(); sr() }} skeleton={<TableSkeleton rows={4} columns={4} />}>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:14 }}>
           {[['営業先総数',clients.length,'社',DASH.textMain,'ti-building-store'],['成約件数',won.length,'件',DASH.green,'ti-trophy'],['成約売上',Math.round(wonR/10000),'万円',DASH.textMain,'ti-currency-yen'],['成約率',cases.length?Math.round(won.length/cases.length*100):0,'%',DASH.blue,'ti-percent']].map(([l,v,u,c,ic])=>(
-            <div key={l} style={{ background:DASH.card, borderRadius:14, padding:'12px 14px', border:`1px solid ${DASH.border}`, textAlign:'center', boxShadow:DASH.cardShadow }}>
+            <div key={l} style={{ background:DASH.card, borderRadius:16, padding:'16px', border:`1px solid ${DASH.border}`, textAlign:'center', boxShadow:DASH.cardShadow }}>
               <i className={`ti ${ic}`} style={{ fontSize:22, color:c, display:'block', marginBottom:6 }} />
               <div style={{ fontSize:11, color:DASH.textFaint, marginBottom:4 }}>{l}</div>
               <div style={{ fontSize:22, fontWeight:700, color:c }}>{v}<span style={{ fontSize:12, fontWeight:400, marginLeft:2 }}>{u}</span></div>
