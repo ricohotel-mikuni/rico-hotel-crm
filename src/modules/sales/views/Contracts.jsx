@@ -46,7 +46,7 @@ export default function Contracts() {
       <AsyncBoundary loading={loading} error={loadError} onRetry={refresh} skeleton={<TableSkeleton rows={4} columns={4} />}>
         {contracts.length===0?<Empty icon="ti-file-check" title="契約情報がありません"/>:
           contracts.map(c=>(
-            <div key={c.id} style={{background:DASH.card,borderRadius:14,padding:'12px 14px',marginBottom:10,border:`1px solid ${DASH.border}`,boxShadow:DASH.cardShadow}}>
+            <div key={c.id} style={{background:DASH.card,borderRadius:16,padding:'16px',marginBottom:10,border:`1px solid ${DASH.border}`,boxShadow:DASH.cardShadow}}>
               <div style={{display:'flex',justifyContent:'space-between',marginBottom:7}}>
                 <div>
                   <div style={{fontSize:14,fontWeight:700,color:DASH.textMain}}>{c.title}</div>
