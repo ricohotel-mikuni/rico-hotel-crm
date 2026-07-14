@@ -22,7 +22,7 @@ export default function Commissions() {
       <AsyncBoundary loading={loading} error={error} onRetry={refresh} skeleton={<TableSkeleton rows={5} columns={5} />}>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, marginBottom:14 }}>
           {[['報酬合計（全案件）',allComm,DASH.purple],['成約報酬',wonComm,DASH.green],['未確定報酬',allComm-wonComm,DASH.orange]].map(([l,v,c])=>(
-            <div key={l} style={{ background:DASH.card, borderRadius:14, padding:'12px 14px', border:`1px solid ${DASH.border}`, boxShadow:DASH.cardShadow }}>
+            <div key={l} style={{ background:DASH.card, borderRadius:16, padding:'16px', border:`1px solid ${DASH.border}`, boxShadow:DASH.cardShadow }}>
               <div style={{ fontSize:11, color:DASH.textFaint, marginBottom:5 }}>{l}</div>
               <div style={{ fontSize:21, fontWeight:700, color:c }}>{fmt(v)}円</div>
             </div>
