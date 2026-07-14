@@ -109,7 +109,7 @@ export default function Settings() {
               <DarkSelect label="権限" value={newUser.role} onChange={v => setNewUser(p => ({ ...p, role: v }))} options={Object.entries(ROLES).map(([k]) => k)} />
             </div>
             <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
-              <Btn onClick={inviteUser} icon={saving ? 'ti-loader' : 'ti-user-plus'} label={saving ? '追加中…' : 'スタッフを追加'} color={DASH.gold} disabled={saving} />
+              <Btn onClick={inviteUser} icon={saving ? 'ti-loader' : 'ti-user-plus'} label={saving ? '追加中…' : 'スタッフを追加'} color={DASH.brandNavy} disabled={saving} />
               <span style={{ fontSize: 11, color: DASH.textFaint }}>追加後、スタッフは上記のメール・パスワードでログインできます</span>
             </div>
           </DarkPanel>
