@@ -18,6 +18,24 @@ function withTimeout(promise, ms) {
   ])
 }
 
+// HotelOS共通監査ログ(migration 015 write_audit_log)の書き込みヘルパー。
+// 実行者(actor)はサーバー側でauth.uid()から解決するため、クライアントは
+// 何を・誰に対して行ったかだけを渡す。監査ログの失敗で業務本体を
+// 止めないよう、常にbest-effort(呼び出し元へエラーを伝播しない)。
+async function logAudit({ action, category = '', description = '', targetTable = null, targetId = null, targetLabel = '', targetEmployeeId = null, companyId = null, hotelId = null, before = null, after = null, success = true, failureReason = '' }) {
+  try {
+    const { error } = await supabase.rpc('write_audit_log', {
+      p_action: action, p_category: category, p_description: description,
+      p_target_table: targetTable, p_target_id: targetId, p_target_label: targetLabel,
+      p_target_employee_id: targetEmployeeId, p_company_id: companyId, p_hotel_id: hotelId,
+      p_before: before, p_after: after, p_success: success, p_failure_reason: failureReason,
+    })
+    if (error) console.error('[audit] write_audit_log failed:', error)
+  } catch (e) {
+    console.error('[audit] write_audit_log threw:', e)
+  }
+}
+
 // Generic hook for a Supabase table (or view) with realtime.
 // `table` is what gets SELECTed from. Realtime `postgres_changes` only
 // fires on real tables — pass `realtimeTable` when `table` is a VIEW
@@ -131,7 +149,10 @@ export function useCases() {
     const { data, error } = await supabase.from('cases').insert({
       ...form, commission: comm, created_by: user.id, updated_by: user.id,
     }).select().single()
-    if (!error) pushNotification({ module: 'sales', title: `新しい案件が登録されました: ${data.title}` })
+    if (!error) {
+      pushNotification({ module: 'sales', title: `新しい案件が登録されました: ${data.title}` })
+      logAudit({ action: 'sales_case_created', category: 'hotel_ops', description: '営業案件を登録', targetTable: 'cases', targetId: data.id, targetLabel: data.title, after: data })
+    }
     return { data, error }
   }
 
@@ -203,9 +224,13 @@ export function useContracts() {
   }
 
   const update = async (id, form) => {
+    const { data: before } = await supabase.from('contracts').select('*').eq('id', id).maybeSingle()
     const { data, error } = await supabase.from('contracts').update({
       ...form, updated_by: user.id,
     }).eq('id', id).select().single()
+    if (!error) {
+      logAudit({ action: 'contract_updated', category: 'hotel_ops', description: '契約を変更', targetTable: 'contracts', targetId: id, targetLabel: data.title || data.contract_no || '', before, after: data })
+    }
     return { data, error }
   }
 
@@ -295,25 +320,43 @@ export function useEmployees() {
 
   const update = async (id, form, assignment) => {
     if (!permissions.canWrite) return { error: '権限がありません' }
+    const { data: before } = await supabase.from('employees').select('*').eq('id', id).maybeSingle()
     const { data, error } = await supabase.from('employees').update(form).eq('id', id).select().single()
     if (error) return { error }
+
+    let assignmentBefore = null
     if (assignment?.location_id) {
       const { data: existing } = await supabase
-        .from('employee_assignments').select('id')
+        .from('employee_assignments').select('*')
         .eq('employee_id', id).eq('is_primary', true).is('end_date', null)
         .maybeSingle()
+      assignmentBefore = existing
       if (existing) {
         await supabase.from('employee_assignments').update(assignment).eq('id', existing.id)
       } else {
         await supabase.from('employee_assignments').insert({ employee_id: id, is_primary: true, ...assignment })
       }
+      if (!assignmentBefore || assignmentBefore.location_id !== assignment.location_id) {
+        logAudit({
+          action: 'hotel_assignment_changed', category: 'user', description: 'ホテル所属を変更',
+          targetEmployeeId: id, targetLabel: data.full_name, hotelId: assignment.location_id,
+          before: assignmentBefore ? { location_id: assignmentBefore.location_id } : null,
+          after: { location_id: assignment.location_id },
+        })
+      }
     }
+
+    logAudit({ action: 'employee_updated', category: 'user', description: '社員情報を編集', targetEmployeeId: id, targetLabel: data.full_name, before, after: data })
     return { data, error }
   }
 
   const softDelete = async (id) => {
     if (!permissions.canDelete) return { error: '権限がありません' }
+    const { data: before } = await supabase.from('employees').select('full_name, status').eq('id', id).maybeSingle()
     const { error } = await supabase.from('employees').update({ deleted_at: new Date().toISOString() }).eq('id', id)
+    if (!error) {
+      logAudit({ action: 'employee_deleted', category: 'user', description: '社員を削除(退職処理)', targetEmployeeId: id, targetLabel: before?.full_name || '', before, after: { status: 'deleted' } })
+    }
     return { error }
   }
 
@@ -408,10 +451,19 @@ export function useUsers() {
       .from('roles').select('id').eq('key', roleKey).maybeSingle()
     if (roleErr || !roleRow) return { error: '指定された権限が見つかりません' }
 
+    const before = users.find(u => u.employee_id === employeeId)
+
     // このUIは「1人1権限」の簡易表示のため、既存の割り当てを置き換える。
     const { error: delErr } = await supabase.from('employee_roles').delete().eq('employee_id', employeeId)
     if (delErr) return { error: delErr.message }
     const { error: insErr } = await supabase.from('employee_roles').insert({ employee_id: employeeId, role_id: roleRow.id })
+    if (!insErr) {
+      logAudit({
+        action: 'role_changed', category: 'user', description: '権限を変更',
+        targetEmployeeId: employeeId, targetLabel: before?.full_name || '',
+        before: { role_keys: before?.role_keys || [] }, after: { role_keys: [roleKey] },
+      })
+    }
     return { error: insErr?.message }
   }
 

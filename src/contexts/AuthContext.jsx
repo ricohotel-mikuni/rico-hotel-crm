@@ -80,6 +80,9 @@ export function AuthProvider({ children }) {
   // 信頼済み端末が無いユーザーの通常ログアウト、またはPINが使えなく
   // なった場合(端末失効・繰り返し失敗等)のパスワードへの差し戻しに使う。
   const signOut = async () => {
+    // 監査ログ(migration 015 record_logout)は auth.uid() が必要なため
+    // 必ずsignOut()より先に呼ぶ — 失敗してもログアウト自体は続行する。
+    await supabase.rpc('record_logout').catch(e => console.error('[AuthContext] record_logout failed:', e))
     const { error } = await supabase.auth.signOut()
     if (error) console.error('[AuthContext] signOut error:', error)
     setUser(null)

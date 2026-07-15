@@ -72,6 +72,26 @@ Deno.serve(async (req: Request) => {
       return fail(403, '社員登録には管理者権限が必要です')
     }
 
+    // HotelOS共通監査ログ(第015: write_audit_log)への書き込み。
+    // service-roleで直接audit_logsへ書くため、write_audit_log()の
+    // actor自動解決(auth.uid()ベース)は使わずここで明示的に渡す。
+    // 監査ログの失敗で社員登録本体を止めないよう常にbest-effort。
+    const { data: callerEmployee } = await admin
+      .from('employees').select('id').eq('user_id', callerData.user.id).maybeSingle()
+    const actorEmployeeId = callerEmployee?.id ?? null
+    const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || null
+    const logAudit = async (fields: Record<string, unknown>) => {
+      try {
+        await admin.from('audit_logs').insert({
+          actor_employee_id: actorEmployeeId,
+          action: 'employee_created',
+          category: 'user',
+          ip_address: ipAddress,
+          ...fields,
+        })
+      } catch (_e) { /* 監査ログの失敗で本処理は止めない */ }
+    }
+
     const body = await req.json()
     const {
       full_name, employee_no, email, password, pin,
@@ -96,6 +116,11 @@ Deno.serve(async (req: Request) => {
       user_metadata: { full_name },
     })
     if (createErr || !created?.user) {
+      await logAudit({
+        description: '社員登録に失敗(Authアカウント作成)', target_label: full_name || email,
+        company_id: company_id ?? null, hotel_id: location_id ?? null,
+        success: false, failure_reason: createErr?.message ?? '不明なエラー',
+      })
       return fail(400, 'アカウント作成に失敗しました: ' + (createErr?.message ?? '不明なエラー'))
     }
     const userId = created.user.id
@@ -109,7 +134,15 @@ Deno.serve(async (req: Request) => {
       hire_date: hire_date || null,
       status: status || 'active',
     }).select().single()
-    if (empErr) { await rollback(); return fail(400, '社員情報の作成に失敗しました: ' + empErr.message) }
+    if (empErr) {
+      await rollback()
+      await logAudit({
+        description: '社員登録に失敗(社員情報作成)', target_label: full_name,
+        company_id: company_id ?? null, hotel_id: location_id ?? null,
+        success: false, failure_reason: empErr.message,
+      })
+      return fail(400, '社員情報の作成に失敗しました: ' + empErr.message)
+    }
 
     // ③ 所属(拠点・部署・役職)
     if (location_id) {
@@ -117,18 +150,42 @@ Deno.serve(async (req: Request) => {
         employee_id: employee.id, location_id, department_id: department_id || null,
         position: position || '', is_primary: true,
       })
-      if (asgErr) { await rollback(); return fail(400, '所属の登録に失敗しました: ' + asgErr.message) }
+      if (asgErr) {
+        await rollback()
+        await logAudit({
+          target_employee_id: employee.id, description: '社員登録に失敗(所属登録)', target_label: full_name,
+          company_id: company_id ?? null, hotel_id: location_id ?? null,
+          success: false, failure_reason: asgErr.message,
+        })
+        return fail(400, '所属の登録に失敗しました: ' + asgErr.message)
+      }
     }
 
     // ④ 権限(employee_roles、新方式)
     if (role_key) {
       const { data: roleRow, error: roleLookupErr } = await admin
         .from('roles').select('id').eq('key', role_key).maybeSingle()
-      if (roleLookupErr || !roleRow) { await rollback(); return fail(400, '指定された権限が見つかりません: ' + role_key) }
+      if (roleLookupErr || !roleRow) {
+        await rollback()
+        await logAudit({
+          target_employee_id: employee.id, description: '社員登録に失敗(権限指定が不正)', target_label: full_name,
+          company_id: company_id ?? null, hotel_id: location_id ?? null,
+          success: false, failure_reason: '指定された権限が見つかりません: ' + role_key,
+        })
+        return fail(400, '指定された権限が見つかりません: ' + role_key)
+      }
       const { error: erErr } = await admin.from('employee_roles').insert({
         employee_id: employee.id, role_id: roleRow.id,
       })
-      if (erErr) { await rollback(); return fail(400, '権限の付与に失敗しました: ' + erErr.message) }
+      if (erErr) {
+        await rollback()
+        await logAudit({
+          target_employee_id: employee.id, description: '社員登録に失敗(権限付与)', target_label: full_name,
+          company_id: company_id ?? null, hotel_id: location_id ?? null,
+          success: false, failure_reason: erErr.message,
+        })
+        return fail(400, '権限の付与に失敗しました: ' + erErr.message)
+      }
 
       // 旧方式(user_profiles.role)にも同時反映 — 第20条の移行期間中、
       // 既存のRLSヘルパー(is_admin_or_manager()/can_write())が
@@ -142,8 +199,22 @@ Deno.serve(async (req: Request) => {
       const { error: pinErr } = await admin.rpc('admin_set_employee_pin', {
         p_employee_id: employee.id, p_pin: pin,
       })
-      if (pinErr) { await rollback(); return fail(400, 'PINの登録に失敗しました: ' + pinErr.message) }
+      if (pinErr) {
+        await rollback()
+        await logAudit({
+          target_employee_id: employee.id, description: '社員登録に失敗(PIN登録)', target_label: full_name,
+          company_id: company_id ?? null, hotel_id: location_id ?? null,
+          success: false, failure_reason: pinErr.message,
+        })
+        return fail(400, 'PINの登録に失敗しました: ' + pinErr.message)
+      }
     }
+
+    await logAudit({
+      target_employee_id: employee.id, description: '社員を新規登録', target_label: full_name,
+      company_id: company_id ?? null, hotel_id: location_id ?? null, success: true,
+      after_state: { full_name, email, employee_no, role_key, location_id, department_id, position, status: status || 'active' },
+    })
 
     return new Response(JSON.stringify({ employee_id: employee.id, user_id: userId }), {
       status: 200, headers: jsonHeaders,
