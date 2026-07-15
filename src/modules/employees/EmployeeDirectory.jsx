@@ -71,7 +71,7 @@ export default function EmployeeDirectory() {
           hire_date: direct.hire_date, status: direct.status,
         })
         if (error) { showToast('登録に失敗しました: ' + error, 'error'); return }
-        showToast('社員を登録しました。メールアドレス+パスワードで直ちにログインできます')
+        showToast(`${direct.full_name}さんを登録しました。このスタッフは今すぐログインできます`)
       } else {
         const employeeFields = {
           employee_no: direct.employee_no, full_name: direct.full_name, kana: direct.kana,
