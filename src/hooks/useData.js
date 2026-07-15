@@ -271,6 +271,137 @@ export function useRoles() {
   return { roles, loading, error, refresh }
 }
 
+export function useCompanies() {
+  const { data: companies, loading, error, refresh } = useTable(
+    'companies', (q) => q.select('*').order('name')
+  )
+  return { companies, loading, error, refresh }
+}
+
+// ── 統合ホテル管理(承認済み提案書「統合ホテル管理モジュール」) ──
+// ホテルは locations(拠点の共通基底、type='hotel') と hotels(1:1拡張、
+// 客室数等) の組。将来1,000施設規模のSaaS展開を前提に、画面①
+// (一覧・追加・編集・削除・停止)からDB駆動化する — registry.js の
+// 静的配列はここでは参照しない。書き込みはRLS側でcan_write_module
+// ('hotel_management')により admin/ceo に限定されるため、ここでは
+// クライアント側の権限チェックは行わない(usePermission側でボタン
+// 表示を制御する)。
+export function useHotels() {
+  const { data: hotels, loading, error, refresh } = useTable(
+    'locations',
+    q => q.select('*, hotels(*), companies(name), business_units(name)').eq('type', 'hotel').is('deleted_at', null).order('name'),
+  )
+
+  const add = async (form) => {
+    const { data: bu } = await supabase.from('business_units').select('id')
+      .eq('company_id', form.company_id).eq('key', 'hotel').maybeSingle()
+
+    const { data: location, error: locErr } = await supabase.from('locations').insert({
+      company_id: form.company_id, business_unit_id: bu?.id ?? null, type: 'hotel',
+      slug: form.slug, name: form.name, address: form.address || '', phone: form.phone || '',
+      status: form.status || 'active',
+    }).select().single()
+    if (locErr) return { error: locErr.message }
+
+    const { data: hotel, error: hotelErr } = await supabase.from('hotels').insert({
+      location_id: location.id, room_count: form.room_count || 0,
+      brand_name: form.name, brand_key: form.brand_key || 'ricoHotel',
+    }).select().single()
+    if (hotelErr) return { error: hotelErr.message }
+
+    logAudit({
+      action: 'hotel_created', category: 'hotel_ops', description: 'ホテルを新規追加',
+      targetTable: 'locations', targetId: location.id, targetLabel: form.name,
+      companyId: form.company_id, hotelId: location.id, after: { ...form },
+    })
+    return { data: { location, hotel } }
+  }
+
+  const update = async (locationId, hotelId, form) => {
+    const { data: before } = await supabase.from('locations').select('*, hotels(*)').eq('id', locationId).maybeSingle()
+
+    const { error: locErr } = await supabase.from('locations').update({
+      name: form.name, address: form.address, phone: form.phone,
+    }).eq('id', locationId)
+    if (locErr) return { error: locErr.message }
+
+    if (hotelId) {
+      const { error: hotelErr } = await supabase.from('hotels').update({
+        room_count: form.room_count, brand_key: form.brand_key,
+      }).eq('id', hotelId)
+      if (hotelErr) return { error: hotelErr.message }
+    }
+
+    logAudit({
+      action: 'hotel_updated', category: 'hotel_ops', description: 'ホテル情報を編集',
+      targetTable: 'locations', targetId: locationId, targetLabel: form.name,
+      companyId: before?.company_id, hotelId: locationId, before, after: form,
+    })
+    return { error: null }
+  }
+
+  const setStatus = async (locationId, status) => {
+    const { data: before } = await supabase.from('locations').select('status, name, company_id').eq('id', locationId).maybeSingle()
+    const { error } = await supabase.from('locations').update({ status }).eq('id', locationId)
+    if (!error) {
+      logAudit({
+        action: status === 'suspended' ? 'hotel_suspended' : 'hotel_reactivated',
+        category: 'hotel_ops', description: status === 'suspended' ? 'ホテルを停止' : 'ホテルを再開',
+        targetTable: 'locations', targetId: locationId, targetLabel: before?.name,
+        companyId: before?.company_id, hotelId: locationId,
+        before: { status: before?.status }, after: { status },
+      })
+    }
+    return { error: error?.message }
+  }
+
+  const softDelete = async (locationId) => {
+    const { data: before } = await supabase.from('locations').select('name, status, company_id').eq('id', locationId).maybeSingle()
+    const { error } = await supabase.from('locations').update({ deleted_at: new Date().toISOString() }).eq('id', locationId)
+    if (!error) {
+      logAudit({
+        action: 'hotel_deleted', category: 'hotel_ops', description: 'ホテルを削除',
+        targetTable: 'locations', targetId: locationId, targetLabel: before?.name,
+        companyId: before?.company_id, hotelId: locationId, before, after: { deleted: true },
+      })
+    }
+    return { error: error?.message }
+  }
+
+  return { hotels, loading, error, refresh, add, update, setStatus, softDelete }
+}
+
+// スラッグから1件のホテルを解決する — HotelsApp.jsxの動的ルーティング
+// (`/hotels/:hotelSlug`)がここを使う。以前はregistry.jsの静的配列
+// との文字列一致だったが、これによりホテル管理画面から追加した
+// ホテルが、コード変更なしにそのままアクセス可能になる。
+export function useHotelBySlug(slug) {
+  const [hotel, setHotel] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (!slug) { setHotel(null); setLoading(false); return }
+    let cancelled = false
+    setLoading(true)
+    supabase.from('locations').select('*, hotels(*)')
+      .eq('slug', slug).eq('type', 'hotel').is('deleted_at', null).maybeSingle()
+      .then(({ data, error: err }) => {
+        if (cancelled) return
+        if (err) { console.error('[useHotelBySlug] fetch failed:', err); setError(err.message); setHotel(null) }
+        else { setHotel(data); setError(data ? null : 'not_found') }
+        setLoading(false)
+      })
+      .catch(e => {
+        console.error('[useHotelBySlug] fetch threw:', e)
+        if (!cancelled) { setError(e.message); setLoading(false) }
+      })
+    return () => { cancelled = true }
+  }, [slug])
+
+  return { hotel, loading, error }
+}
+
 // ── EMPLOYEES — company-wide master. `employees` itself never
 // references a hotel; assignment (location/department/position) lives
 // in employee_assignments and is upserted separately below so

@@ -5,6 +5,7 @@ import SidebarShell from '../../layout/SidebarShell'
 import ComingSoon from '../ComingSoon'
 import AdminCenter from './AdminCenter'
 import AdminAuditLog from './AdminAuditLog'
+import AdminHotelManagement from './AdminHotelManagement'
 import { ADMIN_MODULES } from './registry'
 
 const ADMIN_NAV_GROUPS = [{
@@ -31,6 +32,7 @@ export default function AdminApp() {
       <Routes>
         <Route path="/" element={<AdminCenter />} />
         <Route path="audit-logs/*" element={<AdminAuditLog />} />
+        <Route path="hotel-management/*" element={<AdminHotelManagement />} />
         {ADMIN_MODULES.filter(m => m.status !== 'active').map(m => (
           <Route key={m.id} path={`${m.path.replace(/^\//, '')}/*`} element={<ComingSoon module={m} bare />} />
         ))}
