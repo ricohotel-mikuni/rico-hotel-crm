@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useEmployees, useLocations, useDepartments } from '../../hooks/useData'
+import { useEmployees, useLocations, useDepartments, useRoles, DAIEI_COMPANY_ID } from '../../hooks/useData'
 import { useAuth } from '../../contexts/AuthContext'
 import { uploadEmployeeFile } from '../../lib/storage'
 import HubShell from '../../layout/HubShell'
@@ -19,6 +19,7 @@ const EMPTY_EMPLOYEE = {
   email: '', phone: '', address: '',
   emergency_contact_name: '', emergency_contact_phone: '',
   social_insurance: {}, notes: '', photo_url: '',
+  password: '', pin: '', role_key: '',
 }
 
 // 社員管理 — 大栄商事株式会社に所属する社員の一覧+追加・編集。
@@ -30,9 +31,10 @@ const EMPTY_EMPLOYEE = {
 export default function EmployeeDirectory() {
   const navigate = useNavigate()
   const { permissions } = useAuth()
-  const { employees, loading, error, refresh, add, update } = useEmployees()
+  const { employees, loading, error, refresh, createWithAuth, update } = useEmployees()
   const { locations } = useLocations()
   const { departments } = useDepartments()
+  const { roles } = useRoles()
 
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState(EMPTY_EMPLOYEE)
@@ -47,30 +49,47 @@ export default function EmployeeDirectory() {
 
   const save = async () => {
     if (!form.full_name) return showToast('氏名は必須です', 'error')
+    const isNew = !form.id
+    if (isNew && !form.email) return showToast('メールアドレスは必須です', 'error')
+    if (isNew && (!form.password || form.password.length < 8)) return showToast('初期パスワードは8文字以上で入力してください', 'error')
     setSaving(true)
     try {
       let photoUrl = form.photo_url
       if (pendingPhoto) photoUrl = await uploadEmployeeFile(pendingPhoto, 'photos')
 
       const { location_id, department_id, position, ...direct } = form
-      const employeeFields = {
-        employee_no: direct.employee_no, full_name: direct.full_name, kana: direct.kana,
-        email: direct.email, phone: direct.phone, address: direct.address,
-        emergency_contact_name: direct.emergency_contact_name, emergency_contact_phone: direct.emergency_contact_phone,
-        hire_date: direct.hire_date, retirement_date: direct.retirement_date,
-        employment_type: direct.employment_type, social_insurance: direct.social_insurance,
-        notes: direct.notes, status: direct.status, photo_url: photoUrl,
-      }
-      const assignment = location_id ? { location_id, department_id, position } : null
 
-      const isNew = !form.id
-      const { error } = isNew ? await add(employeeFields, assignment) : await update(form.id, employeeFields, assignment)
-      if (error) { showToast('保存に失敗しました: ' + error, 'error'); return }
-      showToast(isNew ? '社員を登録しました' : '更新しました')
+      if (isNew) {
+        // 社員登録の唯一の正規経路(ERP開発憲章第38条・第39条) —
+        // Auth作成〜employees〜所属〜権限〜PINまでをEdge Function側で
+        // まとめて完結させる。
+        const { error } = await createWithAuth({
+          full_name: direct.full_name, employee_no: direct.employee_no,
+          email: direct.email, password: direct.password, pin: direct.pin || null,
+          department_id, position, role_key: direct.role_key || null,
+          company_id: DAIEI_COMPANY_ID, location_id,
+          hire_date: direct.hire_date, status: direct.status,
+        })
+        if (error) { showToast('登録に失敗しました: ' + error, 'error'); return }
+        showToast('社員を登録しました。メールアドレス+パスワードで直ちにログインできます')
+      } else {
+        const employeeFields = {
+          employee_no: direct.employee_no, full_name: direct.full_name, kana: direct.kana,
+          email: direct.email, phone: direct.phone, address: direct.address,
+          emergency_contact_name: direct.emergency_contact_name, emergency_contact_phone: direct.emergency_contact_phone,
+          hire_date: direct.hire_date, retirement_date: direct.retirement_date,
+          employment_type: direct.employment_type, social_insurance: direct.social_insurance,
+          notes: direct.notes, status: direct.status, photo_url: photoUrl,
+        }
+        const assignment = location_id ? { location_id, department_id, position } : null
+        const { error } = await update(form.id, employeeFields, assignment)
+        if (error) { showToast('保存に失敗しました: ' + error, 'error'); return }
+        showToast('更新しました')
+      }
       setModalOpen(false)
       setPendingPhoto(null)
     } catch (e) {
-      showToast('写真のアップロードに失敗しました: ' + e.message, 'error')
+      showToast('保存に失敗しました: ' + e.message, 'error')
     } finally {
       setSaving(false)
     }
@@ -102,7 +121,7 @@ export default function EmployeeDirectory() {
         {/* The table frame (headers, borders) always renders — only the
             body row changes between loading/error/empty/data, so a
             failed or slow fetch never removes the table itself. */}
-        <div style={{ background: DASH.card, borderRadius: 14, border: `1px solid ${DASH.border}`, overflow: 'hidden', boxShadow: DASH.cardShadow }}>
+        <div style={{ background: DASH.card, borderRadius: 16, border: `1px solid ${DASH.border}`, overflow: 'hidden', boxShadow: DASH.cardShadow }}>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
@@ -127,7 +146,7 @@ export default function EmployeeDirectory() {
                       <div style={{ color: DASH.alert, fontSize: 12, marginBottom: 8 }}>
                         <i className="ti ti-alert-circle" style={{ fontSize: 15, marginRight: 6 }} />社員データを取得できませんでした
                       </div>
-                      <Btn onClick={refresh} icon="ti-refresh" label="再試行" color={DASH.gold} sm />
+                      <Btn onClick={refresh} icon="ti-refresh" label="再試行" color={DASH.brandNavy} sm />
                     </td>
                   </tr>
                 ) : employees.length === 0 ? (
@@ -170,6 +189,7 @@ export default function EmployeeDirectory() {
           setForm={setForm}
           locations={locations}
           departments={departments}
+          roles={roles}
           pendingPhoto={pendingPhoto}
           onPhotoFile={setPendingPhoto}
           onSave={save}

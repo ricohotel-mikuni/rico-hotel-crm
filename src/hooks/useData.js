@@ -222,7 +222,7 @@ export function useContracts() {
 
 // ── COMPANY (single-company assumption, matches HotelsApp.jsx's own
 // hardcoded 'rico-mikuni' convention — see supabase/migrations/005) ──
-const DAIEI_COMPANY_ID = '00000000-0000-0000-0000-000000000001'
+export const DAIEI_COMPANY_ID = '00000000-0000-0000-0000-000000000001'
 
 // ── LOCATIONS / DEPARTMENTS (reference lists for the employee form) ──
 export function useLocations() {
@@ -256,6 +256,11 @@ export function useEmployees() {
   )
   const { permissions } = useAuth()
 
+  // 既存社員の追加登録(employeesのみ、Authアカウントは作らない) —
+  // 現在はcreateWithAuth()に一本化したため、通常のUIからは呼ばれない。
+  // 過去データ移行など、ログイン資格を持たない社員行だけを作りたい
+  // 特殊なケースのために残す(ERP開発憲章第38条: 通常の登録経路では
+  // 使わない)。
   const add = async (form, assignment) => {
     if (!permissions.canWrite) return { error: '権限がありません' }
     const { data, error } = await supabase.from('employees').insert({
@@ -269,6 +274,23 @@ export function useEmployees() {
     }
     pushNotification({ module: 'employees', title: `新しい社員が登録されました: ${data.full_name}` })
     return { data, error }
+  }
+
+  // 社員登録の唯一の正規経路(ERP開発憲章第38条・第39条) —
+  // create-employee Edge Function(service-role)を呼び、Auth作成〜
+  // employees〜employee_assignments〜employee_roles〜PINまでを
+  // サーバー側でまとめて完結させる。呼び出し元(今ログイン中の管理者)
+  // 自身のセッションは一切変更されない。
+  const createWithAuth = async (payload) => {
+    if (!permissions.canWrite) return { error: '権限がありません' }
+    const { data, error } = await supabase.functions.invoke('create-employee', { body: payload })
+    if (error) {
+      const detail = error.context?.body ? await error.context.text?.().catch(() => null) : null
+      return { error: detail || error.message || '社員登録に失敗しました' }
+    }
+    if (data?.error) return { error: data.error }
+    pushNotification({ module: 'employees', title: `新しい社員が登録されました: ${payload.full_name}` })
+    return { data }
   }
 
   const update = async (id, form, assignment) => {
@@ -295,7 +317,7 @@ export function useEmployees() {
     return { error }
   }
 
-  return { employees, loading, error, refresh, add, update, softDelete }
+  return { employees, loading, error, refresh, add, createWithAuth, update, softDelete }
 }
 
 // ── MY EMPLOYEE RECORD — resolves the logged-in auth user to their
@@ -368,18 +390,29 @@ export function useApprovalRequests() {
   return { requests, loading, error, refresh, create, decide }
 }
 
-// ── USER PROFILES ─────────────────────────────────────────
+// ── ユーザー管理(設定画面) — employeesを唯一の正とする(ERP開発憲章
+// 第38条)。旧来はuser_profilesを直接見ていたが、ログイン資格を持つ
+// 社員(user_id IS NOT NULL)をv_employee_accounts経由で見る形に変更。
+// 権限変更もemployee_rolesへ書き込む(新方式) — 書き込むと
+// migration 014のトリガーがuser_profiles.roleへ自動的に同期するため、
+// 旧来のRLSヘルパー(is_admin_or_manager()等)も引き続き正しく動く。
 export function useUsers() {
   const { data: users, loading, error, refresh } = useTable(
-    'user_profiles',
-    (q) => q.select('*').eq('is_active', true).order('full_name')
+    'v_employee_accounts', (q) => q.select('*').order('full_name'), 'employee_roles',
   )
-  const { user, permissions } = useAuth()
+  const { permissions } = useAuth()
 
-  const updateRole = async (id, role) => {
+  const updateRole = async (employeeId, roleKey) => {
     if (!permissions.canManageUsers) return { error: '管理者のみ変更できます' }
-    const { error } = await supabase.from('user_profiles').update({ role }).eq('id', id)
-    return { error }
+    const { data: roleRow, error: roleErr } = await supabase
+      .from('roles').select('id').eq('key', roleKey).maybeSingle()
+    if (roleErr || !roleRow) return { error: '指定された権限が見つかりません' }
+
+    // このUIは「1人1権限」の簡易表示のため、既存の割り当てを置き換える。
+    const { error: delErr } = await supabase.from('employee_roles').delete().eq('employee_id', employeeId)
+    if (delErr) return { error: delErr.message }
+    const { error: insErr } = await supabase.from('employee_roles').insert({ employee_id: employeeId, role_id: roleRow.id })
+    return { error: insErr?.message }
   }
 
   return { users, loading, error, refresh, updateRole }

@@ -38,8 +38,15 @@ function InsuranceCheckboxes({ value, onChange }) {
 // パターンを踏襲(直接列は既存の DarkField/DarkTextarea/DarkSelectで、
 // 配属先だけ locations/departments を参照する専用セレクトにしている)。
 // Design System v1.0(承認済み提案書「Design System v1.0 仕様変更」)。
+//
+// isNew(新規登録)のときだけ「ログイン・権限」欄を表示する(ERP開発
+// 憲章第38条・第39条) — 初期パスワード・PIN・権限・所属会社は、
+// 保存と同時にAuthアカウント作成〜権限付与までを行う
+// create-employee Edge Functionへそのまま渡す。既存社員の編集では
+// Authアカウントを再作成しないため表示しない(権限変更は設定画面の
+// ユーザー管理から行う)。
 export default function EmployeeForm({
-  form, setForm, locations, departments, pendingPhoto, onPhotoFile,
+  form, setForm, locations, departments, roles = [], pendingPhoto, onPhotoFile,
   onSave, onClose, saving, isNew,
 }) {
   const set = k => v => setForm(p => ({ ...p, [k]: v }))
@@ -57,7 +64,7 @@ export default function EmployeeForm({
     >
       <G2>
         <DarkField label="社員番号" value={form.employee_no} onChange={set('employee_no')} />
-        <DarkSelect label="状態" value={form.status} onChange={set('status')} options={STATUS_OPTIONS} />
+        <DarkSelect label="状態(有効/無効)" value={form.status} onChange={set('status')} options={STATUS_OPTIONS} />
       </G2>
       <G2>
         <DarkField label="氏名" value={form.full_name} onChange={set('full_name')} required placeholder="山田 太郎" />
@@ -65,6 +72,36 @@ export default function EmployeeForm({
       </G2>
 
       <DarkImageUpload label="顔写真" icon="ti-user" value={form.photo_url} file={pendingPhoto} onFile={onPhotoFile} />
+
+      {isNew && (
+        <>
+          <DarkDivider />
+          <div style={{ fontSize: 11, color: DASH.textFaint, marginBottom: 8, fontWeight: 500 }}>ログイン・権限(新規登録時のみ設定)</div>
+          <G2>
+            <DarkField label="初期パスワード(8文字以上)" value={form.password} onChange={set('password')} type="password" required />
+            <DarkField label="PIN(6桁・任意、後日本人が設定も可)" value={form.pin} onChange={v => set('pin')(v.replace(/[^0-9]/g, '').slice(0, 6))} placeholder="123456" />
+          </G2>
+          <G2>
+            <div style={{ marginBottom: 9 }}>
+              <label style={{ fontSize: 11, color: DASH.textFaint, display: 'block', marginBottom: 3, fontWeight: 500 }}>権限</label>
+              <select
+                value={form.role_key || ''}
+                onChange={e => set('role_key')(e.target.value)}
+                style={{ width: '100%', padding: '8px 10px', border: `1px solid ${DASH.border}`, borderRadius: 7, fontSize: 13, background: DASH.inputBg, color: DASH.textMain, fontFamily: 'inherit', outline: 'none' }}
+              >
+                <option value="">選択してください</option>
+                {roles.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
+              </select>
+            </div>
+            <div style={{ marginBottom: 9 }}>
+              <label style={{ fontSize: 11, color: DASH.textFaint, display: 'block', marginBottom: 3, fontWeight: 500 }}>所属会社</label>
+              <select value="daiei" disabled style={{ width: '100%', padding: '8px 10px', border: `1px solid ${DASH.border}`, borderRadius: 7, fontSize: 13, background: DASH.inputBg, color: DASH.textFaint, fontFamily: 'inherit', opacity: .7 }}>
+                <option value="daiei">大栄商事株式会社</option>
+              </select>
+            </div>
+          </G2>
+        </>
+      )}
 
       <DarkDivider />
       <G2>
