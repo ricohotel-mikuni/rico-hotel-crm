@@ -3,7 +3,6 @@ import { G2 } from '../../ui'
 import { DASH } from '../../lib/designSystem'
 import { DarkField, DarkSelect, DarkTextarea, DarkDivider, DarkImageUpload } from '../../ui/DesignSystemKit'
 
-const EMPLOYMENT_TYPES = ['正社員', '契約社員', 'パート・アルバイト', '嘱託', 'その他']
 const STATUS_OPTIONS = ['active', 'inactive']
 const INSURANCE_KEYS = [
   { key: 'health', label: '健康保険' },
@@ -46,7 +45,7 @@ function InsuranceCheckboxes({ value, onChange }) {
 // Authアカウントを再作成しないため表示しない(権限変更は設定画面の
 // ユーザー管理から行う)。
 export default function EmployeeForm({
-  form, setForm, locations, departments, roles = [], pendingPhoto, onPhotoFile,
+  form, setForm, locations, departments, roles = [], positions = [], employmentTypes = [], pendingPhoto, onPhotoFile,
   onSave, onClose, saving, isNew,
 }) {
   const set = k => v => setForm(p => ({ ...p, [k]: v }))
@@ -105,7 +104,7 @@ export default function EmployeeForm({
 
       <DarkDivider />
       <G2>
-        <DarkSelect label="雇用区分" value={form.employment_type} onChange={set('employment_type')} options={EMPLOYMENT_TYPES} />
+        <DarkSelect label="雇用区分" value={form.employment_type} onChange={set('employment_type')} options={employmentTypes.map(t => t.name)} />
         <DarkField label="入社日" value={form.hire_date} onChange={set('hire_date')} type="date" />
         <DarkField label="退職日" value={form.retirement_date} onChange={set('retirement_date')} type="date" />
       </G2>
@@ -136,7 +135,7 @@ export default function EmployeeForm({
           </select>
         </div>
       </G2>
-      <DarkField label="役職" value={form.position} onChange={set('position')} placeholder="マネージャー 等" />
+      <DarkSelect label="役職" value={form.position} onChange={set('position')} options={positions.map(p => p.name)} />
 
       <DarkDivider />
       <G2>

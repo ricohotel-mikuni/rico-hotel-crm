@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { PermissionProvider } from './permissions/PermissionContext'
+import { CompanyProvider } from './contexts/CompanyContext'
 import { BrandProvider } from './branding/BrandContext'
 import { BRANDS } from './branding/brands'
 import ErrorBoundary from './ui/ErrorBoundary'
@@ -16,9 +17,11 @@ createRoot(document.getElementById('root')).render(
         <BrowserRouter>
           <AuthProvider>
             <PermissionProvider>
-              <BrandProvider brand={BRANDS.daiei}>
-                <App />
-              </BrandProvider>
+              <CompanyProvider>
+                <BrandProvider brand={BRANDS.daiei}>
+                  <App />
+                </BrandProvider>
+              </CompanyProvider>
             </PermissionProvider>
           </AuthProvider>
         </BrowserRouter>

@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useEmployees, useLocations, useDepartments, useRoles, DAIEI_COMPANY_ID } from '../../hooks/useData'
+import { useEmployees, useLocations, useDepartments, useRoles, usePositions, useEmploymentTypes } from '../../hooks/useData'
 import { useAuth } from '../../contexts/AuthContext'
+import { useCurrentCompany } from '../../contexts/CompanyContext'
 import { uploadEmployeeFile } from '../../lib/storage'
 import HubShell from '../../layout/HubShell'
 import EmployeeAvatar from './EmployeeAvatar'
@@ -31,10 +32,13 @@ const EMPTY_EMPLOYEE = {
 export default function EmployeeDirectory() {
   const navigate = useNavigate()
   const { permissions } = useAuth()
+  const { companyId } = useCurrentCompany()
   const { employees, loading, error, refresh, createWithAuth, update, softDelete, reactivate } = useEmployees()
   const { locations } = useLocations()
   const { departments } = useDepartments()
   const { roles } = useRoles()
+  const { positions } = usePositions()
+  const { employmentTypes } = useEmploymentTypes()
 
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState(EMPTY_EMPLOYEE)
@@ -80,7 +84,7 @@ export default function EmployeeDirectory() {
           full_name: direct.full_name, employee_no: direct.employee_no,
           email: direct.email, password: direct.password, pin: direct.pin || null,
           department_id, position, role_key: direct.role_key || null,
-          company_id: DAIEI_COMPANY_ID, location_id,
+          company_id: companyId, location_id,
           hire_date: direct.hire_date, status: direct.status,
         })
         if (error) { showToast('登録に失敗しました: ' + error, 'error'); return }
@@ -208,6 +212,8 @@ export default function EmployeeDirectory() {
           locations={locations}
           departments={departments}
           roles={roles}
+          positions={positions}
+          employmentTypes={employmentTypes}
           pendingPhoto={pendingPhoto}
           onPhotoFile={setPendingPhoto}
           onSave={save}

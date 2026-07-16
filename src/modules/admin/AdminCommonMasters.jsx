@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useBusinessUnits, useDepartments, useRoles, useCompanies, useLocations } from '../../hooks/useData'
+import { useBusinessUnits, useDepartments, useRoles, useCompanies, useLocations, usePositions, useEmploymentTypes } from '../../hooks/useData'
 import { usePermission } from '../../permissions/PermissionContext'
 import Modal from '../../ui/Modal'
 import { Btn, Toast } from '../../ui'
@@ -9,6 +9,8 @@ import { DarkPage, DarkField } from '../../ui/DesignSystemKit'
 const TABS = [
   { key: 'business_units', label: '事業' },
   { key: 'departments', label: '部署' },
+  { key: 'positions', label: '役職' },
+  { key: 'employment_types', label: '雇用区分' },
   { key: 'roles', label: 'ロール' },
 ]
 
@@ -51,6 +53,8 @@ export default function AdminCommonMasters() {
 
       {tab === 'business_units' && <BusinessUnitsPanel canEdit={canEdit} canDelete={canDelete} />}
       {tab === 'departments' && <DepartmentsPanel canEdit={canEdit} canDelete={canDelete} />}
+      {tab === 'positions' && <SimpleNameMasterPanel canEdit={canEdit} canDelete={canDelete} useHook={usePositions} dataKey="positions" label="役職" icon="ti-id-badge-2" />}
+      {tab === 'employment_types' && <SimpleNameMasterPanel canEdit={canEdit} canDelete={canDelete} useHook={useEmploymentTypes} dataKey="employmentTypes" label="雇用区分" icon="ti-file-certificate" />}
       {tab === 'roles' && <RolesPanel canEdit={canEdit} />}
     </DarkPage>
   )
@@ -272,6 +276,74 @@ function RolesPanel({ canEdit }) {
           <DarkField label="キー(英数字、社員登録フォーム等で使用)" value={form.key} onChange={v => setForm({ ...form, key: v })} required readOnly={!!editing} />
           <DarkField label="表示名" value={form.label} onChange={v => setForm({ ...form, label: v })} required />
           <DarkField label="説明" value={form.description} onChange={v => setForm({ ...form, description: v })} />
+          <DarkField label="並び順" type="number" value={form.sort_order} onChange={v => setForm({ ...form, sort_order: Number(v) || 0 })} />
+        </Modal>
+      )}
+      {toast && <Toast {...toast} onClose={() => setToast(null)} />}
+    </>
+  )
+}
+
+// 役職・雇用区分は同じ形(company_id/name/sort_order)なので、フックだけ
+// 差し替えられる汎用パネルにする(positions/employment_typesで共用)。
+function SimpleNameMasterPanel({ canEdit, canDelete, useHook, dataKey, label, icon }) {
+  const hookResult = useHook()
+  const rows = hookResult[dataKey]
+  const { add, update, remove } = hookResult
+  const { companies } = useCompanies()
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editing, setEditing] = useState(null)
+  const [form, setForm] = useState({ company_id: '', name: '', sort_order: 0 })
+  const [saving, setSaving] = useState(false)
+  const [toast, setToast] = useState(null)
+  const showToast = (m, t = 'success') => { setToast({ message: m, type: t }); setTimeout(() => setToast(null), 3000) }
+
+  const openNew = () => { setForm({ company_id: companies[0]?.id || '', name: '', sort_order: rows.length }); setEditing(null); setModalOpen(true) }
+  const openEdit = (r) => { setForm({ company_id: r.company_id, name: r.name, sort_order: r.sort_order }); setEditing(r.id); setModalOpen(true) }
+
+  const save = async () => {
+    if (!form.name) return showToast('名称は必須です', 'error')
+    setSaving(true)
+    const { error } = editing ? await update(editing, form) : await add(form)
+    setSaving(false)
+    if (error) return showToast('保存に失敗しました: ' + error.message, 'error')
+    showToast(editing ? '更新しました' : '追加しました')
+    setModalOpen(false)
+  }
+  const del = async (r) => {
+    if (!window.confirm(`「${r.name}」を削除しますか？`)) return
+    const { error } = await remove(r.id)
+    if (error) showToast('削除に失敗しました: ' + error.message, 'error')
+    else showToast('削除しました')
+  }
+
+  return (
+    <>
+      <MasterTable
+        columns={['会社', '名称', '並び順', '操作']} rows={rows} addLabel={`${label}を追加`} canEdit={canEdit} onAdd={openNew}
+        renderRow={r => (
+          <tr key={r.id} style={{ borderTop: `1px solid ${DASH.border}` }}>
+            <td style={{ padding: '9px 14px', color: DASH.textSub }}>{companies.find(c => c.id === r.company_id)?.name || '—'}</td>
+            <td style={{ padding: '9px 14px', fontWeight: 600, color: DASH.textMain }}>{r.name}</td>
+            <td style={{ padding: '9px 14px', color: DASH.textSub }}>{r.sort_order}</td>
+            <td style={{ padding: '9px 14px' }}>
+              {canEdit && <button onClick={() => openEdit(r)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: DASH.gold, padding: 4 }}><i className="ti ti-edit" style={{ fontSize: 15 }} /></button>}
+              {canDelete && <button onClick={() => del(r)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: DASH.alert, padding: 4 }}><i className="ti ti-trash" style={{ fontSize: 15 }} /></button>}
+            </td>
+          </tr>
+        )}
+      />
+      {modalOpen && (
+        <Modal title={editing ? `${label}を編集` : `${label}を追加`} icon={icon} onClose={() => setModalOpen(false)} onSave={save} saving={saving} dark width={420}>
+          <div style={{ marginBottom: 9 }}>
+            <label style={{ fontSize: 11, color: DASH.textFaint, display: 'block', marginBottom: 3, fontWeight: 500 }}>会社</label>
+            <select value={form.company_id} onChange={e => setForm({ ...form, company_id: e.target.value })}
+              style={{ width: '100%', padding: '9px 10px', border: `1px solid ${DASH.border}`, borderRadius: 8, fontSize: 13, background: DASH.inputBg, color: DASH.textMain, fontFamily: 'inherit' }}>
+              <option value="">選択してください</option>
+              {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <DarkField label="名称" value={form.name} onChange={v => setForm({ ...form, name: v })} required />
           <DarkField label="並び順" type="number" value={form.sort_order} onChange={v => setForm({ ...form, sort_order: Number(v) || 0 })} />
         </Modal>
       )}

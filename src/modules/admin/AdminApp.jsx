@@ -7,6 +7,7 @@ import AdminCenter from './AdminCenter'
 import AdminAuditLog from './AdminAuditLog'
 import AdminHotelManagement from './AdminHotelManagement'
 import AdminCommonMasters from './AdminCommonMasters'
+import AdminCompanies from './AdminCompanies'
 import { ADMIN_MODULES } from './registry'
 
 const ADMIN_NAV_GROUPS = [{
@@ -33,6 +34,7 @@ export default function AdminApp() {
       <Routes>
         <Route path="/" element={<AdminCenter />} />
         <Route path="audit-logs/*" element={<AdminAuditLog />} />
+        <Route path="companies/*" element={<AdminCompanies />} />
         <Route path="hotel-management/*" element={<AdminHotelManagement />} />
         <Route path="common-masters/*" element={<AdminCommonMasters />} />
         {ADMIN_MODULES.filter(m => m.status !== 'active').map(m => (

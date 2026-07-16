@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { useCurrentCompany } from '../contexts/CompanyContext'
 import { pushNotification } from './useNotifications'
 
 // Safari/WebKit takes far longer than Chromium to give up on a request over
@@ -259,10 +260,6 @@ export function useContracts() {
   return { contracts, loading, error, refresh, add, update, softDelete }
 }
 
-// ── COMPANY (single-company assumption, matches HotelsApp.jsx's own
-// hardcoded 'rico-mikuni' convention — see supabase/migrations/005) ──
-export const DAIEI_COMPANY_ID = '00000000-0000-0000-0000-000000000001'
-
 // ── LOCATIONS / DEPARTMENTS (reference lists for the employee form) ──
 export function useLocations() {
   const { data: locations, loading, error, refresh } = useTable(
@@ -344,11 +341,80 @@ export function useRoles() {
   return { roles, loading, error, refresh, add, update }
 }
 
+// 役職・雇用区分(migration 017、Foundation v1.0是正: 共通マスター拡張)
+// — 以前はEmployeeForm.jsxの自由入力/ハードコード配列だった。
+export function usePositions() {
+  const { data: positions, loading, error, refresh } = useTable(
+    'positions', (q) => q.select('*').order('sort_order')
+  )
+  const add = async (form) => {
+    const { data, error } = await supabase.from('positions').insert(form).select().single()
+    if (!error) logAudit({ action: 'position_created', category: 'user', description: '役職を追加', targetTable: 'positions', targetId: data.id, targetLabel: data.name, companyId: data.company_id, after: data })
+    return { data, error }
+  }
+  const update = async (id, form) => {
+    const { data: before } = await supabase.from('positions').select('*').eq('id', id).maybeSingle()
+    const { data, error } = await supabase.from('positions').update(form).eq('id', id).select().single()
+    if (!error) logAudit({ action: 'position_updated', category: 'user', description: '役職を編集', targetTable: 'positions', targetId: id, targetLabel: data.name, companyId: data.company_id, before, after: data })
+    return { data, error }
+  }
+  const remove = async (id) => {
+    const { data: before } = await supabase.from('positions').select('*').eq('id', id).maybeSingle()
+    const { error } = await supabase.from('positions').delete().eq('id', id)
+    if (!error) logAudit({ action: 'position_deleted', category: 'user', description: '役職を削除', targetTable: 'positions', targetId: id, targetLabel: before?.name, companyId: before?.company_id, before })
+    return { error }
+  }
+  return { positions, loading, error, refresh, add, update, remove }
+}
+
+export function useEmploymentTypes() {
+  const { data: employmentTypes, loading, error, refresh } = useTable(
+    'employment_types', (q) => q.select('*').order('sort_order')
+  )
+  const add = async (form) => {
+    const { data, error } = await supabase.from('employment_types').insert(form).select().single()
+    if (!error) logAudit({ action: 'employment_type_created', category: 'user', description: '雇用区分を追加', targetTable: 'employment_types', targetId: data.id, targetLabel: data.name, companyId: data.company_id, after: data })
+    return { data, error }
+  }
+  const update = async (id, form) => {
+    const { data: before } = await supabase.from('employment_types').select('*').eq('id', id).maybeSingle()
+    const { data, error } = await supabase.from('employment_types').update(form).eq('id', id).select().single()
+    if (!error) logAudit({ action: 'employment_type_updated', category: 'user', description: '雇用区分を編集', targetTable: 'employment_types', targetId: id, targetLabel: data.name, companyId: data.company_id, before, after: data })
+    return { data, error }
+  }
+  const remove = async (id) => {
+    const { data: before } = await supabase.from('employment_types').select('*').eq('id', id).maybeSingle()
+    const { error } = await supabase.from('employment_types').delete().eq('id', id)
+    if (!error) logAudit({ action: 'employment_type_deleted', category: 'user', description: '雇用区分を削除', targetTable: 'employment_types', targetId: id, targetLabel: before?.name, companyId: before?.company_id, before })
+    return { error }
+  }
+  return { employmentTypes, loading, error, refresh, add, update, remove }
+}
+
+// Foundation v1.0是正: 会社管理完成 — companiesを閲覧専用フックから
+// CRUD対応へ拡張。SQL不要で会社の追加・編集・削除ができるようにする。
 export function useCompanies() {
   const { data: companies, loading, error, refresh } = useTable(
     'companies', (q) => q.select('*').order('name')
   )
-  return { companies, loading, error, refresh }
+  const add = async (form) => {
+    const { data, error } = await supabase.from('companies').insert(form).select().single()
+    if (!error) logAudit({ action: 'company_created', category: 'user', description: '会社を追加', targetTable: 'companies', targetId: data.id, targetLabel: data.name, companyId: data.id, after: data })
+    return { data, error }
+  }
+  const update = async (id, form) => {
+    const { data: before } = await supabase.from('companies').select('*').eq('id', id).maybeSingle()
+    const { data, error } = await supabase.from('companies').update(form).eq('id', id).select().single()
+    if (!error) logAudit({ action: 'company_updated', category: 'user', description: '会社を編集', targetTable: 'companies', targetId: id, targetLabel: data.name, companyId: id, before, after: data })
+    return { data, error }
+  }
+  const remove = async (id) => {
+    const { data: before } = await supabase.from('companies').select('*').eq('id', id).maybeSingle()
+    const { error } = await supabase.from('companies').delete().eq('id', id)
+    if (!error) logAudit({ action: 'company_deleted', category: 'user', description: '会社を削除', targetTable: 'companies', targetId: id, targetLabel: before?.name, before })
+    return { error }
+  }
+  return { companies, loading, error, refresh, add, update, remove }
 }
 
 // ── 統合ホテル管理(承認済み提案書「統合ホテル管理モジュール」) ──
@@ -485,6 +551,7 @@ export function useEmployees() {
     'v_employee_directory', (q) => q.select('*'), ['employees', 'employee_assignments'],
   )
   const { permissions } = useAuth()
+  const { companyId } = useCurrentCompany()
 
   // 既存社員の追加登録(employeesのみ、Authアカウントは作らない) —
   // 現在はcreateWithAuth()に一本化したため、通常のUIからは呼ばれない。
@@ -494,7 +561,7 @@ export function useEmployees() {
   const add = async (form, assignment) => {
     if (!permissions.canWrite) return { error: '権限がありません' }
     const { data, error } = await supabase.from('employees').insert({
-      ...form, company_id: DAIEI_COMPANY_ID,
+      ...form, company_id: form.company_id || companyId,
     }).select().single()
     if (error) return { error }
     if (assignment?.location_id) {
@@ -624,10 +691,11 @@ export function useApprovalRequests() {
     (q) => q.select('*, approval_steps(*), requester:employees!requested_by(full_name)').order('created_at', { ascending: false }),
     ['approval_requests', 'approval_steps'],
   )
+  const { companyId } = useCurrentCompany()
 
   const create = async ({ module, title, description = '', amount = null, requestedBy, approverRoleId = null, approverEmployeeId = null }) => {
     const { data: req, error } = await supabase.from('approval_requests').insert({
-      company_id: DAIEI_COMPANY_ID, module, title, description, amount, requested_by: requestedBy,
+      company_id: companyId, module, title, description, amount, requested_by: requestedBy,
     }).select().single()
     if (error) return { error }
 
