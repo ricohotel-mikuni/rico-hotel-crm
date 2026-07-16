@@ -5,6 +5,7 @@ import { PageLoader } from '../../ui'
 import SidebarShell from '../../layout/SidebarShell'
 import HotelList from './HotelList'
 import PropertyHub from './PropertyHub'
+import FrontDesk from './frontdesk/FrontDesk'
 import SalesApp from '../sales/SalesApp'
 import ComingSoon from '../ComingSoon'
 import { MODULES } from '../registry'
@@ -40,6 +41,7 @@ function HotelProperty() {
           <Routes>
             <Route path="/" element={<PropertyHub />} />
             <Route path="sales/*" element={<SalesApp />} />
+            <Route path="front/*" element={<FrontDesk />} />
             {MODULES.filter(m => m.status !== 'active').map(m => (
               <Route key={m.id} path={`${m.path.replace(/^\//, '')}/*`} element={<ComingSoon module={m} bare />} />
             ))}

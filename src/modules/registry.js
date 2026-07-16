@@ -19,7 +19,7 @@
 // 追加しても既存表示には影響しない。
 export const MODULES = [
   { id: 'sales',       label: '営業管理',         icon: 'ti-building-store', path: '/sales',       status: 'active', notifiable: true,  color: '#3A6DFF', desc: '営業先・案件・契約・成果報酬の管理' },
-  { id: 'front',       label: 'フロント',         icon: 'ti-key',            path: '/front',       status: 'soon',   notifiable: true,  color: '#FFC107', desc: 'チェックイン・チェックアウト・客室状況' },
+  { id: 'front',       label: 'フロント',         icon: 'ti-key',            path: '/front',       status: 'active', notifiable: true,  color: '#FFC107', desc: 'チェックイン・チェックアウト・客室状況' },
   { id: 'cleaning',    label: '清掃',             icon: 'ti-sparkles',       path: '/cleaning',    status: 'soon',   notifiable: true,  color: '#4CD964', desc: '客室清掃の状況管理' },
   { id: 'breakfast',   label: '朝食',             icon: 'ti-coffee',         path: '/breakfast',   status: 'soon',   notifiable: true,  color: '#FFC107', desc: '朝食のメニュー・在庫・発注・原価・売上(将来拡張)' },
   { id: 'dinner',      label: '夕食',             icon: 'ti-tools-kitchen-2', path: '/dinner',     status: 'soon',   notifiable: true,  color: '#F59E0B', desc: '夕食のメニュー・在庫・発注・原価・売上(将来拡張)' },

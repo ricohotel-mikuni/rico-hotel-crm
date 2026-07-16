@@ -511,6 +511,92 @@ export function useHotels() {
   return { hotels, loading, error, refresh, add, update, setStatus, softDelete }
 }
 
+// ── フロント業務(migration 018) — 客室・宿泊(予約〜チェックイン〜
+// チェックアウト)。書き込みはcan_write_module('front')でRLS制御
+// (front_desk/hotel_manager/system_admin/ceoロール)。
+export function useRooms(hotelId) {
+  const { data: rooms, loading, error, refresh } = useTable(
+    'rooms',
+    q => hotelId ? q.select('*').eq('hotel_id', hotelId).order('room_number') : q.select('*').eq('hotel_id', '00000000-0000-0000-0000-000000000000'),
+  )
+
+  const setRoomStatus = async (roomId, status) => {
+    const { data: before } = await supabase.from('rooms').select('status, room_number, hotel_id').eq('id', roomId).maybeSingle()
+    const { error } = await supabase.from('rooms').update({ status }).eq('id', roomId)
+    if (!error) {
+      logAudit({
+        action: 'room_status_changed', category: 'hotel_ops', description: '客室ステータスを変更',
+        targetTable: 'rooms', targetId: roomId, targetLabel: before?.room_number, hotelId: before?.hotel_id,
+        before: { status: before?.status }, after: { status },
+      })
+    }
+    return { error }
+  }
+
+  const add = async (form) => {
+    const { data, error } = await supabase.from('rooms').insert(form).select().single()
+    if (!error) logAudit({ action: 'room_created', category: 'hotel_ops', description: '客室を追加', targetTable: 'rooms', targetId: data.id, targetLabel: data.room_number, hotelId: data.hotel_id, after: data })
+    return { data, error }
+  }
+
+  return { rooms, loading, error, refresh, add, setRoomStatus }
+}
+
+export function useStays(hotelId) {
+  const { data: stays, loading, error, refresh } = useTable(
+    'stays',
+    q => hotelId
+      ? q.select('*, rooms(room_number)').eq('hotel_id', hotelId).order('checkin_date', { ascending: false })
+      : q.select('*').eq('hotel_id', '00000000-0000-0000-0000-000000000000'),
+    ['stays', 'rooms'],
+  )
+  const { employee } = useMyEmployee()
+
+  const add = async (form) => {
+    const { data, error } = await supabase.from('stays').insert({ ...form, created_by: employee?.id ?? null, hotel_id: hotelId }).select().single()
+    if (!error) logAudit({ action: 'stay_created', category: 'hotel_ops', description: '宿泊予約を登録', targetTable: 'stays', targetId: data.id, targetLabel: data.guest_name, hotelId: data.hotel_id, after: data })
+    return { data, error }
+  }
+
+  // チェックイン — 宿泊ステータスを進め、客室を使用中にする(2テーブル
+  // 更新のため1つのRPCではなく順番にawaitする、監査ログは両方に残す)。
+  const checkIn = async (stay) => {
+    const { error: stayErr } = await supabase.from('stays').update({
+      status: 'checked_in', actual_checkin_at: new Date().toISOString(),
+    }).eq('id', stay.id)
+    if (stayErr) return { error: stayErr }
+    if (stay.room_id) {
+      await supabase.from('rooms').update({ status: 'occupied' }).eq('id', stay.room_id)
+    }
+    logAudit({
+      action: 'checkin', category: 'hotel_ops', description: 'チェックイン',
+      targetTable: 'stays', targetId: stay.id, targetLabel: stay.guest_name, hotelId: stay.hotel_id,
+      before: { status: stay.status }, after: { status: 'checked_in' },
+    })
+    return { error: null }
+  }
+
+  // チェックアウト — 客室はvacant_dirty(清掃前)へ。将来の清掃モジュール
+  // はこの状態の部屋をそのまま清掃待ちキューとして使う設計にしている。
+  const checkOut = async (stay) => {
+    const { error: stayErr } = await supabase.from('stays').update({
+      status: 'checked_out', actual_checkout_at: new Date().toISOString(),
+    }).eq('id', stay.id)
+    if (stayErr) return { error: stayErr }
+    if (stay.room_id) {
+      await supabase.from('rooms').update({ status: 'vacant_dirty' }).eq('id', stay.room_id)
+    }
+    logAudit({
+      action: 'checkout', category: 'hotel_ops', description: 'チェックアウト',
+      targetTable: 'stays', targetId: stay.id, targetLabel: stay.guest_name, hotelId: stay.hotel_id,
+      before: { status: stay.status }, after: { status: 'checked_out' },
+    })
+    return { error: null }
+  }
+
+  return { stays, loading, error, refresh, add, checkIn, checkOut }
+}
+
 // スラッグから1件のホテルを解決する — HotelsApp.jsxの動的ルーティング
 // (`/hotels/:hotelSlug`)がここを使う。以前はregistry.jsの静的配列
 // との文字列一致だったが、これによりホテル管理画面から追加した
