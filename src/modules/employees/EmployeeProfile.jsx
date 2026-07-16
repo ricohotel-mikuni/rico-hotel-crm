@@ -9,8 +9,7 @@ import EmployeeForm from './EmployeeForm'
 import { AsyncBoundary, TableSkeleton, Btn, Badge, Empty, G2, Toast } from '../../ui'
 import { DASH } from '../../lib/designSystem'
 import { DarkPage, DarkFieldView } from '../../ui/DesignSystemKit'
-
-const STATUS_LABEL = { active: '在籍中', inactive: '退職済み' }
+import { EMPLOYEE_STATUS_LABEL as STATUS_LABEL } from '../../lib/constants'
 
 // 拡張タブの一覧。real=true の5つは今回の基盤で本当にテーブルがあり
 // (空の状態から表示される)、false の4つは他モジュール(シフト管理・

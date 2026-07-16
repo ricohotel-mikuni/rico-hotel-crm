@@ -10,8 +10,7 @@ import EmployeeForm from './EmployeeForm'
 import { Btn, Badge, Toast } from '../../ui'
 import { DASH } from '../../lib/designSystem'
 import { DarkPage } from '../../ui/DesignSystemKit'
-
-const STATUS_LABEL = { active: '在籍中', inactive: '退職済み' }
+import { EMPLOYEE_STATUS_LABEL as STATUS_LABEL } from '../../lib/constants'
 
 const EMPTY_EMPLOYEE = {
   employee_no: '', full_name: '', kana: '', status: 'active',

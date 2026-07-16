@@ -7,6 +7,7 @@ import { DASH } from '../../../lib/designSystem'
 import { DarkField, DarkSelect, DarkTextarea, DarkFieldView, DarkDivider, DarkImageUpload, DarkDocUpload } from '../../../ui/DesignSystemKit'
 import { uploadClientFile, fileNameFromUrl, downloadFile } from '../../../lib/storage'
 import { CLIENT_TYPES, RANKS, CLIENT_STATUS, CONTRACT_STATUS, PREFECTURES, PERSONS, today, fmt } from '../../../lib/constants'
+import { downloadCsv } from '../../../lib/csv'
 
 // 営業先一覧・新規登録モーダル — Design System v1.0(承認済み提案書
 // 「Design System v1.0 最終統一提案」Item B・C)。100dvh固定+内部
@@ -121,10 +122,7 @@ export default function Clients() {
   const exportCSV = () => {
     const h = ['会社名','担当者','部署','電話','メール','都道府県','住所','区分','ランク','状況','契約状況','最終訪問日','次回フォロー日','売上','宿泊数','備考']
     const rows = filtered.map(c => [c.company,c.contact,c.dept,c.phone,c.email,c.prefecture,c.address,c.client_type,c.rank,c.status,c.contract_status,c.last_visit_date,c.next_follow_date,c.revenue,c.stays,c.notes])
-    const csv = [h,...rows].map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n')
-    const blob = new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'})
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
-    a.download = `営業先一覧_${todayStr}.csv`; a.click()
+    downloadCsv(`営業先一覧_${todayStr}.csv`, h, rows)
   }
 
   const TABS = [

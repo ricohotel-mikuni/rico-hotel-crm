@@ -55,3 +55,8 @@ export const PERSONS      = ['平井','石川','その他']
 
 export const fmt = (n) => new Intl.NumberFormat('ja-JP').format(n || 0)
 export const today = () => new Date().toISOString().split('T')[0]
+
+// Foundation v1.0是正(⑤重複コード): employees.statusの表示ラベルが
+// EmployeeDirectory.jsx/EmployeeProfile.jsxで別々に同じ内容を
+// 定義していたため、ここへ集約する。
+export const EMPLOYEE_STATUS_LABEL = { active: '在籍中', inactive: '退職済み' }

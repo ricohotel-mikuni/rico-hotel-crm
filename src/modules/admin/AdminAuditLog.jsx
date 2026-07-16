@@ -3,6 +3,7 @@ import { useTable } from '../../hooks/useData'
 import { AsyncBoundary, TableSkeleton, Empty, Btn } from '../../ui'
 import { DASH } from '../../lib/designSystem'
 import { DarkPage } from '../../ui/DesignSystemKit'
+import { downloadCsv } from '../../lib/csv'
 
 function ResultBadge({ success }) {
   return (
@@ -40,38 +41,23 @@ function diffText(before, after) {
   }
 }
 
-function csvEscape(v) {
-  const s = v == null ? '' : String(v)
-  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s
-}
+const CSV_HEADERS = ['日時', '実行ユーザー', '対象ユーザー', '会社', 'ホテル', 'IP', '種別', '内容', '変更前', '変更後', '結果']
 
-function downloadCsv(rows) {
-  const headers = ['日時', '実行ユーザー', '対象ユーザー', '会社', 'ホテル', 'IP', '種別', '内容', '変更前', '変更後', '結果']
-  const lines = [headers.join(',')]
-  rows.forEach(r => {
-    lines.push([
-      new Date(r.created_at).toLocaleString('ja-JP'),
-      r.actor?.full_name || '',
-      r.target?.full_name || r.target_label || '',
-      r.company?.name || '',
-      r.hotel?.name || '',
-      r.ip_address || '',
-      ACTION_LABEL[r.action] || r.action,
-      r.description || '',
-      r.before_state ? JSON.stringify(r.before_state) : '',
-      r.after_state ? JSON.stringify(r.after_state) : '',
-      r.success ? '成功' : '失敗',
-    ].map(csvEscape).join(','))
-  })
-  const blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `audit_log_${new Date().toISOString().slice(0, 10)}.csv`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
+function auditLogRowsToCsv(rows) {
+  const csvRows = rows.map(r => [
+    new Date(r.created_at).toLocaleString('ja-JP'),
+    r.actor?.full_name || '',
+    r.target?.full_name || r.target_label || '',
+    r.company?.name || '',
+    r.hotel?.name || '',
+    r.ip_address || '',
+    ACTION_LABEL[r.action] || r.action,
+    r.description || '',
+    r.before_state ? JSON.stringify(r.before_state) : '',
+    r.after_state ? JSON.stringify(r.after_state) : '',
+    r.success ? '成功' : '失敗',
+  ])
+  downloadCsv(`audit_log_${new Date().toISOString().slice(0, 10)}.csv`, CSV_HEADERS, csvRows)
 }
 
 // 監査ログ(/admin/audit-logs) — HotelOS全社共通の監査ログ画面
@@ -131,7 +117,7 @@ export default function AdminAuditLog() {
             誰が・いつ・誰に対して・何を行ったかを新しい順に表示しています(直近500件)
           </div>
         </div>
-        <Btn onClick={() => downloadCsv(filtered)} icon="ti-download" label="CSV出力" color={DASH.brandNavy} outline />
+        <Btn onClick={() => auditLogRowsToCsv(filtered)} icon="ti-download" label="CSV出力" color={DASH.brandNavy} outline />
       </div>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14, alignItems: 'center' }}>
