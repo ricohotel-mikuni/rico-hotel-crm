@@ -496,17 +496,39 @@ export function useEmployees() {
     return { data, error }
   }
 
+  // 退職処理(第①④是正) — 以前はemployeesテーブルを直接UPDATEする
+  // だけで、退職者のAuthログイン資格が生きたまま残る不具合があった。
+  // Authのban(無効化)はservice-roleでしかできないため、
+  // create-employee Edge Function(action:'deactivate')に集約する
+  // (監査ログはEdge Function側で書き込み済み、ここでは呼ばない)。
   const softDelete = async (id) => {
     if (!permissions.canDelete) return { error: '権限がありません' }
-    const { data: before } = await supabase.from('employees').select('full_name, status').eq('id', id).maybeSingle()
-    const { error } = await supabase.from('employees').update({ deleted_at: new Date().toISOString() }).eq('id', id)
-    if (!error) {
-      logAudit({ action: 'employee_deleted', category: 'user', description: '社員を削除(退職処理)', targetEmployeeId: id, targetLabel: before?.full_name || '', before, after: { status: 'deleted' } })
+    const { data, error } = await supabase.functions.invoke('create-employee', {
+      body: { action: 'deactivate', employee_id: id },
+    })
+    if (error) {
+      const detail = error.context?.body ? await error.context.text?.().catch(() => null) : null
+      return { error: detail || error.message || '退職処理に失敗しました' }
     }
-    return { error }
+    if (data?.error) return { error: data.error }
+    return { error: null }
   }
 
-  return { employees, loading, error, refresh, add, createWithAuth, update, softDelete }
+  // 復職処理 — softDeleteの逆(Authログイン資格も復元する)。
+  const reactivate = async (id) => {
+    if (!permissions.canDelete) return { error: '権限がありません' }
+    const { data, error } = await supabase.functions.invoke('create-employee', {
+      body: { action: 'reactivate', employee_id: id },
+    })
+    if (error) {
+      const detail = error.context?.body ? await error.context.text?.().catch(() => null) : null
+      return { error: detail || error.message || '復職処理に失敗しました' }
+    }
+    if (data?.error) return { error: data.error }
+    return { error: null }
+  }
+
+  return { employees, loading, error, refresh, add, createWithAuth, update, softDelete, reactivate }
 }
 
 // ── MY EMPLOYEE RECORD — resolves the logged-in auth user to their

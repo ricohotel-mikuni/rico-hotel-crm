@@ -93,6 +93,57 @@ Deno.serve(async (req: Request) => {
     }
 
     const body = await req.json()
+
+    // Foundation v1.0是正(④権限・認証): 退職処理(softDelete)は以前
+    // employeesテーブルを直接UPDATEするだけで、Authのログイン資格は
+    // 生きたままだった(退職者が引き続きログインできる不具合)。
+    // service-role(admin.auth.admin.updateUserById + ban_duration)を
+    // 使えるのはこのEdge Functionだけのため、退職/復職もここに
+    // action分岐として集約する(新しいEdge Functionを増やさない —
+    // 既にCIのデプロイ対象になっているのはcreate-employeeのみ)。
+    if (body?.action === 'deactivate' || body?.action === 'reactivate') {
+      const { employee_id } = body
+      if (!employee_id) return fail(400, 'employee_idが必要です')
+      const deactivating = body.action === 'deactivate'
+
+      const { data: target, error: targetErr } = await admin
+        .from('employees').select('id, user_id, full_name, status, company_id').eq('id', employee_id).maybeSingle()
+      if (targetErr || !target) return fail(404, '対象の社員が見つかりません')
+
+      if (target.user_id) {
+        // ban_duration: 6桁の非常に長い期間を設定することで事実上の
+        // 無効化とする(Supabase Admin APIに直接の「無効化」フラグは
+        // 無いため、これが公式に案内されている方法)。'none'で解除。
+        const { error: banErr } = await admin.auth.admin.updateUserById(target.user_id, {
+          ban_duration: deactivating ? '876000h' : 'none',
+        })
+        if (banErr) {
+          return fail(400, (deactivating ? 'ログイン資格の失効' : 'ログイン資格の復元') + 'に失敗しました: ' + banErr.message)
+        }
+      }
+
+      // deleted_atは触らない — v_employee_directoryはdeleted_at IS NULL
+      // のみを返すため、ここで立てると退職者が一覧から消えて復職操作
+      // 自体ができなくなる。「退職」はstatus='inactive'(社員ディレク
+      // トリには残り「退職済み」バッジで表示、Authのみ失効)とし、
+      // deleted_atはディレクトリから完全に隠す将来の別機能のために
+      // 予約しておく。
+      const { error: updErr } = await admin.from('employees')
+        .update({ status: deactivating ? 'inactive' : 'active' })
+        .eq('id', employee_id)
+      if (updErr) return fail(400, '社員情報の更新に失敗しました: ' + updErr.message)
+
+      await logAudit({
+        action: deactivating ? 'employee_deactivated' : 'employee_reactivated',
+        target_employee_id: target.id,
+        description: deactivating ? '退職処理(社員情報を無効化・Authログイン資格を失効)' : '復職処理(社員情報を復元・Authログイン資格を復元)',
+        target_label: target.full_name, company_id: target.company_id,
+        success: true, before: { status: target.status }, after: { status: deactivating ? 'inactive' : 'active' },
+      })
+
+      return new Response(JSON.stringify({ ok: true }), { status: 200, headers: jsonHeaders })
+    }
+
     const {
       full_name, employee_no, email, password, pin,
       department_id, position, role_key, company_id, location_id,

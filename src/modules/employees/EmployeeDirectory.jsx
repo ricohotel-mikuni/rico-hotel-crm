@@ -31,7 +31,7 @@ const EMPTY_EMPLOYEE = {
 export default function EmployeeDirectory() {
   const navigate = useNavigate()
   const { permissions } = useAuth()
-  const { employees, loading, error, refresh, createWithAuth, update } = useEmployees()
+  const { employees, loading, error, refresh, createWithAuth, update, softDelete, reactivate } = useEmployees()
   const { locations } = useLocations()
   const { departments } = useDepartments()
   const { roles } = useRoles()
@@ -46,6 +46,19 @@ export default function EmployeeDirectory() {
 
   const openNew = () => { setForm(EMPTY_EMPLOYEE); setPendingPhoto(null); setModalOpen(true) }
   const openEdit = (e) => (ev) => { ev.stopPropagation(); setForm({ ...e }); setPendingPhoto(null); setModalOpen(true) }
+
+  // 退職/復職(Foundation v1.0是正④) — Authログイン資格の失効/復元も
+  // 同時に行う(create-employee Edge Function経由、useEmployees参照)。
+  const toggleActive = (e) => async (ev) => {
+    ev.stopPropagation()
+    const willDeactivate = e.status !== 'inactive'
+    if (!window.confirm(willDeactivate
+      ? `${e.full_name}さんを退職処理しますか？ログインもできなくなります`
+      : `${e.full_name}さんを復職させますか？再びログインできるようになります`)) return
+    const { error } = willDeactivate ? await softDelete(e.id) : await reactivate(e.id)
+    if (error) showToast('処理に失敗しました: ' + error, 'error')
+    else showToast(willDeactivate ? '退職処理しました' : '復職しました')
+  }
 
   const save = async () => {
     if (!form.full_name) return showToast('氏名は必須です', 'error')
@@ -172,6 +185,11 @@ export default function EmployeeDirectory() {
                       {permissions.canWrite && (
                         <button onClick={openEdit(e)} title="編集" style={{ background: 'none', border: 'none', cursor: 'pointer', color: DASH.gold, padding: 4 }}>
                           <i className="ti ti-edit" style={{ fontSize: 15 }} />
+                        </button>
+                      )}
+                      {permissions.canDelete && (
+                        <button onClick={toggleActive(e)} title={e.status === 'inactive' ? '復職' : '退職処理'} style={{ background: 'none', border: 'none', cursor: 'pointer', color: e.status === 'inactive' ? DASH.green : DASH.alert, padding: 4 }}>
+                          <i className={`ti ${e.status === 'inactive' ? 'ti-user-check' : 'ti-user-off'}`} style={{ fontSize: 15 }} />
                         </button>
                       )}
                     </td>
