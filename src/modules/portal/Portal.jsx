@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { usePermissions } from '../../permissions/PermissionContext'
 import { useUnreadCounts, useMyNotifications } from '../../hooks/useNotifications'
-import { useApprovalRequests } from '../../hooks/useData'
+import { useApprovalRequests, useClients, useContracts } from '../../hooks/useData'
 import HubShell from '../../layout/HubShell'
 import { daiGreeting } from '../../ai/daiGreeting'
 import { COMPANY_MODULES } from './registry'
@@ -31,15 +31,38 @@ const ADMIN_CENTER_TILE = {
 }
 
 // グラフ・AI提案/ToDo(HotelOS Design System v1.0 §6.3、標準レイアウト
-// HERO→KPI→グラフ→AI提案→ToDo→クイックメニュー)— 全社の売上・案件は
-// 営業モジュール側に実データがあるが、会社ホーム自身は集計クエリを
-// 持たないため、拠点ダッシュボードと同様にダミー表示とする。
+// HERO→KPI→グラフ→AI提案→ToDo→クイックメニュー)。
+//
+// Foundation v1.0是正(Dashboard実データ化): 「申請・承認件数推移」は
+// 実データ(useApprovalRequests)から集計できるためダミーを廃止した
+// (下記computeApprovalTrend参照)。「全社売上推移」は、実際に入金が
+// 確定した売上を集計するテーブル(請求書・入金管理)がまだHotelOS
+// に存在しない(cases.revenueは営業案件の見込み金額であり、確定売上
+// ではないため代用すると数値の意味が変わってしまう)ため、正直に
+// ダミーのまま残す — 請求/入金管理モジュール実装後に接続する。
 const REVENUE_TREND = [
   { label: '4月', value: 8200000 }, { label: '5月', value: 8900000 }, { label: '6月', value: 9400000 },
 ]
-const APPROVAL_TREND = [
-  { label: '4月', value: 12 }, { label: '5月', value: 9 }, { label: '6月', value: 15 },
-]
+
+function computeApprovalTrend(requests) {
+  const now = new Date()
+  return [2, 1, 0].map(offset => {
+    const d = new Date(now.getFullYear(), now.getMonth() - offset, 1)
+    const count = requests.filter(r => {
+      const rd = new Date(r.created_at)
+      return rd.getFullYear() === d.getFullYear() && rd.getMonth() === d.getMonth()
+    }).length
+    return { label: `${d.getMonth() + 1}月`, value: count }
+  })
+}
+
+const isToday = (iso) => {
+  if (!iso) return false
+  const d = new Date(iso)
+  const now = new Date()
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()
+}
+
 const NOTICES = ['未承認の申請が3件あります', '新規営業先が2件登録されました']
 const SUGGESTIONS = ['月末に向けて経費精算の締切が近づいています']
 const TODO_ITEMS = [
@@ -54,17 +77,28 @@ export default function Portal() {
   const unread = useUnreadCounts()
   const { requests } = useApprovalRequests()
   const { unreadCount } = useMyNotifications()
+  const { clients } = useClients()
+  const { contracts } = useContracts()
 
   const pendingApprovals = requests.filter(r => r.status === 'pending').length
+  const newClientsToday = clients.filter(c => isToday(c.created_at)).length
+  const newContractsToday = contracts.filter(c => isToday(c.created_at)).length
+  const approvalTrend = computeApprovalTrend(requests)
   const tiles = (isSystemAdmin || isCeo) ? [...COMPANY_MODULES, ADMIN_CENTER_TILE] : COMPANY_MODULES
 
+  // Foundation v1.0是正(Dashboard実データ化): 新規営業・新規契約は
+  // 実データ(clients/contracts)から算出、dummyフラグを外した。
+  // 今日の売上・今日のToDo・今日のシフト・AIからのお知らせは、
+  // それぞれ請求/入金・タスク管理・シフト管理・AI通知生成のいずれも
+  // まだHotelOSに実装が無く、実データ接続先が存在しないため
+  // 正直にダミーのまま残す(捏造しない)。
   const kpis = [
     { icon: 'ti-checkbox', color: DASH.alert, label: '未承認件数', value: pendingApprovals, unit: '件' },
     { icon: 'ti-bell', color: DASH.gold, label: '新着通知', value: unreadCount, unit: '件' },
     { icon: 'ti-currency-yen', color: DASH.green, label: '今日の売上', value: '1,240', unit: '千円', dummy: true },
     { icon: 'ti-list-check', color: DASH.blue, label: '今日のToDo', value: '3', unit: '件', dummy: true },
-    { icon: 'ti-building-store', color: DASH.purple, label: '新規営業', value: '2', unit: '件', dummy: true },
-    { icon: 'ti-file-check', color: DASH.orange, label: '新規契約', value: '1', unit: '件', dummy: true },
+    { icon: 'ti-building-store', color: DASH.purple, label: '新規営業', value: newClientsToday, unit: '件' },
+    { icon: 'ti-file-check', color: DASH.orange, label: '新規契約', value: newContractsToday, unit: '件' },
     { icon: 'ti-calendar-time', color: DASH.gold, label: '今日のシフト', value: '8', unit: '名', dummy: true },
     { icon: 'ti-sparkles', color: DASH.green, label: 'AIからのお知らせ', value: '1', unit: '件', dummy: true },
   ]
@@ -87,7 +121,7 @@ export default function Portal() {
 
         <ChartGrid>
           <ChartCard title="全社売上推移" data={REVENUE_TREND} color={DASH.gold} unit="円" dummy />
-          <ChartCard title="申請・承認件数推移" data={APPROVAL_TREND} color={DASH.blue} unit="件" dummy />
+          <ChartCard title="申請・承認件数推移" data={approvalTrend} color={DASH.blue} unit="件" />
         </ChartGrid>
 
         <div className="portal-panel-grid" style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: 20, marginBottom: 30 }}>
