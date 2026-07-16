@@ -120,7 +120,7 @@ export default function ApprovalCenter() {
             "承認待ち" section itself. */}
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: DASH.textMain, marginBottom: 10 }}>承認待ち（{loading || error ? '—' : pending.length}）</div>
-          <div style={{ background: DASH.card, borderRadius: 14, border: `1px solid ${DASH.border}`, boxShadow: DASH.cardShadow, minHeight: 60 }}>
+          <div style={{ background: DASH.card, borderRadius: 16, border: `1px solid ${DASH.border}`, boxShadow: DASH.cardShadow, minHeight: 60 }}>
             {loading ? (
               <div style={{ padding: '20px', textAlign: 'center', color: DASH.textFaint, fontSize: 12 }}>
                 <i className="ti ti-loader-2" style={{ fontSize: 15, marginRight: 6 }} />読み込み中…
@@ -130,7 +130,7 @@ export default function ApprovalCenter() {
                 <div style={{ color: DASH.alert, fontSize: 12, marginBottom: 8 }}>
                   <i className="ti ti-alert-circle" style={{ fontSize: 15, marginRight: 6 }} />申請データを取得できませんでした
                 </div>
-                <Btn onClick={refresh} icon="ti-refresh" label="再試行" color={DASH.gold} sm />
+                <Btn onClick={refresh} icon="ti-refresh" label="再試行" color={DASH.brandNavy} sm />
               </div>
             ) : pending.length === 0 ? (
               <div style={{ padding: '20px', textAlign: 'center', color: DASH.textFaint, fontSize: 12 }}>承認待ちの申請はありません</div>

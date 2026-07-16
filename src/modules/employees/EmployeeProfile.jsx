@@ -121,7 +121,7 @@ export default function EmployeeProfile() {
         {/* Profile card frame always renders — the back button above and
             this frame stay visible through loading/error, only the
             content inside changes. */}
-        <div style={{ background: DASH.card, borderRadius: 14, border: `1px solid ${DASH.border}`, padding: '20px', boxShadow: DASH.cardShadow, marginBottom: 16 }}>
+        <div style={{ background: DASH.card, borderRadius: 16, border: `1px solid ${DASH.border}`, padding: '24px', boxShadow: DASH.cardShadow, marginBottom: 16 }}>
           {loading ? (
             <div style={{ textAlign: 'center', color: DASH.textFaint, fontSize: 12, padding: '24px 0' }}>
               <i className="ti ti-loader-2" style={{ fontSize: 15, marginRight: 6 }} />読み込み中…
@@ -131,7 +131,7 @@ export default function EmployeeProfile() {
               <div style={{ color: DASH.alert, fontSize: 12, marginBottom: 8 }}>
                 <i className="ti ti-alert-circle" style={{ fontSize: 15, marginRight: 6 }} />社員情報を取得できませんでした
               </div>
-              <Btn onClick={refresh} icon="ti-refresh" label="再試行" color={DASH.gold} sm />
+              <Btn onClick={refresh} icon="ti-refresh" label="再試行" color={DASH.brandNavy} sm />
             </div>
           ) : !emp ? (
             <Empty icon="ti-user-off" title="社員が見つかりません" />
@@ -185,7 +185,7 @@ export default function EmployeeProfile() {
 
         {/* Extensible tabs — only meaningful once we actually have emp */}
         {!loading && !error && emp && (
-          <div style={{ background: DASH.card, borderRadius: 14, border: `1px solid ${DASH.border}`, boxShadow: DASH.cardShadow }}>
+          <div style={{ background: DASH.card, borderRadius: 16, border: `1px solid ${DASH.border}`, boxShadow: DASH.cardShadow }}>
             <div style={{ display: 'flex', borderBottom: `2px solid ${DASH.border}`, overflowX: 'auto' }}>
               {TABS.map(t => (
                 <button

@@ -1,6 +1,13 @@
 export const C = {
   navy: '#1F3864', navyLight: '#2E5FA3', navyDark: '#162847',
-  gold: '#C9A84C', goldLight: '#FFF8E1',
+  // Foundation v1.0是正: 以前は#C9A84Cという独自の金色で、Design
+  // System v1.0のDASH.gold(#D4AF37)と実際に異なる色だった(認証画面
+  // だけブランドゴールドがズレて見える不具合)。認証画面(AuthShell/
+  // Login/PinLogin/PinPad/DeviceTrustSetup)はガラスモーフィズム調の
+  // 独自ビジュアル(承認済み提案書Ver.2〜Ver.6)のためDASHトークン
+  // 自体への全面移行はしないが、ゴールドの値そのものはDASH.goldと
+  // 完全一致させる。
+  gold: '#D4AF37', goldLight: '#FFF8E1',
   green: '#4CAF50', red: '#F44336', orange: '#FF9800',
   // DAIアシスタント(AI開発憲章 第五章)専用の追加トークン。既存の
   // navy/goldはそのまま流用し、キャラクターの目の発光にのみ必要な
@@ -48,37 +55,3 @@ export const PERSONS      = ['平井','石川','その他']
 
 export const fmt = (n) => new Intl.NumberFormat('ja-JP').format(n || 0)
 export const today = () => new Date().toISOString().split('T')[0]
-
-export const BADGE_STYLES = {
-  '成約':      { bg: '#E8F5E9', c: '#1B5E20' },
-  '契約締結':  { bg: '#E8F5E9', c: '#1B5E20' },
-  '本予約':    { bg: '#E8F5E9', c: '#1B5E20' },
-  '確認済':    { bg: '#E8F5E9', c: '#1B5E20' },
-  'あり':      { bg: '#E8F5E9', c: '#1B5E20' },
-  '見積提出':  { bg: '#FFF3E0', c: '#E65100' },
-  '検討中':    { bg: '#FFF9C4', c: '#F57F17' },
-  '仮予約':    { bg: '#FFF9C4', c: '#F57F17' },
-  '継続商談中':{ bg: '#E3F2FD', c: '#1565C0' },
-  '提案中':    { bg: '#E3F2FD', c: '#1565C0' },
-  '初回訪問済':{ bg: '#F3E5F5', c: '#6A1B9A' },
-  '営業中':    { bg: '#F3E5F5', c: '#6A1B9A' },
-  '未訪問':    { bg: '#F5F5F5', c: '#9E9E9E' },
-  '未着手':    { bg: '#F5F5F5', c: '#9E9E9E' },
-  'キャンセル':{ bg: '#FFEBEE', c: '#C62828' },
-  '失注':      { bg: '#FFEBEE', c: '#C62828' },
-  'A':         { bg: '#FFEBEE', c: '#C62828' },
-  'B':         { bg: '#FFF3E0', c: '#E65100' },
-  'C':         { bg: '#F5F5F5', c: '#616161' },
-  'なし':      { bg: '#F5F5F5', c: '#9E9E9E' },
-  '未確認':    { bg: '#FFF3E0', c: '#E65100' },
-  '管理者':    { bg: '#E8EAF6', c: '#3949AB' },
-  'マネージャー':{ bg: '#E3F2FD', c: '#1565C0' },
-  '営業担当':  { bg: '#E8F5E9', c: '#1B5E20' },
-  '閲覧のみ':  { bg: '#F5F5F5', c: '#9E9E9E' },
-  '承認待ち':  { bg: '#FFF3E0', c: '#E65100' },
-  '承認済み':  { bg: '#E8F5E9', c: '#1B5E20' },
-  '却下':      { bg: '#FFEBEE', c: '#C62828' },
-  '取消':      { bg: '#F5F5F5', c: '#9E9E9E' },
-  '在籍中':    { bg: '#E8F5E9', c: '#1B5E20' },
-  '退職済み':  { bg: '#F5F5F5', c: '#9E9E9E' },
-}

@@ -39,12 +39,13 @@ export default function Breadcrumb() {
               {i > 0 && <span className="breadcrumb-sep" aria-hidden="true">›</span>}
               {isLast ? (
                 <span className="breadcrumb-item current">
-                  {c.icon && <span className="breadcrumb-item-icon">{c.icon}</span>}
+                  {c.icon && <i className={`ti ${c.icon} breadcrumb-item-icon`} aria-hidden="true" />}
                   {c.label}
                 </span>
               ) : (
                 <button type="button" onClick={() => navigate(c.path)} className="breadcrumb-item">
-                  {c.icon ? `${c.icon} ` : ''}{c.label}
+                  {c.icon && <i className={`ti ${c.icon} breadcrumb-item-icon`} aria-hidden="true" />}
+                  {c.label}
                 </button>
               )}
             </span>
@@ -53,7 +54,10 @@ export default function Breadcrumb() {
       </nav>
 
       {/* Narrow-screen fallback: only the current page label */}
-      <div className="breadcrumb-current-mobile">{current.icon ? `${current.icon} ` : ''}{current.label}</div>
+      <div className="breadcrumb-current-mobile">
+        {current.icon && <i className={`ti ${current.icon} breadcrumb-item-icon`} aria-hidden="true" />}
+        {current.label}
+      </div>
 
       <style>{`
         .breadcrumb {
@@ -85,7 +89,7 @@ export default function Breadcrumb() {
           background: ${DASH.gold}; color: ${DASH.onGold}; font-weight: 700; cursor: default; font-size: 13px;
           padding: 5px 12px; border-radius: ${C.radius.pill}px;
         }
-        .breadcrumb-item-icon { display: inline-block; transform: scale(1.15); margin-right: 3px; }
+        .breadcrumb-item-icon { display: inline-block; font-size: 12px; margin-right: 4px; vertical-align: -1px; }
         button.breadcrumb-item:hover { background: rgba(255,255,255,.1); color: #fff; }
         .breadcrumb-sep { color: rgba(255,255,255,.3); font-size: 11px; margin: 0 1px; }
         .breadcrumb-current-mobile { display: none; font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -15,7 +15,7 @@ import { LAST_PROPERTY_STORAGE_KEY } from '../branding/BrandContext'
 function lastPropertyCrumb() {
   const id = localStorage.getItem(LAST_PROPERTY_STORAGE_KEY)
   const brand = id && BRANDS[id]
-  return brand ? { icon: '🏨', label: brand.shortNameJa || brand.name, path: brand.homePath } : null
+  return brand ? { icon: 'ti-building-store', label: brand.shortNameJa || brand.name, path: brand.homePath } : null
 }
 
 // Pure function: current pathname -> the ancestor chain to show in the
@@ -31,17 +31,17 @@ function lastPropertyCrumb() {
 // for where that same simplification currently lives.
 export function buildBreadcrumbs(pathname) {
   const daiei = BRANDS.daiei
-  const crumbs = [{ icon: '🏢', label: daiei.name, path: daiei.homePath }]
+  const crumbs = [{ icon: 'ti-building', label: daiei.name, path: daiei.homePath }]
 
   if (pathname === daiei.homePath) return crumbs
 
   if (pathname.startsWith('/hotels')) {
-    crumbs.push({ icon: '🏨', label: 'ホテル事業', path: '/hotels' })
+    crumbs.push({ icon: 'ti-building-store', label: 'ホテル事業', path: '/hotels' })
     if (pathname === '/hotels') return crumbs
 
     const brand = BRANDS.ricoHotel // single property today
     if (!pathname.startsWith(brand.homePath)) return crumbs
-    crumbs.push({ icon: '🏨', label: brand.shortNameJa || brand.name, path: brand.homePath })
+    crumbs.push({ icon: 'ti-building-store', label: brand.shortNameJa || brand.name, path: brand.homePath })
     if (pathname === brand.homePath) return crumbs
 
     const rest = pathname.slice(brand.homePath.length) // '/sales', '/sales/clients', '/front', ...
@@ -63,7 +63,7 @@ export function buildBreadcrumbs(pathname) {
   }
 
   if (pathname.startsWith('/admin')) {
-    crumbs.push({ icon: '🛡️', label: '管理センター', path: '/admin' })
+    crumbs.push({ icon: 'ti-shield', label: '管理センター', path: '/admin' })
     if (pathname === '/admin') return crumbs
     const seg = '/' + pathname.slice('/admin'.length).replace(/^\//, '').split('/')[0]
     const mod = ADMIN_MODULES.find(m => m.path === seg)
@@ -74,7 +74,7 @@ export function buildBreadcrumbs(pathname) {
   if (pathname.startsWith('/employees')) {
     const lp = lastPropertyCrumb()
     if (lp) crumbs.push(lp)
-    crumbs.push({ icon: '👥', label: '社員管理', path: '/employees' })
+    crumbs.push({ icon: 'ti-users', label: '社員管理', path: '/employees' })
     if (pathname !== '/employees') crumbs.push({ label: '社員詳細', path: pathname })
     return crumbs
   }
@@ -82,7 +82,7 @@ export function buildBreadcrumbs(pathname) {
   if (pathname.startsWith('/approvals')) {
     const lp = lastPropertyCrumb()
     if (lp) crumbs.push(lp)
-    crumbs.push({ icon: '📝', label: '電子承認', path: '/approvals' })
+    crumbs.push({ icon: 'ti-clipboard-text', label: '電子承認', path: '/approvals' })
     return crumbs
   }
 
