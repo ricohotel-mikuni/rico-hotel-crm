@@ -25,9 +25,13 @@ export const SALES_NAV_ITEMS = [
   { seg: '/settings',    icon: 'ti-settings',       label: '営業設定' },
 ]
 
-// サイドバーに実際に出す3項目(承認済み提案書Ver.6の指示通り)。
+// サイドバーに出す項目。以前は3項目(承認済み提案書Ver.6)だったが、
+// Foundation v1.0是正(UX統一③)で「主要操作は3クリック以内」の
+// 監査に基づき営業先管理を追加した — 営業管理トップ(Home.jsx)の
+// KPIカード経由だと5クリックかかっていたため。
 const SALES_SIDEBAR_ITEMS = [
   { seg: '',           icon: 'ti-building-store', label: '営業管理' },
+  { seg: '/clients',    icon: 'ti-building-store', label: '営業先管理' },
   { seg: '/cases',      icon: 'ti-clipboard-list', label: '案件管理' },
   { seg: '/contracts',  icon: 'ti-file-check',     label: '契約管理' },
 ]
