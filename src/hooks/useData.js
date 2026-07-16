@@ -41,12 +41,22 @@ async function logAudit({ action, category = '', description = '', targetTable =
 // fires on real tables — pass `realtimeTable` when `table` is a VIEW
 // (e.g. v_employee_directory) so it still refreshes live off the
 // underlying table's changes.
+// `realtimeTable` accepts a single table name OR an array of table names —
+// pass an array whenever a mutation this hook exposes writes to more than
+// one table (e.g. a parent+child pair), so every session (this tab, other
+// tabs, other browsers/devices) refreshes the instant ANY of them changes,
+// not just by lucky write-ordering. Array literals are safe to pass inline
+// at call sites: only the joined string (a stable primitive) drives the
+// subscription effect's dependency, so a new array reference each render
+// does not cause a resubscribe loop.
 export function useTable(table, query = null, realtimeTable = table) {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const { user } = useAuth()
   const channelRef = useRef(null)
+  const realtimeTables = Array.isArray(realtimeTable) ? realtimeTable : [realtimeTable]
+  const realtimeKey = realtimeTables.join(',')
 
   const load = useCallback(async () => {
     if (!user) return
@@ -77,15 +87,18 @@ export function useTable(table, query = null, realtimeTable = table) {
     setLoading(true)
     load().finally(() => setLoading(false))
 
-    // Realtime subscription
-    const channel = supabase
-      .channel(`realtime:${realtimeTable}:${user.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: realtimeTable }, () => load())
-      .subscribe()
+    // Realtime subscription — one channel, subscribed to every table in
+    // realtimeTables, so any of them changing (this tab, another tab,
+    // another browser/device) refreshes without F5 or navigating away.
+    let channel = supabase.channel(`realtime:${realtimeKey}:${user.id}`)
+    realtimeTables.forEach(t => {
+      channel = channel.on('postgres_changes', { event: '*', schema: 'public', table: t }, () => load())
+    })
+    channel.subscribe()
 
     channelRef.current = channel
     return () => { supabase.removeChannel(channel) }
-  }, [user?.id, table, realtimeTable]) // eslint-disable-line
+  }, [user?.id, table, realtimeKey]) // eslint-disable-line
 
   return { data, loading, error, refresh: load }
 }
@@ -94,7 +107,8 @@ export function useTable(table, query = null, realtimeTable = table) {
 export function useClients() {
   const { data: clients, loading, error, refresh } = useTable(
     'clients',
-    (q) => q.select('*, client_history(*)').is('deleted_at', null).order('created_at', { ascending: false })
+    (q) => q.select('*, client_history(*)').is('deleted_at', null).order('created_at', { ascending: false }),
+    ['clients', 'client_history'],
   )
   const { user, permissions } = useAuth()
 
@@ -290,6 +304,7 @@ export function useHotels() {
   const { data: hotels, loading, error, refresh } = useTable(
     'locations',
     q => q.select('*, hotels(*), companies(name), business_units(name)').eq('type', 'hotel').is('deleted_at', null).order('name'),
+    ['locations', 'hotels'],
   )
 
   const add = async (form) => {
@@ -408,7 +423,7 @@ export function useHotelBySlug(slug) {
 // reassigning someone never touches their employees row.
 export function useEmployees() {
   const { data: employees, loading, error, refresh } = useTable(
-    'v_employee_directory', (q) => q.select('*'), 'employees',
+    'v_employee_directory', (q) => q.select('*'), ['employees', 'employee_assignments'],
   )
   const { permissions } = useAuth()
 
@@ -526,6 +541,7 @@ export function useApprovalRequests() {
   const { data: requests, loading, error, refresh } = useTable(
     'approval_requests',
     (q) => q.select('*, approval_steps(*), requester:employees!requested_by(full_name)').order('created_at', { ascending: false }),
+    ['approval_requests', 'approval_steps'],
   )
 
   const create = async ({ module, title, description = '', amount = null, requestedBy, approverRoleId = null, approverEmployeeId = null }) => {
@@ -572,7 +588,7 @@ export function useApprovalRequests() {
 // 旧来のRLSヘルパー(is_admin_or_manager()等)も引き続き正しく動く。
 export function useUsers() {
   const { data: users, loading, error, refresh } = useTable(
-    'v_employee_accounts', (q) => q.select('*').order('full_name'), 'employee_roles',
+    'v_employee_accounts', (q) => q.select('*').order('full_name'), ['employee_roles', 'employees'],
   )
   const { permissions } = useAuth()
 
