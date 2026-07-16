@@ -207,9 +207,12 @@ export function DarkPage({ children, maxWidth = 1180 }) {
 
 // ── ダーク版フォーム部品(ui-design-system.md、承認済み提案書
 // 「Design System v1.0 最終統一提案」Item C) — src/ui/index.jsx の
-// FI/FS/FT/ImageUpload/DocUploadは案件管理・契約管理・承認センター・
-// 社員登録など他複数画面で共有されているため直接ダーク化せず、ここに
-// 同じprops形状の別コンポーネントとして追加する。Modal(dark)を使う
+// FI/FS/FTは案件管理・契約管理・承認センター・社員登録など他複数
+// 画面で共有されている(現在はDASHトークン化済み)ため直接ダーク化
+// せず、ここに同じprops形状の別コンポーネントとして追加する。
+// ImageUpload/DocUpload(非Dark版)はFoundation v1.0是正で未使用の
+// ため削除済み — 現行の唯一の実装はDarkImageUpload/DarkDocUpload。
+// Modal(dark)を使う
 // 画面だけがこちらを選んでimportする — 既存の共有フォーム部品や、
 // それらを使う他画面には一切影響しない。
 const darkFieldBoxStyle = {

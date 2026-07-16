@@ -20,8 +20,8 @@ import { downloadCsv } from '../../../lib/csv'
 // モーダルはsrc/ui/Modal.jsxの`dark`指定(承認済みItem C)+
 // src/ui/DesignSystemKit.jsxのDarkField/DarkSelect/DarkTextarea/
 // DarkImageUpload/DarkDocUploadを使用 — 他画面(Cases/Contracts/
-// Reports/ApprovalCenter/EmployeeForm)が使う共有のFI/FS/FT/
-// ImageUpload/DocUpload(src/ui/index.jsx)は一切変更していない。
+// Reports/ApprovalCenter/EmployeeForm)が使う共有のFI/FS/FT
+// (src/ui/index.jsx)は一切変更していない。
 
 const FILE_FIELDS = [
   { key: 'card_link',     label: '名刺写真',   icon: 'ti-id',           kind: 'image', folder: 'business-cards' },

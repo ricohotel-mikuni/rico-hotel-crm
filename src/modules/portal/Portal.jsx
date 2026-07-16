@@ -15,9 +15,10 @@ import { DarkPage, TodayCard, TodayCardTitle, KpiGrid, KpiCell, ChartGrid, Chart
 // literally importして使う(画面ごとに似たマークアップを個別に書かない
 // という承認済み方針)。業務メニューのタイル一覧だけはPortal固有の
 // レイアウト(カード内に説明文つき)のため、このファイル内に留めている。
-// StatCard.jsx/ModuleGrid.jsxは他画面(ComingSoon等)からも参照される
-// 共有コンポーネントのため、直接改造せずPortal専用マークアップに置き
-// 換えている。会社ホームはタイル数が少ない(5枚)ため、サイドバーは
+// ModuleGrid.jsxは他画面(ComingSoon等)からも参照される共有コンポー
+// ネントのため、直接改造せずPortal専用マークアップに置き換えている
+// (StatCard.jsxは未使用のためFoundation v1.0是正で削除済み)。
+// 会社ホームはタイル数が少ない(5枚)ため、サイドバーは
 // 追加していない(承認済み提案書の判断)。天気・AI総合評価はホテル運営
 // 固有の情報のため、簡略版のNEO TODAY(NEO+挨拶のみ)にしている。
 // データ取得ロジック(未承認件数・新着通知)は変更していない。

@@ -57,19 +57,6 @@ export async function pushNotification({ module, title, body = '', link = '', re
   return { error }
 }
 
-// Hub-badge use only — flips the shared `is_read` column for every row
-// of a module. Do NOT use this for the Notification Center: a role- or
-// broadcast-targeted row reaches multiple people, and this column is
-// shared across all of them (see markNotificationRead below instead).
-export async function markModuleRead(module) {
-  const { error } = await supabase
-    .from('notifications')
-    .update({ is_read: true })
-    .eq('module', module)
-    .eq('is_read', false)
-  return { error }
-}
-
 // Personal notification feed for the bell/Notification Center: mine +
 // anything targeted at a role I currently hold + full broadcasts
 // (both recipient columns null). Read state is tracked per-person in
