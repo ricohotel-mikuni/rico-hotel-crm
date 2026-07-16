@@ -45,6 +45,17 @@ export default function EmployeeDirectory() {
   const [pendingPhoto, setPendingPhoto] = useState(null)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(null)
+  const [search, setSearch] = useState('')
+
+  // Foundation v1.0是正(UI/UX監査): 一覧に検索欄が無く、社員が増える
+  // ほど目的の1人を探しにくかった。Clients.jsxと同じ検索パターン
+  // (アイコン付き入力欄、氏名/社員番号/部署/配属先を対象)を追加。
+  const filteredEmployees = employees.filter(e => {
+    if (!search) return true
+    const term = search.toLowerCase()
+    return [e.full_name, e.employee_no, e.department_name, e.location_name]
+      .filter(Boolean).some(v => v.toLowerCase().includes(term))
+  })
 
   const showToast = (message, type = 'success') => { setToast({ message, type }); setTimeout(() => setToast(null), 3000) }
 
@@ -129,7 +140,15 @@ export default function EmployeeDirectory() {
               大栄商事株式会社に所属する社員の一覧
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative' }}>
+              <i className="ti ti-search" style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: DASH.textFaint, fontSize: 13, pointerEvents: 'none' }} />
+              <input
+                value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="氏名・社員番号・部署で検索"
+                style={{ padding: '7px 10px 7px 28px', border: `1px solid ${DASH.border}`, borderRadius: 8, fontSize: 12.5, width: 200, outline: 'none', background: DASH.inputBg, color: DASH.textMain, fontFamily: 'inherit' }}
+              />
+            </div>
             {permissions.canWrite && <Btn onClick={openNew} icon="ti-plus" label="社員を追加" color={DASH.green} />}
             <Btn onClick={() => navigate('/hotels/rico-mikuni/sales/settings')} icon="ti-settings" label="スタッフ・権限設定へ" color={DASH.gold} outline />
           </div>
@@ -166,13 +185,13 @@ export default function EmployeeDirectory() {
                       <Btn onClick={refresh} icon="ti-refresh" label="再試行" color={DASH.brandNavy} sm />
                     </td>
                   </tr>
-                ) : employees.length === 0 ? (
+                ) : filteredEmployees.length === 0 ? (
                   <tr>
                     <td colSpan={8} style={{ padding: '28px', textAlign: 'center', color: DASH.textFaint, fontSize: 12 }}>
-                      社員データがありません
+                      {search ? '該当する社員が見つかりません' : '社員データがありません'}
                     </td>
                   </tr>
-                ) : employees.map((e, i) => (
+                ) : filteredEmployees.map((e, i) => (
                   <tr
                     key={e.id}
                     onClick={() => navigate(`/employees/${e.id}`)}

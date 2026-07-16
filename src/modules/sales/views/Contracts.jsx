@@ -19,9 +19,17 @@ export default function Contracts() {
   const [form,setForm]=useState({})
   const [saving,setSaving]=useState(false)
   const [toast,setToast]=useState(null)
+  const [search,setSearch]=useState('')
   const set=k=>v=>setForm(p=>({...p,[k]:v}))
   const showToast=(m,t='success')=>{setToast({message:m,type:t});setTimeout(()=>setToast(null),3000)}
   const getC=id=>clients.find(c=>c.id===id)?.company||'—'
+
+  // Foundation v1.0是正(UI/UX監査): 検索欄が無かったため追加。
+  const filteredContracts = contracts.filter(c => {
+    if (!search) return true
+    const term = search.toLowerCase()
+    return [c.title, getC(c.client_id)].filter(Boolean).some(v => v.toLowerCase().includes(term))
+  })
 
   const save=async()=>{
     if(!form.title)return showToast('契約名は必須です','error')
@@ -39,13 +47,23 @@ export default function Contracts() {
 
   return (
     <DarkPage maxWidth={1000}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:10}}>
         <h1 style={{fontSize:16,fontWeight:700,color:DASH.textMain,margin:0}}>契約管理</h1>
-        {permissions.canWrite&&<Btn onClick={()=>{setForm({...EMPTY,client_id:clients[0]?.id||''});setModal(true)}} icon="ti-plus" label="契約を追加" color={DASH.green}/>}
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          <div style={{position:'relative'}}>
+            <i className="ti ti-search" style={{position:'absolute',left:9,top:'50%',transform:'translateY(-50%)',color:DASH.textFaint,fontSize:13,pointerEvents:'none'}} />
+            <input
+              value={search} onChange={e=>setSearch(e.target.value)}
+              placeholder="契約名・営業先で検索"
+              style={{padding:'7px 10px 7px 28px',border:`1px solid ${DASH.border}`,borderRadius:8,fontSize:12.5,width:180,outline:'none',background:DASH.inputBg,color:DASH.textMain,fontFamily:'inherit'}}
+            />
+          </div>
+          {permissions.canWrite&&<Btn onClick={()=>{setForm({...EMPTY,client_id:clients[0]?.id||''});setModal(true)}} icon="ti-plus" label="契約を追加" color={DASH.green}/>}
+        </div>
       </div>
       <AsyncBoundary loading={loading} error={loadError} onRetry={refresh} skeleton={<TableSkeleton rows={4} columns={4} />}>
-        {contracts.length===0?<Empty icon="ti-file-check" title="契約情報がありません"/>:
-          contracts.map(c=>(
+        {filteredContracts.length===0?<Empty icon="ti-file-check" title={search ? '該当する契約が見つかりません' : '契約情報がありません'}/>:
+          filteredContracts.map(c=>(
             <div key={c.id} style={{background:DASH.card,borderRadius:16,padding:'16px',marginBottom:10,border:`1px solid ${DASH.border}`,boxShadow:DASH.cardShadow}}>
               <div style={{display:'flex',justifyContent:'space-between',marginBottom:7}}>
                 <div>
