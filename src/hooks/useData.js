@@ -271,18 +271,77 @@ export function useLocations() {
   return { locations, loading, error, refresh }
 }
 
+// 共通マスター(Foundation v1.0是正⑤) — 以前はdepartments/roles/
+// business_unitsを閲覧専用フックとしてしか公開しておらず、SQLを直接
+// 編集しない限り部署・ロール・事業を追加/変更できなかった。CRUDを
+// 追加し、書き込みはAdminCommonMasters.jsx(管理センター)から行う。
 export function useDepartments() {
   const { data: departments, loading, error, refresh } = useTable(
     'departments', (q) => q.select('*').order('sort_order')
   )
-  return { departments, loading, error, refresh }
+  const add = async (form) => {
+    const { data, error } = await supabase.from('departments').insert(form).select().single()
+    if (!error) logAudit({ action: 'department_created', category: 'user', description: '部署を追加', targetTable: 'departments', targetId: data.id, targetLabel: data.name, companyId: data.company_id, after: data })
+    return { data, error }
+  }
+  const update = async (id, form) => {
+    const { data: before } = await supabase.from('departments').select('*').eq('id', id).maybeSingle()
+    const { data, error } = await supabase.from('departments').update(form).eq('id', id).select().single()
+    if (!error) logAudit({ action: 'department_updated', category: 'user', description: '部署を編集', targetTable: 'departments', targetId: id, targetLabel: data.name, companyId: data.company_id, before, after: data })
+    return { data, error }
+  }
+  const remove = async (id) => {
+    const { data: before } = await supabase.from('departments').select('*').eq('id', id).maybeSingle()
+    const { error } = await supabase.from('departments').delete().eq('id', id)
+    if (!error) logAudit({ action: 'department_deleted', category: 'user', description: '部署を削除', targetTable: 'departments', targetId: id, targetLabel: before?.name, companyId: before?.company_id, before })
+    return { error }
+  }
+  return { departments, loading, error, refresh, add, update, remove }
+}
+
+export function useBusinessUnits() {
+  const { data: businessUnits, loading, error, refresh } = useTable(
+    'business_units', (q) => q.select('*').order('sort_order')
+  )
+  const add = async (form) => {
+    const { data, error } = await supabase.from('business_units').insert(form).select().single()
+    if (!error) logAudit({ action: 'business_unit_created', category: 'user', description: '事業を追加', targetTable: 'business_units', targetId: data.id, targetLabel: data.name, companyId: data.company_id, after: data })
+    return { data, error }
+  }
+  const update = async (id, form) => {
+    const { data: before } = await supabase.from('business_units').select('*').eq('id', id).maybeSingle()
+    const { data, error } = await supabase.from('business_units').update(form).eq('id', id).select().single()
+    if (!error) logAudit({ action: 'business_unit_updated', category: 'user', description: '事業を編集', targetTable: 'business_units', targetId: id, targetLabel: data.name, companyId: data.company_id, before, after: data })
+    return { data, error }
+  }
+  const remove = async (id) => {
+    const { data: before } = await supabase.from('business_units').select('*').eq('id', id).maybeSingle()
+    const { error } = await supabase.from('business_units').delete().eq('id', id)
+    if (!error) logAudit({ action: 'business_unit_deleted', category: 'user', description: '事業を削除', targetTable: 'business_units', targetId: id, targetLabel: before?.name, companyId: before?.company_id, before })
+    return { error }
+  }
+  return { businessUnits, loading, error, refresh, add, update, remove }
 }
 
 export function useRoles() {
   const { data: roles, loading, error, refresh } = useTable(
     'roles', (q) => q.select('*').order('sort_order')
   )
-  return { roles, loading, error, refresh }
+  // ロールの削除はemployee_roles/role_permissionsがON DELETE CASCADE
+  // のため誤操作の被害が大きく、今回は追加/編集のみを提供する
+  // (削除が必要な場合は個別対応とする)。
+  const add = async (form) => {
+    const { data, error } = await supabase.from('roles').insert(form).select().single()
+    if (!error) logAudit({ action: 'role_master_created', category: 'user', description: 'ロールを追加', targetTable: 'roles', targetId: data.id, targetLabel: data.label, after: data })
+    return { data, error }
+  }
+  const update = async (id, form) => {
+    const { data: before } = await supabase.from('roles').select('*').eq('id', id).maybeSingle()
+    const { data, error } = await supabase.from('roles').update(form).eq('id', id).select().single()
+    if (!error) logAudit({ action: 'role_master_updated', category: 'user', description: 'ロールを編集', targetTable: 'roles', targetId: id, targetLabel: data.label, before, after: data })
+    return { data, error }
+  }
+  return { roles, loading, error, refresh, add, update }
 }
 
 export function useCompanies() {
