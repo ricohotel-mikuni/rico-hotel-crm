@@ -53,7 +53,7 @@ export default function NotificationBell({ compact }) {
         .notification-bell-badge {
           position: absolute; top: -5px; right: -5px;
           min-width: 17px; height: 17px; padding: 0 4px;
-          border-radius: 999px; background: #E53935; color: #fff;
+          border-radius: 999px; background: ${DASH.alert}; color: #fff;
           font-size: 10px; font-weight: 700; line-height: 17px;
           text-align: center; border: 2px solid ${DASH.brandNavyDark};
         }

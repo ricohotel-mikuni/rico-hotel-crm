@@ -186,7 +186,7 @@ export default function Portal() {
           .dash-tile-soon { position: absolute; top: 14px; right: 14px; font-size: 9px; color: ${DASH.textFaint}; background: ${DASH.surface3}; padding: 3px 8px; border-radius: 999px; }
           .dash-tile-badge {
             position: absolute; top: 14px; right: 14px; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
-            background: #E53935; color: #fff; font-size: 10.5px; font-weight: 700; line-height: 20px; text-align: center;
+            background: ${DASH.alert}; color: #fff; font-size: 10.5px; font-weight: 700; line-height: 20px; text-align: center;
           }
         `}</style>
       </DarkPage>

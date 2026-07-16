@@ -81,7 +81,7 @@ export default function ModuleGrid({ modules, unreadCounts = {}, onSelect }) {
         .module-tile-badge {
           position: absolute; top: -7px; right: -9px;
           min-width: 20px; height: 20px; padding: 0 5px;
-          border-radius: 999px; background: #E53935; color: #fff;
+          border-radius: 999px; background: ${DASH.alert}; color: #fff;
           font-size: 11px; font-weight: 700; line-height: 20px;
           text-align: center; border: 2px solid ${DASH.card};
           box-shadow: 0 1px 3px rgba(0,0,0,.25);

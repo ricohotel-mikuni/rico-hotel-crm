@@ -46,7 +46,7 @@ export default function ModuleLauncher({ modules, unreadCounts = {}, onSelect })
         .launcher-tile-badge {
           position: absolute; top: -6px; right: -6px;
           min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px;
-          background: #E53935; color: #fff; font-size: 9.5px; font-weight: 700;
+          background: ${DASH.alert}; color: #fff; font-size: 9.5px; font-weight: 700;
           line-height: 17px; text-align: center; border: 2px solid ${DASH.card};
         }
       `}</style>

@@ -56,7 +56,7 @@ export default function NotificationCenter({ items, loading, onMarkRead, onMarkA
           >
             <div style={{
               width: 7, height: 7, borderRadius: '50%', marginTop: 5, flexShrink: 0,
-              background: n.readByMe ? 'transparent' : '#E53935',
+              background: n.readByMe ? 'transparent' : DASH.alert,
             }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 12.5, fontWeight: n.readByMe ? 500 : 700, color: DASH.textMain, lineHeight: 1.4 }}>
