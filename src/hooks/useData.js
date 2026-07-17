@@ -597,6 +597,57 @@ export function useStays(hotelId) {
   return { stays, loading, error, refresh, add, checkIn, checkOut }
 }
 
+// ── 食事提供(migration 020) — 朝食/夕食共通。meal_typeで切り替える
+// ため、夕食モジュール実装時もこのフックをそのまま再利用できる
+// (rooms→清掃と同じ「テーブル・フックの使い回し」設計)。対象者は
+// meal_servicesではなくstaysから毎回算出する(本日チェックイン済み
+// で宿泊中の滞在) — 「提供済」を押した瞬間にだけ1行作成/更新される
+// ため、事前のレコード作成は不要。
+export function useMealService(hotelId, mealType) {
+  const today = new Date().toISOString().slice(0, 10)
+  const { data: stays, loading: staysLoading, error: staysError, refresh: refreshStays } = useTable(
+    'stays',
+    q => hotelId
+      ? q.select('*, rooms(room_number)').eq('hotel_id', hotelId).eq('status', 'checked_in')
+          .lte('checkin_date', today).gte('checkout_date', today).order('checkin_date')
+      : q.select('*').eq('hotel_id', '00000000-0000-0000-0000-000000000000'),
+  )
+  const { data: services, loading: servicesLoading, error: servicesError, refresh: refreshServices } = useTable(
+    'meal_services',
+    q => hotelId
+      ? q.select('*, employees(full_name)').eq('hotel_id', hotelId).eq('meal_type', mealType).eq('service_date', today)
+      : q.select('*').eq('hotel_id', '00000000-0000-0000-0000-000000000000'),
+  )
+  const { employee } = useMyEmployee()
+
+  const roster = stays.map(s => ({ ...s, service: services.find(sv => sv.stay_id === s.id) || null }))
+
+  const toggleServed = async (stay, served) => {
+    const existing = services.find(sv => sv.stay_id === stay.id)
+    const payload = {
+      hotel_id: hotelId, stay_id: stay.id, meal_type: mealType, service_date: today,
+      served, served_at: served ? new Date().toISOString() : null, served_by: served ? (employee?.id ?? null) : null,
+    }
+    const { data, error } = existing
+      ? await supabase.from('meal_services').update(payload).eq('id', existing.id).select().single()
+      : await supabase.from('meal_services').insert(payload).select().single()
+    if (!error) {
+      logAudit({
+        action: served ? `${mealType}_served` : `${mealType}_unserved`, category: 'hotel_ops',
+        description: served ? '食事を提供済みに変更' : '食事を未提供に変更',
+        targetTable: 'meal_services', targetId: data.id, targetLabel: stay.guest_name, hotelId,
+        before: { served: existing?.served ?? false }, after: { served },
+      })
+    }
+    return { error }
+  }
+
+  return {
+    roster, loading: staysLoading || servicesLoading, error: staysError || servicesError,
+    refresh: () => { refreshStays(); refreshServices() }, toggleServed,
+  }
+}
+
 // スラッグから1件のホテルを解決する — HotelsApp.jsxの動的ルーティング
 // (`/hotels/:hotelSlug`)がここを使う。以前はregistry.jsの静的配列
 // との文字列一致だったが、これによりホテル管理画面から追加した
