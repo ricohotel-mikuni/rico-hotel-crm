@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useUnreadCounts } from '../../hooks/useNotifications'
 import { useHotelWeather } from '../../hooks/useHotelWeather'
+import { useRooms, useStays } from '../../hooks/useData'
+import { useCurrentHotel } from './HotelContext'
 import { useBrand } from '../../branding/BrandContext'
 import ModuleLauncher from '../../ui/ModuleLauncher'
 import { DarkPage, AnalyzingCard, TodayCard, TodayCardTitle, KpiGrid, KpiCell, DarkPanel, ChartGrid, ChartCard } from '../../ui/DesignSystemKit'
@@ -90,11 +92,25 @@ export default function PropertyHub() {
   const unread = useUnreadCounts()
   const [analyzing, setAnalyzing] = useState(true)
   const weather = useHotelWeather()
+  const hotel = useCurrentHotel()
+  const { rooms } = useRooms(hotel?.hotelId)
+  const { stays } = useStays(hotel?.hotelId)
 
   useEffect(() => {
     const t = setTimeout(() => setAnalyzing(false), 1100)
     return () => clearTimeout(t)
   }, [])
+
+  // フロント/清掃モジュール実装(HotelOS Phase 1)により実データの
+  // 裏付けができたKPIのみdummyを解除する。「チェックイン/チェック
+  // アウト」は本日を予定日とする宿泊件数(実施済みかどうかは問わない
+  // 予定ベースの日次件数)、「清掃待ち」はrooms.status='vacant_dirty'
+  // の実件数。売上・稼働率・駐車場・朝食・夕食は対応モジュールが
+  // 未実装のため引き続きdummyのまま(捏造しない)。
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const todayCheckins = stays.filter(s => s.checkin_date === todayStr).length
+  const todayCheckouts = stays.filter(s => s.checkout_date === todayStr).length
+  const dirtyRooms = rooms.filter(r => r.status === 'vacant_dirty').length
 
   const rating = dailyPick(RATINGS, 2)
   const quickMenuModules = MODULES.filter(m => QUICK_MENU_IDS.includes(m.id))
@@ -162,16 +178,16 @@ export default function PropertyHub() {
       {!analyzing && (
         <KpiGrid>
           <KpiCell icon="ti-chart-line" color={DASH.gold} label="本日の売上+稼働率" value="¥548,000" sub="稼働率 92%" dummy />
-          <KpiCell icon="ti-door-enter" color={DASH.green} label="チェックイン" value="27" unit="件" dummy />
-          <KpiCell icon="ti-door-exit" color={DASH.purple} label="チェックアウト" value="25" unit="件" dummy />
-          <KpiCell icon="ti-brush" color={DASH.orange} label="清掃待ち" value="20 / 44" unit="部屋" dummy />
+          <KpiCell icon="ti-door-enter" color={DASH.green} label="チェックイン" value={todayCheckins} unit="件" onClick={() => navigate(`${brand.homePath}/front`)} />
+          <KpiCell icon="ti-door-exit" color={DASH.purple} label="チェックアウト" value={todayCheckouts} unit="件" onClick={() => navigate(`${brand.homePath}/front`)} />
+          <KpiCell icon="ti-brush" color={DASH.orange} label="清掃待ち" value={`${dirtyRooms} / ${rooms.length}`} unit="部屋" onClick={() => navigate(`${brand.homePath}/cleaning`)} />
           <KpiCell icon="ti-car" color={DASH.blue} label="駐車場" value="1 / 10" unit="台" dummy />
           <KpiCell icon="ti-coffee" color={DASH.green} label="朝食予定+稼働率" value="43" unit="食" sub="稼働率 92%" dummy />
           <KpiCell icon="ti-tools-kitchen-2" color={DASH.orange} label="夕食予定+稼働率" value="18" unit="食" sub="稼働率 92%" dummy />
         </KpiGrid>
       )}
       <div style={{ fontSize: 11, color: DASH.textFaint, marginBottom: 24 }}>
-        ※ KPIの数値はサンプル表示です。フロント・清掃・朝食・夕食・駐車場モジュール実装後、順次実データへ切り替わります。天気は実データです。
+        ※ 「本日の売上+稼働率」「駐車場」「朝食予定」「夕食予定」はサンプル表示です(対応モジュール実装後、順次実データへ切り替わります)。チェックイン・チェックアウト・清掃待ち・天気は実データです。
       </div>
 
       {!analyzing && (
