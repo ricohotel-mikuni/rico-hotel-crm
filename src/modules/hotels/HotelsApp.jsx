@@ -10,6 +10,7 @@ import Housekeeping from './housekeeping/Housekeeping'
 import Breakfast from './breakfast/Breakfast'
 import Parking from './parking/Parking'
 import Dinner from './dinner/Dinner'
+import Revenue from './revenue/Revenue'
 import SalesApp from '../sales/SalesApp'
 import ComingSoon from '../ComingSoon'
 import { MODULES } from '../registry'
@@ -50,6 +51,7 @@ function HotelProperty() {
             <Route path="breakfast/*" element={<Breakfast />} />
             <Route path="parking/*" element={<Parking />} />
             <Route path="dinner/*" element={<Dinner />} />
+            <Route path="revenue/*" element={<Revenue />} />
             {MODULES.filter(m => m.status !== 'active').map(m => (
               <Route key={m.id} path={`${m.path.replace(/^\//, '')}/*`} element={<ComingSoon module={m} bare />} />
             ))}

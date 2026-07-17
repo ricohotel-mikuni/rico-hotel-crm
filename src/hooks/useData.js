@@ -660,6 +660,50 @@ export function useMealService(hotelId, mealType) {
   }
 }
 
+// ── 日次売上(migration 023) — 客室/朝食/夕食/駐車場のいずれにも
+// 金額を持つ列が存在しない(rooms/stays/meal_services/parking_usages
+// はいずれも実際の請求額を持たない)ため、宿泊・提供件数からの自動
+// 計算は行わない(割引・追加料金を考慮すると実額の"推測"になる)。
+// 実際のホテル現場の締め作業と同じく、フロント/支配人がレジ締め
+// 時点の実額を日次で記録する手入力方式。合計はDB側のGENERATED
+// ALWAYS ASで保証済み(アプリ側では再計算しない)。
+export function useDailySales(hotelId) {
+  const today = new Date().toISOString().slice(0, 10)
+  const { data: history, loading, error, refresh } = useTable(
+    'daily_sales',
+    q => hotelId
+      ? q.select('*, employees(full_name)').eq('hotel_id', hotelId).order('sales_date', { ascending: false }).limit(30)
+      : q.select('*').eq('hotel_id', '00000000-0000-0000-0000-000000000000'),
+  )
+  const { employee } = useMyEmployee()
+
+  const todayRecord = history.find(r => r.sales_date === today) || null
+
+  const save = async (form) => {
+    const payload = {
+      room_revenue: Number(form.room_revenue) || 0,
+      breakfast_revenue: Number(form.breakfast_revenue) || 0,
+      dinner_revenue: Number(form.dinner_revenue) || 0,
+      parking_revenue: Number(form.parking_revenue) || 0,
+      notes: form.notes || '',
+      recorded_by: employee?.id ?? null,
+    }
+    const { data, error } = todayRecord
+      ? await supabase.from('daily_sales').update(payload).eq('id', todayRecord.id).select().single()
+      : await supabase.from('daily_sales').insert({ ...payload, hotel_id: hotelId, sales_date: today }).select().single()
+    if (!error) {
+      logAudit({
+        action: todayRecord ? 'daily_sales_updated' : 'daily_sales_recorded', category: 'hotel_ops',
+        description: '日次売上を記録', targetTable: 'daily_sales', targetId: data.id, targetLabel: data.sales_date,
+        hotelId: data.hotel_id, before: todayRecord || undefined, after: data,
+      })
+    }
+    return { data, error }
+  }
+
+  return { history, todayRecord, loading, error, refresh, save }
+}
+
 // ── 駐車場(migration 021) — parking_spotsが駐車位置そのもの(rooms
 // 相当)、parking_usagesが宿泊者の駐車利用(stays相当)。区画は同時刻
 // 1台が前提のため、rooms/staysと異なり利用登録の時点で区画を
