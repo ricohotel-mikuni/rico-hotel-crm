@@ -81,8 +81,14 @@ export function AuthProvider({ children }) {
   // なった場合(端末失効・繰り返し失敗等)のパスワードへの差し戻しに使う。
   const signOut = async () => {
     // 監査ログ(migration 015 record_logout)は auth.uid() が必要なため
-    // 必ずsignOut()より先に呼ぶ — 失敗してもログアウト自体は続行する。
-    await supabase.rpc('record_logout').catch(e => console.error('[AuthContext] record_logout failed:', e))
+    // セッションが生きているうちに呼び出しだけは行う。ただし
+    // "await" してしまうと、この通信が遅い/失敗する状況下で
+    // signOut()自体が完了せず、ログイン画面への遷移(パスワード
+    // ログインへの切替を含む)が固まってしまう不具合があった
+    // (2026-07-17修正)。record_password_login(Login.jsx)と同じ
+    // 「呼ぶが待たない」方式に統一し、監査ログ送信の遅延・失敗が
+    // ログアウト本体を絶対にブロックしないようにする。
+    supabase.rpc('record_logout').catch(e => console.error('[AuthContext] record_logout failed:', e))
     const { error } = await supabase.auth.signOut()
     if (error) console.error('[AuthContext] signOut error:', error)
     setUser(null)
