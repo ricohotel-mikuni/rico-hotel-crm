@@ -17,6 +17,7 @@ const ROOM_STATUS = {
 const todayStr = () => new Date().toISOString().slice(0, 10)
 
 const EMPTY_STAY = { guest_name: '', guest_phone: '', room_id: '', adults: 1, children: 0, checkin_date: todayStr(), checkout_date: todayStr(), notes: '' }
+const EMPTY_ROOM = { room_number: '', floor: '' }
 
 // フロント業務(HotelOS Phase 1、承認済み実装指示)— リコホテル三国
 // ダッシュボード(PropertyHub.jsx)と同じDesign System部品(DarkPage/
@@ -27,12 +28,14 @@ const EMPTY_STAY = { guest_name: '', guest_phone: '', room_id: '', adults: 1, ch
 // 画面遷移は一切発生しない。
 export default function FrontDesk() {
   const hotel = useCurrentHotel()
-  const { rooms, loading: roomsLoading, error: roomsError, refresh: refreshRooms, setRoomStatus } = useRooms(hotel?.hotelId)
+  const { rooms, loading: roomsLoading, error: roomsError, refresh: refreshRooms, add: addRoom, setRoomStatus } = useRooms(hotel?.hotelId)
   const { stays, loading: staysLoading, error: staysError, refresh: refreshStays, add, checkIn, checkOut } = useStays(hotel?.hotelId)
   const canEdit = usePermission('front', 'edit')
 
   const [roomModal, setRoomModal] = useState(null)
   const [stayModal, setStayModal] = useState(false)
+  const [roomAddModal, setRoomAddModal] = useState(false)
+  const [roomForm, setRoomForm] = useState(EMPTY_ROOM)
   const [form, setForm] = useState(EMPTY_STAY)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(null)
@@ -70,6 +73,20 @@ export default function FrontDesk() {
     setForm(EMPTY_STAY)
   }
 
+  // Foundation最終監査是正(Priority S): 客室を登録するUIがどこにも
+  // 無く、rooms一覧が永久に空のままフロント・清掃とも運用不可能
+  // だった(useRooms().addは以前から存在したが呼び出し元が無かった)。
+  const saveRoom = async () => {
+    if (!roomForm.room_number) return showToast('部屋番号は必須です', 'error')
+    setSaving(true)
+    const { error } = await addRoom({ ...roomForm, hotel_id: hotel?.hotelId })
+    setSaving(false)
+    if (error) return showToast('登録に失敗しました: ' + error.message, 'error')
+    showToast(`${roomForm.room_number}号室を登録しました`)
+    setRoomAddModal(false)
+    setRoomForm(EMPTY_ROOM)
+  }
+
   return (
     <DarkPage>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12 }}>
@@ -89,9 +106,17 @@ export default function FrontDesk() {
       </KpiGrid>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: 20, marginBottom: 20 }} className="fd-panel-grid">
-        <DarkPanel title="📋 客室状況">
+        <DarkPanel
+          title="📋 客室状況"
+          action={canEdit && <span onClick={() => { setRoomForm(EMPTY_ROOM); setRoomAddModal(true) }}>+ 客室を追加</span>}
+        >
           <AsyncBoundary loading={roomsLoading} error={roomsError} onRetry={refreshRooms} skeleton={<TableSkeleton rows={3} columns={4} />}>
-            {rooms.length === 0 ? <Empty icon="ti-bed" title="客室が登録されていません" /> : (
+            {rooms.length === 0 ? (
+              <Empty
+                icon="ti-bed" title="客室が登録されていません"
+                action={canEdit && <Btn onClick={() => { setRoomForm(EMPTY_ROOM); setRoomAddModal(true) }} icon="ti-plus" label="最初の客室を登録" color={DASH.brandNavy} sm />}
+              />
+            ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))', gap: 8 }}>
                 {rooms.map(r => {
                   const s = ROOM_STATUS[r.status] || ROOM_STATUS.vacant_clean
@@ -147,8 +172,18 @@ export default function FrontDesk() {
       </div>
       <style>{`@media (max-width: 900px) { .fd-panel-grid { grid-template-columns: 1fr !important; } }`}</style>
 
+      {roomAddModal && (
+        <Modal dark title="客室を追加" icon="ti-bed" onClose={() => setRoomAddModal(false)} onSave={saveRoom} saving={saving} width={380}>
+          <DarkField label="部屋番号" value={roomForm.room_number} onChange={v => setRoomForm({ ...roomForm, room_number: v })} required placeholder="101" />
+          <DarkField label="階(任意)" value={roomForm.floor} onChange={v => setRoomForm({ ...roomForm, floor: v })} placeholder="1" />
+        </Modal>
+      )}
+
       {roomModal && (
         <Modal title={`${roomModal.room_number}号室のステータス変更`} icon="ti-bed" onClose={() => setRoomModal(null)} onSave={() => setRoomModal(null)} saveLabel="閉じる">
+          <div style={{ fontSize: 11, color: DASH.textFaint, marginBottom: 10, lineHeight: 1.6 }}>
+            通常はチェックイン/チェックアウト操作で自動的に変わります。ここでの変更は、清掃完了の手動反映や特別対応(修繕・客室停止)のときだけ行ってください。
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {Object.entries(ROOM_STATUS).map(([key, s]) => (
               <button
