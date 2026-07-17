@@ -127,21 +127,26 @@ export function useMyNotifications(limit = 50) {
     return () => { supabase.removeChannel(channel) }
   }, [user?.id, load])
 
-  const markRead = useCallback(async (notificationId) => {
+  // Foundation品質確認是正: 呼び出し元(NotificationCenter.jsx)は
+  // どちらも戻り値を待たないクリックハンドラのため、ここでawaitして
+  // ユーザー操作の応答を遅らせる理由が無かった。書き込み後の一覧更新も
+  // 手動load()ではなく、上のuseEffectが購読しているnotification_reads
+  // テーブルのrealtimeが自動的に行う(二重更新だったため削除)。
+  const markRead = useCallback((notificationId) => {
     if (!employeeId) return
-    await supabase.from('notification_reads')
+    supabase.from('notification_reads')
       .upsert({ notification_id: notificationId, employee_id: employeeId }, { onConflict: 'notification_id,employee_id' })
-    load()
-  }, [employeeId, load])
+      .then(({ error }) => { if (error) console.error('[useMyNotifications] markRead failed:', error) })
+  }, [employeeId])
 
-  const markAllRead = useCallback(async () => {
+  const markAllRead = useCallback(() => {
     if (!employeeId) return
     const unread = items.filter(n => !n.readByMe)
     if (!unread.length) return
-    await supabase.from('notification_reads')
+    supabase.from('notification_reads')
       .upsert(unread.map(n => ({ notification_id: n.id, employee_id: employeeId })), { onConflict: 'notification_id,employee_id' })
-    load()
-  }, [employeeId, items, load])
+      .then(({ error }) => { if (error) console.error('[useMyNotifications] markAllRead failed:', error) })
+  }, [employeeId, items])
 
   const unreadCount = items.filter(n => !n.readByMe).length
 
