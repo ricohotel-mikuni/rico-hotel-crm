@@ -648,6 +648,93 @@ export function useMealService(hotelId, mealType) {
   }
 }
 
+// ── 駐車場(migration 021) — parking_spotsが駐車位置そのもの(rooms
+// 相当)、parking_usagesが宿泊者の駐車利用(stays相当)。区画は同時刻
+// 1台が前提のため、rooms/staysと異なり利用登録の時点で区画を
+// 'reserved'にする(予約しても区画状態を変えないroomsとは意図的に
+// 異なる設計 — 駐車場は空き区画の可視化がそのまま現場の判断材料に
+// なるため)。
+export function useParkingSpots(hotelId) {
+  const { data: spots, loading, error, refresh } = useTable(
+    'parking_spots',
+    q => hotelId ? q.select('*').eq('hotel_id', hotelId).order('spot_number') : q.select('*').eq('hotel_id', '00000000-0000-0000-0000-000000000000'),
+  )
+
+  const setSpotStatus = async (spotId, status) => {
+    const { data: before } = await supabase.from('parking_spots').select('status, spot_number, hotel_id').eq('id', spotId).maybeSingle()
+    const { error } = await supabase.from('parking_spots').update({ status }).eq('id', spotId)
+    if (!error) {
+      logAudit({
+        action: 'parking_spot_status_changed', category: 'hotel_ops', description: '駐車位置ステータスを変更',
+        targetTable: 'parking_spots', targetId: spotId, targetLabel: before?.spot_number, hotelId: before?.hotel_id,
+        before: { status: before?.status }, after: { status },
+      })
+    }
+    return { error }
+  }
+
+  const add = async (form) => {
+    const { data, error } = await supabase.from('parking_spots').insert(form).select().single()
+    if (!error) logAudit({ action: 'parking_spot_created', category: 'hotel_ops', description: '駐車位置を追加', targetTable: 'parking_spots', targetId: data.id, targetLabel: data.spot_number, hotelId: data.hotel_id, after: data })
+    return { data, error }
+  }
+
+  return { spots, loading, error, refresh, add, setSpotStatus }
+}
+
+export function useParkingUsages(hotelId) {
+  const { data: usages, loading, error, refresh } = useTable(
+    'parking_usages',
+    q => hotelId
+      ? q.select('*, parking_spots(spot_number), stays(guest_name)').eq('hotel_id', hotelId).order('created_at', { ascending: false })
+      : q.select('*').eq('hotel_id', '00000000-0000-0000-0000-000000000000'),
+    ['parking_usages', 'parking_spots'],
+  )
+  const { employee } = useMyEmployee()
+
+  // 利用登録と同時に区画を'reserved'にする(rooms/staysと異なる設計、
+  // ファイル冒頭のコメント参照)。spot_id/stay_idはmigration 021で
+  // NOT NULL — 区画未定・宿泊者未紐付けの状態は最初から発生しない。
+  const add = async (form) => {
+    const { data, error } = await supabase.from('parking_usages').insert({ ...form, created_by: employee?.id ?? null, hotel_id: hotelId }).select().single()
+    if (!error) {
+      await supabase.from('parking_spots').update({ status: 'reserved' }).eq('id', data.spot_id)
+      logAudit({ action: 'parking_usage_created', category: 'hotel_ops', description: '駐車利用を登録', targetTable: 'parking_usages', targetId: data.id, targetLabel: data.license_plate, hotelId: data.hotel_id, after: data })
+    }
+    return { data, error }
+  }
+
+  const startUsage = async (usage) => {
+    const { error: usageErr } = await supabase.from('parking_usages').update({
+      status: 'active', start_at: new Date().toISOString(),
+    }).eq('id', usage.id)
+    if (usageErr) return { error: usageErr }
+    await supabase.from('parking_spots').update({ status: 'occupied' }).eq('id', usage.spot_id)
+    logAudit({
+      action: 'parking_usage_started', category: 'hotel_ops', description: '駐車利用を開始',
+      targetTable: 'parking_usages', targetId: usage.id, targetLabel: usage.license_plate, hotelId: usage.hotel_id,
+      before: { status: usage.status }, after: { status: 'active' },
+    })
+    return { error: null }
+  }
+
+  const endUsage = async (usage) => {
+    const { error: usageErr } = await supabase.from('parking_usages').update({
+      status: 'completed', end_at: new Date().toISOString(),
+    }).eq('id', usage.id)
+    if (usageErr) return { error: usageErr }
+    await supabase.from('parking_spots').update({ status: 'vacant' }).eq('id', usage.spot_id)
+    logAudit({
+      action: 'parking_usage_ended', category: 'hotel_ops', description: '駐車利用を終了',
+      targetTable: 'parking_usages', targetId: usage.id, targetLabel: usage.license_plate, hotelId: usage.hotel_id,
+      before: { status: usage.status }, after: { status: 'completed' },
+    })
+    return { error: null }
+  }
+
+  return { usages, loading, error, refresh, add, startUsage, endUsage }
+}
+
 // スラッグから1件のホテルを解決する — HotelsApp.jsxの動的ルーティング
 // (`/hotels/:hotelSlug`)がここを使う。以前はregistry.jsの静的配列
 // との文字列一致だったが、これによりホテル管理画面から追加した

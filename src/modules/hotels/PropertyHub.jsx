@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useUnreadCounts } from '../../hooks/useNotifications'
 import { useHotelWeather } from '../../hooks/useHotelWeather'
-import { useRooms, useStays, useMealService } from '../../hooks/useData'
+import { useRooms, useStays, useMealService, useParkingSpots } from '../../hooks/useData'
 import { useCurrentHotel } from './HotelContext'
 import { useBrand } from '../../branding/BrandContext'
 import ModuleLauncher from '../../ui/ModuleLauncher'
@@ -82,9 +82,9 @@ const REVPAR_TREND = [
 // 増やしていない(ERP開発憲章第7条・第8条)。
 //
 // 下記のKPI(売上・稼働率・チェックイン等)は、対応するフロント/清掃/
-// 夕食/駐車場モジュールが未実装のため、現時点では実データを
-// 持たない。AI開発憲章第12条に基づき明示する必要があるため、末尾に
-// 注記を残している — 対応モジュール実装後、順次実データへ切り替える。
+// 夕食モジュールが未実装のため、現時点では実データを持たない。
+// AI開発憲章第12条に基づき明示する必要があるため、末尾に注記を
+// 残している — 対応モジュール実装後、順次実データへ切り替える。
 export default function PropertyHub() {
   const navigate = useNavigate()
   const { profile } = useAuth()
@@ -96,25 +96,28 @@ export default function PropertyHub() {
   const { rooms } = useRooms(hotel?.hotelId)
   const { stays } = useStays(hotel?.hotelId)
   const { roster: breakfastRoster } = useMealService(hotel?.hotelId, 'breakfast')
+  const { spots: parkingSpots } = useParkingSpots(hotel?.hotelId)
 
   useEffect(() => {
     const t = setTimeout(() => setAnalyzing(false), 1100)
     return () => clearTimeout(t)
   }, [])
 
-  // フロント/清掃/朝食モジュール実装(HotelOS Phase 1)により実データの
-  // 裏付けができたKPIのみdummyを解除する。「チェックイン/チェック
-  // アウト」は本日を予定日とする宿泊件数(実施済みかどうかは問わない
-  // 予定ベースの日次件数)、「清掃待ち」はrooms.status='vacant_dirty'
-  // の実件数、「朝食提供」はuseMealService(本日チェックイン中の滞在
-  // からstaysベースで算出)のうちserved=trueの組数。売上・稼働率・
-  // 駐車場・夕食は対応モジュールが未実装のため引き続きdummyのまま
-  // (捏造しない)。
+  // フロント/清掃/朝食/駐車場モジュール実装(HotelOS Phase 1)により
+  // 実データの裏付けができたKPIのみdummyを解除する。「チェックイン/
+  // チェックアウト」は本日を予定日とする宿泊件数(実施済みかどうかは
+  // 問わない予定ベースの日次件数)、「清掃待ち」はrooms.status=
+  // 'vacant_dirty'の実件数、「朝食提供」はuseMealService(本日
+  // チェックイン中の滞在からstaysベースで算出)のうちserved=trueの
+  // 組数、「駐車場・空車」はparking_spots.status='vacant'の実件数。
+  // 売上・稼働率・夕食は対応モジュールが未実装のため引き続きdummy
+  // のまま(捏造しない)。
   const todayStr = new Date().toISOString().slice(0, 10)
   const todayCheckins = stays.filter(s => s.checkin_date === todayStr).length
   const todayCheckouts = stays.filter(s => s.checkout_date === todayStr).length
   const dirtyRooms = rooms.filter(r => r.status === 'vacant_dirty').length
   const breakfastServed = breakfastRoster.filter(r => r.service?.served).length
+  const parkingVacant = parkingSpots.filter(s => s.status === 'vacant').length
 
   const rating = dailyPick(RATINGS, 2)
   const quickMenuModules = MODULES.filter(m => QUICK_MENU_IDS.includes(m.id))
@@ -185,13 +188,13 @@ export default function PropertyHub() {
           <KpiCell icon="ti-door-enter" color={DASH.green} label="チェックイン" value={todayCheckins} unit="件" onClick={() => navigate(`${brand.homePath}/front`)} />
           <KpiCell icon="ti-door-exit" color={DASH.purple} label="チェックアウト" value={todayCheckouts} unit="件" onClick={() => navigate(`${brand.homePath}/front`)} />
           <KpiCell icon="ti-brush" color={DASH.orange} label="清掃待ち" value={`${dirtyRooms} / ${rooms.length}`} unit="部屋" onClick={() => navigate(`${brand.homePath}/cleaning`)} />
-          <KpiCell icon="ti-car" color={DASH.blue} label="駐車場" value="1 / 10" unit="台" dummy />
+          <KpiCell icon="ti-car" color={DASH.blue} label="駐車場・空車" value={parkingVacant} unit="区画" sub={`全${parkingSpots.length}区画`} onClick={() => navigate(`${brand.homePath}/parking`)} />
           <KpiCell icon="ti-coffee" color={DASH.green} label="朝食提供" value={`${breakfastServed} / ${breakfastRoster.length}`} unit="組" onClick={() => navigate(`${brand.homePath}/breakfast`)} />
           <KpiCell icon="ti-tools-kitchen-2" color={DASH.orange} label="夕食予定+稼働率" value="18" unit="食" sub="稼働率 92%" dummy />
         </KpiGrid>
       )}
       <div style={{ fontSize: 11, color: DASH.textFaint, marginBottom: 24 }}>
-        ※ 「本日の売上+稼働率」「駐車場」「夕食予定」はサンプル表示です(対応モジュール実装後、順次実データへ切り替わります)。チェックイン・チェックアウト・清掃待ち・朝食提供・天気は実データです。
+        ※ 「本日の売上+稼働率」「夕食予定」はサンプル表示です(対応モジュール実装後、順次実データへ切り替わります)。チェックイン・チェックアウト・清掃待ち・朝食提供・駐車場・天気は実データです。
       </div>
 
       {!analyzing && (
