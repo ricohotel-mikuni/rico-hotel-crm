@@ -62,8 +62,14 @@ export default function FrontDesk() {
     else showToast('客室ステータスを更新しました')
     setRoomModal(null)
   }
+  // Foundation最終監査是正(Priority A): 客室未定のまま宿泊登録が
+  // できてしまうと、チェックイン時にcheckIn()が客室ステータスを
+  // 更新できず(room_id無し)、以後その客室を割り当てる手段も無い
+  // ため「使用中のはずが空室表示のまま」という不整合に陥っていた。
+  // 客室選択を必須化し、この不整合が発生する経路自体を無くす。
   const saveStay = async () => {
     if (!form.guest_name) return showToast('お客様名は必須です', 'error')
+    if (!form.room_id) return showToast('客室を選択してください', 'error')
     setSaving(true)
     const { error } = await add({ ...form, room_id: form.room_id || null })
     setSaving(false)
@@ -208,12 +214,12 @@ export default function FrontDesk() {
           <DarkField label="お客様名" value={form.guest_name} onChange={v => setForm({ ...form, guest_name: v })} required />
           <DarkField label="電話番号" value={form.guest_phone} onChange={v => setForm({ ...form, guest_phone: v })} />
           <div style={{ marginBottom: 9 }}>
-            <label style={{ fontSize: 11, color: DASH.textFaint, display: 'block', marginBottom: 3, fontWeight: 500 }}>客室(任意、後で割り当ても可)</label>
+            <label style={{ fontSize: 11, color: DASH.textFaint, display: 'block', marginBottom: 3, fontWeight: 500 }}>客室 *</label>
             <select
               value={form.room_id} onChange={e => setForm({ ...form, room_id: e.target.value })}
               style={{ width: '100%', padding: '9px 10px', border: `1px solid ${DASH.border}`, borderRadius: 8, fontSize: 13, background: DASH.inputBg, color: DASH.textMain, fontFamily: 'inherit' }}
             >
-              <option value="">未定</option>
+              <option value="">選択してください</option>
               {rooms.map(r => <option key={r.id} value={r.id}>{r.room_number}号室</option>)}
             </select>
           </div>
