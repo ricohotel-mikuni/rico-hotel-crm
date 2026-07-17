@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useUnreadCounts } from '../../hooks/useNotifications'
 import { useHotelWeather } from '../../hooks/useHotelWeather'
-import { useRooms, useStays, useMealService, useParkingSpots, useDailySales } from '../../hooks/useData'
+import { useRooms, useStays, useMealService, useParkingSpots, useDailySales, useNightAudit } from '../../hooks/useData'
 import { useCurrentHotel } from './HotelContext'
 import { useBrand } from '../../branding/BrandContext'
 import ModuleLauncher from '../../ui/ModuleLauncher'
@@ -101,6 +101,7 @@ export default function PropertyHub() {
   const { roster: dinnerRoster } = useMealService(hotel?.hotelId, 'dinner')
   const { spots: parkingSpots } = useParkingSpots(hotel?.hotelId)
   const { todayRecord: todaySales } = useDailySales(hotel?.hotelId)
+  const { todayAudit } = useNightAudit(hotel?.hotelId)
 
   useEffect(() => {
     const t = setTimeout(() => setAnalyzing(false), 1100)
@@ -205,10 +206,16 @@ export default function PropertyHub() {
           <KpiCell icon="ti-car" color={DASH.blue} label="駐車場・空車" value={parkingVacant} unit="区画" sub={`全${parkingSpots.length}区画`} onClick={() => navigate(`${brand.homePath}/parking`)} />
           <KpiCell icon="ti-coffee" color={DASH.green} label="朝食提供" value={`${breakfastServed} / ${breakfastRoster.length}`} unit="組" onClick={() => navigate(`${brand.homePath}/breakfast`)} />
           <KpiCell icon="ti-tools-kitchen-2" color={DASH.orange} label="夕食提供" value={`${dinnerServed} / ${dinnerRoster.length}`} unit="組" onClick={() => navigate(`${brand.homePath}/dinner`)} />
+          <KpiCell
+            icon="ti-lock" color={todayAudit ? DASH.green : DASH.textFaint} label="本日の締め状況"
+            value={todayAudit ? '締め済み' : '未締め'}
+            sub={todayAudit ? new Date(todayAudit.closed_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : ''}
+            onClick={() => navigate(`${brand.homePath}/night-audit`)}
+          />
         </KpiGrid>
       )}
       <div style={{ fontSize: 11, color: DASH.textFaint, marginBottom: 24 }}>
-        ※ チェックイン・チェックアウト・清掃待ち・朝食提供・駐車場・夕食提供・売上+稼働率・天気は全て実データです(売上はフロント/支配人による日次手入力、未入力の日は「未入力」と表示されます)。
+        ※ チェックイン・チェックアウト・清掃待ち・朝食提供・駐車場・夕食提供・売上+稼働率・締め状況・天気は全て実データです(売上はフロント/支配人による日次手入力、未入力の日は「未入力」と表示されます)。
       </div>
 
       {!analyzing && (

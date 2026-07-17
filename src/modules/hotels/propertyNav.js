@@ -36,7 +36,7 @@ const SALES_SIDEBAR_ITEMS = [
   { seg: '/contracts',  icon: 'ti-file-check',     label: '契約管理' },
 ]
 
-const HOTEL_OPS_IDS = ['front', 'cleaning', 'breakfast', 'dinner', 'parking', 'revenue']
+const HOTEL_OPS_IDS = ['front', 'cleaning', 'breakfast', 'dinner', 'parking', 'revenue', 'night-audit']
 const MANAGEMENT_IDS = ['maintenance', 'shifts', 'payments', 'cashier', 'purchase', 'expenses', 'documents']
 const SYSTEM_IDS = ['staff', 'settings', 'neo']
 

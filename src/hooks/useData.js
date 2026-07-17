@@ -704,6 +704,49 @@ export function useDailySales(hotelId) {
   return { history, todayRecord, loading, error, refresh, save }
 }
 
+// ── 日次締め(Night Audit、migration 024) — 既存の売上管理
+// (daily_sales)テーブル・フックには一切手を加えない(「既存設計を
+// 変更しない」指示のため)。night_auditsは締め処理の瞬間にdaily_sales
+// の当日レコードをスナップショットする別テーブル。1日1回・1レコード
+// につき1回のみ(DB側のUNIQUE制約2本で保証)、UPDATE/DELETEポリシー
+// は存在しないため一度記録した締めは訂正できない(確定記録)。
+export function useNightAudit(hotelId) {
+  const today = new Date().toISOString().slice(0, 10)
+  const { data: history, loading, error, refresh } = useTable(
+    'night_audits',
+    q => hotelId
+      ? q.select('*, employees(full_name)').eq('hotel_id', hotelId).order('audit_date', { ascending: false }).limit(30)
+      : q.select('*').eq('hotel_id', '00000000-0000-0000-0000-000000000000'),
+  )
+  const { employee } = useMyEmployee()
+
+  const todayAudit = history.find(a => a.audit_date === today) || null
+
+  // dailySalesは呼び出し元(NightAudit.jsx)がuseDailySales()から渡す
+  // — 当日の売上が未入力(dailySales === null)の場合は締め処理自体を
+  // 実行できない(推測でゼロ円締めを作らない)。
+  const closeDay = async (dailySales) => {
+    if (!dailySales) return { error: { message: '本日の売上が未入力です。売上管理画面で入力してください。' } }
+    if (todayAudit) return { error: { message: '本日は既に締め処理済みです。' } }
+    const payload = {
+      hotel_id: hotelId, audit_date: today, daily_sales_id: dailySales.id,
+      room_revenue: dailySales.room_revenue, breakfast_revenue: dailySales.breakfast_revenue,
+      dinner_revenue: dailySales.dinner_revenue, parking_revenue: dailySales.parking_revenue,
+      closed_by: employee?.id ?? null,
+    }
+    const { data, error } = await supabase.from('night_audits').insert(payload).select().single()
+    if (!error) {
+      logAudit({
+        action: 'night_audit_closed', category: 'hotel_ops', description: '日次締めを実行',
+        targetTable: 'night_audits', targetId: data.id, targetLabel: data.audit_date, hotelId, after: data,
+      })
+    }
+    return { data, error }
+  }
+
+  return { history, todayAudit, loading, error, refresh, closeDay }
+}
+
 // ── 駐車場(migration 021) — parking_spotsが駐車位置そのもの(rooms
 // 相当)、parking_usagesが宿泊者の駐車利用(stays相当)。区画は同時刻
 // 1台が前提のため、rooms/staysと異なり利用登録の時点で区画を
