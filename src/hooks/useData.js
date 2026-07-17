@@ -618,6 +618,17 @@ export function useMealService(hotelId, mealType) {
       ? q.select('*, employees(full_name)').eq('hotel_id', hotelId).eq('meal_type', mealType).eq('service_date', today)
       : q.select('*').eq('hotel_id', '00000000-0000-0000-0000-000000000000'),
   )
+  // 提供履歴(Dinner要求⑤で追加) — 本日分はroster側で既に表示している
+  // ため、重複を避けて過去日(service_date < today)のserved=trueのみを
+  // 直近20件表示する。stays経由でゲスト名・部屋番号を結合する。
+  const { data: history, loading: historyLoading, error: historyError, refresh: refreshHistory } = useTable(
+    'meal_services',
+    q => hotelId
+      ? q.select('*, stays(guest_name, rooms(room_number)), employees(full_name)').eq('hotel_id', hotelId).eq('meal_type', mealType)
+          .eq('served', true).lt('service_date', today).order('service_date', { ascending: false }).limit(20)
+      : q.select('*').eq('hotel_id', '00000000-0000-0000-0000-000000000000'),
+    ['meal_services', 'stays'],
+  )
   const { employee } = useMyEmployee()
 
   const roster = stays.map(s => ({ ...s, service: services.find(sv => sv.stay_id === s.id) || null }))
@@ -645,6 +656,7 @@ export function useMealService(hotelId, mealType) {
   return {
     roster, loading: staysLoading || servicesLoading, error: staysError || servicesError,
     refresh: () => { refreshStays(); refreshServices() }, toggleServed,
+    history, historyLoading, historyError, refreshHistory,
   }
 }
 

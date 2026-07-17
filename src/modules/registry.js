@@ -22,7 +22,7 @@ export const MODULES = [
   { id: 'front',       label: 'フロント',         icon: 'ti-key',            path: '/front',       status: 'active', notifiable: true,  color: '#FFC107', desc: 'チェックイン・チェックアウト・客室状況' },
   { id: 'cleaning',    label: '清掃',             icon: 'ti-sparkles',       path: '/cleaning',    status: 'active', notifiable: true,  color: '#4CD964', desc: '客室清掃の状況管理' },
   { id: 'breakfast',   label: '朝食',             icon: 'ti-coffee',         path: '/breakfast',   status: 'active', notifiable: true,  color: '#FFC107', desc: '朝食対象者・提供状況の管理(メニュー・在庫・発注・原価は将来拡張)' },
-  { id: 'dinner',      label: '夕食',             icon: 'ti-tools-kitchen-2', path: '/dinner',     status: 'soon',   notifiable: true,  color: '#F59E0B', desc: '夕食のメニュー・在庫・発注・原価・売上(将来拡張)' },
+  { id: 'dinner',      label: '夕食',             icon: 'ti-tools-kitchen-2', path: '/dinner',     status: 'active', notifiable: true,  color: '#F59E0B', desc: '夕食対象者・提供状況の管理(メニュー・在庫・発注・原価は将来拡張)' },
   { id: 'parking',     label: '駐車場',           icon: 'ti-car',            path: '/parking',     status: 'active', notifiable: true,  color: '#3A6DFF', desc: '駐車位置・宿泊者の駐車利用の管理' },
   { id: 'maintenance', label: '設備',             icon: 'ti-tools',          path: '/maintenance', status: 'soon',   notifiable: true,  color: '#8A96AC', desc: '設備の修繕・故障対応の記録' },
   { id: 'shifts',      label: 'シフト管理',       icon: 'ti-calendar-time',  path: '/shifts',      status: 'soon',   notifiable: true,  color: '#FFC107', desc: 'スタッフの勤務シフト作成・管理' },
