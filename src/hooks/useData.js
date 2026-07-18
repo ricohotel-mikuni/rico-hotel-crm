@@ -622,6 +622,21 @@ export function useStays(hotelId) {
       targetTable: 'stays', targetId: stay.id, targetLabel: stay.guest_name, hotelId: stay.hotel_id,
       before: { status: stay.status }, after: { status: 'checked_out' },
     })
+    // 駐車場フロアプラン刷新(承認済み提案書Rev.2)是正: チェックアウト
+    // 連携 — 紐づく利用中の駐車区画があれば自動で空車へ戻す(フロント
+    // 側の追加操作は不要)。
+    const { data: parkingUsage } = await supabase.from('parking_usages')
+      .select('id, spot_id, hotel_id, license_plate').eq('stay_id', stay.id).eq('status', 'active').maybeSingle()
+    if (parkingUsage) {
+      await supabase.from('parking_usages').update({ status: 'completed', end_at: new Date().toISOString() }).eq('id', parkingUsage.id)
+      await supabase.from('parking_spots').update({ status: 'vacant' }).eq('id', parkingUsage.spot_id)
+      logAudit({
+        action: 'parking_usage_ended', category: 'hotel_ops', description: 'チェックアウトに伴い駐車利用を終了',
+        targetTable: 'parking_usages', targetId: parkingUsage.id, targetLabel: parkingUsage.license_plate, hotelId: parkingUsage.hotel_id,
+        before: { status: 'active' }, after: { status: 'completed' },
+      })
+      notifyRole('front_desk', { module: 'parking', title: '駐車終了' })
+    }
     return { error: null }
   }
 
@@ -889,7 +904,7 @@ export function useOperationalAlertCheck({ hotelId, dirtyRoomsCount, breakfastUn
 export function useParkingSpots(hotelId) {
   const { data: spots, loading, error, refresh } = useTable(
     'parking_spots',
-    q => hotelId ? q.select('*').eq('hotel_id', hotelId).order('spot_number') : q.select('*').eq('hotel_id', '00000000-0000-0000-0000-000000000000'),
+    q => hotelId ? q.select('*').eq('hotel_id', hotelId).order('zone_order') : q.select('*').eq('hotel_id', '00000000-0000-0000-0000-000000000000'),
   )
 
   const setSpotStatus = async (spotId, status) => {
@@ -918,36 +933,36 @@ export function useParkingUsages(hotelId) {
   const { data: usages, loading, error, refresh } = useTable(
     'parking_usages',
     q => hotelId
-      ? q.select('*, parking_spots(spot_number), stays(guest_name)').eq('hotel_id', hotelId).order('created_at', { ascending: false })
+      ? q.select('*, parking_spots(spot_number), stays(guest_name, checkout_date, rooms(room_number))').eq('hotel_id', hotelId).order('created_at', { ascending: false })
       : q.select('*').eq('hotel_id', '00000000-0000-0000-0000-000000000000'),
-    ['parking_usages', 'parking_spots'],
+    ['parking_usages', 'parking_spots', 'stays'],
   )
   const { employee } = useMyEmployee()
 
-  // 利用登録と同時に区画を'reserved'にする(rooms/staysと異なる設計、
-  // ファイル冒頭のコメント参照)。spot_id/stay_idはmigration 021で
-  // NOT NULL — 区画未定・宿泊者未紐付けの状態は最初から発生しない。
+  // 駐車場フロアプラン刷新(承認済み提案書Rev.2)で「予約済み」の中間
+  // 状態を廃止し、区画クリック→フォーム保存で即座に「利用中」になる
+  // 2状態設計(空車⇔利用中)に変更した。旧reserved/activeの区別は
+  // DB制約としては残すが、この新フローでは使わない(startUsageは
+  // 呼び出し元が無くなったため削除)。
   const add = async (form) => {
-    const { data, error } = await supabase.from('parking_usages').insert({ ...form, created_by: employee?.id ?? null, hotel_id: hotelId }).select().single()
-    if (!error) {
-      await supabase.from('parking_spots').update({ status: 'reserved' }).eq('id', data.spot_id)
-      logAudit({ action: 'parking_usage_created', category: 'hotel_ops', description: '駐車利用を登録', targetTable: 'parking_usages', targetId: data.id, targetLabel: data.license_plate, hotelId: data.hotel_id, after: data })
-    }
-    return { data, error }
-  }
-
-  const startUsage = async (usage) => {
-    const { error: usageErr } = await supabase.from('parking_usages').update({
+    const { data, error } = await supabase.from('parking_usages').insert({
+      ...form, created_by: employee?.id ?? null, hotel_id: hotelId,
       status: 'active', start_at: new Date().toISOString(),
-    }).eq('id', usage.id)
-    if (usageErr) return { error: usageErr }
-    await supabase.from('parking_spots').update({ status: 'occupied' }).eq('id', usage.spot_id)
-    logAudit({
-      action: 'parking_usage_started', category: 'hotel_ops', description: '駐車利用を開始',
-      targetTable: 'parking_usages', targetId: usage.id, targetLabel: usage.license_plate, hotelId: usage.hotel_id,
-      before: { status: usage.status }, after: { status: 'active' },
-    })
-    return { error: null }
+    }).select().single()
+    if (error) return { data, error }
+
+    await supabase.from('parking_spots').update({ status: 'occupied' }).eq('id', data.spot_id)
+    logAudit({ action: 'parking_usage_created', category: 'hotel_ops', description: '駐車利用を開始', targetTable: 'parking_usages', targetId: data.id, targetLabel: data.license_plate, hotelId: data.hotel_id, after: data })
+    notifyRole('front_desk', { module: 'parking', title: '駐車開始' })
+
+    // 残り1台/満車チェック — out_of_orderを除く全区画のうち空車数を
+    // 数える(社用車枠も含む、ダッシュボードKPIの分母と同じ基準)。
+    const { count: vacantCount } = await supabase.from('parking_spots')
+      .select('*', { count: 'exact', head: true }).eq('hotel_id', hotelId).eq('status', 'vacant')
+    if (vacantCount === 0) notifyRole('front_desk', { module: 'parking', title: '満車' })
+    else if (vacantCount === 1) notifyRole('front_desk', { module: 'parking', title: '残り1台' })
+
+    return { data, error: null }
   }
 
   const endUsage = async (usage) => {
@@ -961,10 +976,11 @@ export function useParkingUsages(hotelId) {
       targetTable: 'parking_usages', targetId: usage.id, targetLabel: usage.license_plate, hotelId: usage.hotel_id,
       before: { status: usage.status }, after: { status: 'completed' },
     })
+    notifyRole('front_desk', { module: 'parking', title: '駐車終了' })
     return { error: null }
   }
 
-  return { usages, loading, error, refresh, add, startUsage, endUsage }
+  return { usages, loading, error, refresh, add, endUsage }
 }
 
 // スラッグから1件のホテルを解決する — HotelsApp.jsxの動的ルーティング

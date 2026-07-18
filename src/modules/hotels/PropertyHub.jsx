@@ -127,6 +127,8 @@ export default function PropertyHub() {
   const breakfastServed = breakfastRoster.filter(r => r.service?.served).length
   const dinnerServed = dinnerRoster.filter(r => r.service?.served).length
   const parkingVacant = parkingSpots.filter(s => s.status === 'vacant').length
+  const parkingOccupied = parkingSpots.filter(s => s.status === 'occupied').length
+  const parkingUtilization = parkingSpots.length ? Math.round((parkingOccupied / parkingSpots.length) * 100) : 0
   const occupancyRate = rooms.length ? Math.round((rooms.filter(r => r.status === 'occupied').length / rooms.length) * 100) : 0
 
   // 運用アラート(HotelOS Foundation v1.0) — 既に集計済みのKPI値を
@@ -215,7 +217,7 @@ export default function PropertyHub() {
           <KpiCell icon="ti-door-enter" color={DASH.green} label="チェックイン" value={todayCheckins} unit="件" onClick={() => navigate(`${brand.homePath}/front`)} />
           <KpiCell icon="ti-door-exit" color={DASH.purple} label="チェックアウト" value={todayCheckouts} unit="件" onClick={() => navigate(`${brand.homePath}/front`)} />
           <KpiCell icon="ti-brush" color={DASH.orange} label="清掃待ち" value={`${dirtyRooms} / ${rooms.length}`} unit="部屋" onClick={() => navigate(`${brand.homePath}/cleaning`)} />
-          <KpiCell icon="ti-car" color={DASH.blue} label="駐車場・空車" value={parkingVacant} unit="区画" sub={`全${parkingSpots.length}区画`} onClick={() => navigate(`${brand.homePath}/parking`)} />
+          <KpiCell icon="ti-car" color={DASH.blue} label="駐車場" value={`${parkingOccupied} / ${parkingSpots.length}`} sub={`利用率${parkingUtilization}%・空車${parkingVacant}`} onClick={() => navigate(`${brand.homePath}/parking`)} />
           <KpiCell icon="ti-coffee" color={DASH.green} label="朝食提供" value={`${breakfastServed} / ${breakfastRoster.length}`} unit="組" onClick={() => navigate(`${brand.homePath}/breakfast`)} />
           <KpiCell icon="ti-tools-kitchen-2" color={DASH.orange} label="夕食提供" value={`${dinnerServed} / ${dinnerRoster.length}`} unit="組" onClick={() => navigate(`${brand.homePath}/dinner`)} />
           <KpiCell

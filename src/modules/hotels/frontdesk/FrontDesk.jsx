@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useRooms, useStays } from '../../../hooks/useData'
+import { useRooms, useStays, useParkingSpots, useParkingUsages } from '../../../hooks/useData'
 import { useCurrentHotel } from '../HotelContext'
 import { usePermission } from '../../../permissions/PermissionContext'
 import Modal from '../../../ui/Modal'
@@ -30,6 +30,8 @@ export default function FrontDesk() {
   const hotel = useCurrentHotel()
   const { rooms, loading: roomsLoading, error: roomsError, refresh: refreshRooms, add: addRoom, setRoomStatus } = useRooms(hotel?.hotelId)
   const { stays, loading: staysLoading, error: staysError, refresh: refreshStays, add, checkIn, checkOut, cancelStay, extendStay } = useStays(hotel?.hotelId)
+  const { spots: parkingSpots } = useParkingSpots(hotel?.hotelId)
+  const { add: addParkingUsage } = useParkingUsages(hotel?.hotelId)
   const canEdit = usePermission('front', 'edit')
 
   const [roomModal, setRoomModal] = useState(null)
@@ -39,6 +41,9 @@ export default function FrontDesk() {
   const [form, setForm] = useState(EMPTY_STAY)
   const [extendModal, setExtendModal] = useState(null)
   const [extendDate, setExtendDate] = useState('')
+  const [checkinTarget, setCheckinTarget] = useState(null)
+  const [useParking, setUseParking] = useState(false)
+  const [checkinSpotId, setCheckinSpotId] = useState('')
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(null)
   const showToast = (m, t = 'success') => { setToast({ message: m, type: t }); setTimeout(() => setToast(null), 3000) }
@@ -48,10 +53,26 @@ export default function FrontDesk() {
   const departures = stays.filter(s => s.checkout_date === today && s.status === 'checked_in')
   const counts = rooms.reduce((acc, r) => { acc[r.status] = (acc[r.status] || 0) + 1; return acc }, {})
 
-  const doCheckIn = async (stay) => {
-    const { error } = await checkIn(stay)
-    if (error) showToast('チェックインに失敗しました: ' + error.message, 'error')
-    else showToast(`${stay.guest_name}様がチェックインしました`)
+  const openCheckin = (stay) => { setCheckinTarget(stay); setUseParking(false); setCheckinSpotId('') }
+  // 駐車場フロアプラン刷新(承認済み提案書Rev.2)是正: チェックイン時
+  // 「駐車場利用」にチェックすると空車区画一覧を表示し、選択した区画を
+  // 即座に「利用中」にする(STEP2/3)。駐車利用は宿泊者(stay)に必ず
+  // 紐付ける(useParkingUsagesのstay_id NOT NULL制約と同じ設計方針)。
+  const confirmCheckin = async () => {
+    if (useParking && !checkinSpotId) return showToast('駐車区画を選択してください', 'error')
+    setSaving(true)
+    const { error } = await checkIn(checkinTarget)
+    if (error) { setSaving(false); return showToast('チェックインに失敗しました: ' + error.message, 'error') }
+    if (useParking && checkinSpotId) {
+      const { error: pkErr } = await addParkingUsage({
+        spot_id: checkinSpotId, stay_id: checkinTarget.id, vehicle_type: '普通',
+        checkin_date: checkinTarget.checkin_date, checkout_date: checkinTarget.checkout_date, notes: '',
+      })
+      if (pkErr) showToast('チェックインは完了しましたが、駐車場の登録に失敗しました: ' + pkErr.message, 'error')
+    }
+    setSaving(false)
+    showToast(`${checkinTarget.guest_name}様がチェックインしました`)
+    setCheckinTarget(null)
   }
   const doCheckOut = async (stay) => {
     const { error } = await checkOut(stay)
@@ -176,7 +197,7 @@ export default function FrontDesk() {
                   {canEdit && (
                     <div style={{ display: 'flex', gap: 6 }}>
                       <Btn onClick={() => doCancelStay(s)} icon="ti-x" label="キャンセル" color={DASH.textFaint} sm outline />
-                      <Btn onClick={() => doCheckIn(s)} icon="ti-door-enter" label="チェックイン" color={DASH.brandNavy} sm />
+                      <Btn onClick={() => openCheckin(s)} icon="ti-door-enter" label="チェックイン" color={DASH.brandNavy} sm />
                     </div>
                   )}
                 </div>
@@ -257,6 +278,35 @@ export default function FrontDesk() {
             <DarkField label="大人" type="number" value={form.adults} onChange={v => setForm({ ...form, adults: Number(v) || 1 })} />
             <DarkField label="子供" type="number" value={form.children} onChange={v => setForm({ ...form, children: Number(v) || 0 })} />
           </div>
+        </Modal>
+      )}
+
+      {checkinTarget && (
+        <Modal dark title={`${checkinTarget.guest_name}様のチェックイン`} icon="ti-door-enter" onClose={() => setCheckinTarget(null)} onSave={confirmCheckin} saving={saving} width={420}>
+          <div style={{ fontSize: 12.5, color: DASH.textSub, marginBottom: 14 }}>
+            {checkinTarget.rooms?.room_number ? `${checkinTarget.rooms.room_number}号室・` : ''}{checkinTarget.adults}名{checkinTarget.children ? `+子${checkinTarget.children}` : ''}
+          </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: DASH.textMain, marginBottom: useParking ? 10 : 0, cursor: 'pointer' }}>
+            <input type="checkbox" checked={useParking} onChange={e => { setUseParking(e.target.checked); setCheckinSpotId('') }} />
+            駐車場を利用する
+          </label>
+          {useParking && (
+            <div>
+              <label style={{ fontSize: 11, color: DASH.textFaint, display: 'block', marginBottom: 3, fontWeight: 500 }}>空車区画 *</label>
+              <select
+                value={checkinSpotId} onChange={e => setCheckinSpotId(e.target.value)}
+                style={{ width: '100%', padding: '9px 10px', border: `1px solid ${DASH.border}`, borderRadius: 8, fontSize: 13, background: DASH.inputBg, color: DASH.textMain, fontFamily: 'inherit' }}
+              >
+                <option value="">選択してください</option>
+                {parkingSpots.filter(s => s.status === 'vacant').map(s => (
+                  <option key={s.id} value={s.id}>{s.spot_type === 'company' ? '社用車' : s.spot_number}</option>
+                ))}
+              </select>
+              {parkingSpots.filter(s => s.status === 'vacant').length === 0 && (
+                <div style={{ fontSize: 11, color: DASH.alert, marginTop: 6 }}>現在空車がありません</div>
+              )}
+            </div>
+          )}
         </Modal>
       )}
 
