@@ -110,7 +110,17 @@ export function AuthProvider({ children }) {
     // (2026-07-17修正)。record_password_login(Login.jsx)と同じ
     // 「呼ぶが待たない」方式に統一し、監査ログ送信の遅延・失敗が
     // ログアウト本体を絶対にブロックしないようにする。
-    supabase.rpc('record_logout').catch(e => console.error('[AuthContext] record_logout failed:', e))
+    // 本番Console実測(2026-07-18): 「TypeError: ...rpc("record_logout")
+    // .catch is not a function」。supabase.rpc()の戻り値は
+    // PostgrestFilterBuilderで、.then(onFulfilled, onRejected)のみを
+    // 実装するthenableであり、ネイティブPromiseではないため.catch()
+    // メソッドを持たない(node_modules/@supabase/postgrest-js/src/
+    // PostgrestBuilder.tsで.catch/.finallyの実装が無いことを確認済み)。
+    // 呼び出すたびに例外(TypeError)が発生し、signOut()がasync関数の
+    // ためUnhandled Promise Rejectionとなり、PIN画面の「パスワードで
+    // ログイン」(App.jsxのonUsePassword→signOut()、awaitされない)が
+    // 画面遷移できなくなっていた。.then(null, onRejected)へ置き換える。
+    supabase.rpc('record_logout').then(null, e => console.error('[AuthContext] record_logout failed:', e))
     // 安定化是正(2026-07-18): supabase.auth.signOut()もgetSession()/
     // signInWithPassword()と同じGoTrueClient内部パスを通るため、
     // ストレージ破損等でthrowし得る(_useSessionにcatchが無い実装を
