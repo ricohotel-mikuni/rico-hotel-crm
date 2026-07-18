@@ -57,6 +57,30 @@ export async function pushNotification({ module, title, body = '', link = '', re
   return { error }
 }
 
+// HotelOS Foundation v1.0 — 既存のpushNotificationはrecipientRoleIdに
+// UUIDを直接要求する(承認依頼画面のように呼び出し元が既にロール選択
+// 済みのケース向け)。ホテル運営フック側は'hotel_manager'/'front_desk'
+// 等の固定ロールキーしか持たないため、キー→role_idの解決が必要。
+// モジュールスコープの単純キャッシュ(ページ内で同じキーは1回だけ
+// 問い合わせる)で十分 — roleは運用中に頻繁には変わらない。
+const roleIdCache = {}
+async function resolveRoleId(roleKey) {
+  if (roleIdCache[roleKey]) return roleIdCache[roleKey]
+  const { data, error } = await supabase.from('roles').select('id').eq('key', roleKey).maybeSingle()
+  if (error || !data) { console.error('[resolveRoleId] failed for', roleKey, error); return null }
+  roleIdCache[roleKey] = data.id
+  return data.id
+}
+
+// ロールキー指定でそのまま呼べる薄いラッパー。ロール解決に失敗しても
+// (未migration適用・キー誤り等)通知が飛ばないだけで、呼び出し元の
+// 業務処理(予約登録・チェックイン等)自体は失敗させない。
+export async function notifyRole(roleKey, { module, title, body = '', link = '' }) {
+  const recipientRoleId = await resolveRoleId(roleKey)
+  if (!recipientRoleId) return { error: `role not found: ${roleKey}` }
+  return pushNotification({ module, title, body, link, recipientRoleId })
+}
+
 // Personal notification feed for the bell/Notification Center: mine +
 // anything targeted at a role I currently hold + full broadcasts
 // (both recipient columns null). Read state is tracked per-person in

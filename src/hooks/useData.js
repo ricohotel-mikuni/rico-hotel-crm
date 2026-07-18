@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useCurrentCompany } from '../contexts/CompanyContext'
-import { pushNotification } from './useNotifications'
+import { pushNotification, notifyRole } from './useNotifications'
 
 // Safari/WebKit takes far longer than Chromium to give up on a request over
 // a bad connection (observed 7s+ just to fail DNS resolution, vs near-instant
@@ -542,6 +542,13 @@ export function useRooms(hotelId) {
         targetTable: 'rooms', targetId: roomId, targetLabel: before?.room_number, hotelId: before?.hotel_id,
         before: { status: before?.status }, after: { status },
       })
+      // Housekeeping.jsxの「清掃完了」もFrontDesk.jsxの手動変更も、
+      // 同じこの関数を唯一の変更経路としているため(single source of
+      // truth)、ここ1箇所への通知追加でどちらの画面から呼ばれても
+      // 漏れなくフロントへ届く。
+      if (status === 'vacant_clean' && before?.status !== 'vacant_clean') {
+        notifyRole('front_desk', { module: 'cleaning', title: `清掃完了: ${before?.room_number ?? ''}号室` })
+      }
     }
     return { error }
   }
@@ -567,12 +574,17 @@ export function useStays(hotelId) {
 
   const add = async (form) => {
     const { data, error } = await supabase.from('stays').insert({ ...form, created_by: employee?.id ?? null, hotel_id: hotelId }).select().single()
-    if (!error) logAudit({ action: 'stay_created', category: 'hotel_ops', description: '宿泊予約を登録', targetTable: 'stays', targetId: data.id, targetLabel: data.guest_name, hotelId: data.hotel_id, after: data })
+    if (!error) {
+      logAudit({ action: 'stay_created', category: 'hotel_ops', description: '宿泊予約を登録', targetTable: 'stays', targetId: data.id, targetLabel: data.guest_name, hotelId: data.hotel_id, after: data })
+      notifyRole('front_desk', { module: 'front', title: `新しい予約: ${data.guest_name}様(${data.checkin_date}〜${data.checkout_date})` })
+    }
     return { data, error }
   }
 
   // チェックイン — 宿泊ステータスを進め、客室を使用中にする(2テーブル
   // 更新のため1つのRPCではなく順番にawaitする、監査ログは両方に残す)。
+  // チェックイン完了は朝食/夕食/清掃の各担当が「今日誰が滞在している
+  // か」を知る起点になるため、この3ロールへ通知する。
   const checkIn = async (stay) => {
     const { error: stayErr } = await supabase.from('stays').update({
       status: 'checked_in', actual_checkin_at: new Date().toISOString(),
@@ -586,6 +598,12 @@ export function useStays(hotelId) {
       targetTable: 'stays', targetId: stay.id, targetLabel: stay.guest_name, hotelId: stay.hotel_id,
       before: { status: stay.status }, after: { status: 'checked_in' },
     })
+    const roomLabel = stay.rooms?.room_number ? `${stay.rooms.room_number}号室` : ''
+    // role key ('breakfast'/'dinner'/'cleaning') は各モジュールの
+    // registry id と一致(migrations 012/019参照)。
+    for (const roleKey of ['breakfast', 'dinner', 'cleaning']) {
+      notifyRole(roleKey, { module: roleKey, title: `チェックイン: ${stay.guest_name}様(${roomLabel})` })
+    }
     return { error: null }
   }
 
@@ -607,7 +625,41 @@ export function useStays(hotelId) {
     return { error: null }
   }
 
-  return { stays, loading, error, refresh, add, checkIn, checkOut }
+  // キャンセル(HotelOS Foundation v1.0是正) — stays.statusのCHECK制約
+  // には元からcancelledが含まれていたが(migration 018)、これを設定
+  // するUI・関数がどこにも無かった(実質デッドの状態値)。チェックイン
+  // 前(reserved)の予約のみキャンセル対象とする — チェックイン後は
+  // チェックアウト操作が正規の終了経路のため。
+  const cancelStay = async (stay) => {
+    const { error } = await supabase.from('stays').update({ status: 'cancelled' }).eq('id', stay.id)
+    if (error) return { error }
+    logAudit({
+      action: 'stay_cancelled', category: 'hotel_ops', description: '予約をキャンセル',
+      targetTable: 'stays', targetId: stay.id, targetLabel: stay.guest_name, hotelId: stay.hotel_id,
+      before: { status: stay.status }, after: { status: 'cancelled' },
+    })
+    notifyRole('front_desk', { module: 'front', title: `予約キャンセル: ${stay.guest_name}様(${stay.checkin_date}〜${stay.checkout_date})` })
+    return { error: null }
+  }
+
+  // 宿泊延長(HotelOS Foundation v1.0是正) — チェックアウト予定日を
+  // 変更する。清掃は「予定していた退室日に清掃準備をしていたら実は
+  // 延泊だった」という事故を防ぐため、延長が決まった時点で通知を
+  // 受け取る必要がある。
+  const extendStay = async (stay, newCheckoutDate) => {
+    const { error } = await supabase.from('stays').update({ checkout_date: newCheckoutDate }).eq('id', stay.id)
+    if (error) return { error }
+    logAudit({
+      action: 'stay_extended', category: 'hotel_ops', description: '宿泊を延長',
+      targetTable: 'stays', targetId: stay.id, targetLabel: stay.guest_name, hotelId: stay.hotel_id,
+      before: { checkout_date: stay.checkout_date }, after: { checkout_date: newCheckoutDate },
+    })
+    const roomLabel = stay.rooms?.room_number ? `${stay.rooms.room_number}号室` : ''
+    notifyRole('cleaning', { module: 'cleaning', title: `宿泊延長: ${stay.guest_name}様(${roomLabel}) → ${newCheckoutDate}まで` })
+    return { error: null }
+  }
+
+  return { stays, loading, error, refresh, add, checkIn, checkOut, cancelStay, extendStay }
 }
 
 // ── 食事提供(migration 020) — 朝食/夕食共通。meal_typeで切り替える
@@ -710,6 +762,7 @@ export function useDailySales(hotelId) {
         description: '日次売上を記録', targetTable: 'daily_sales', targetId: data.id, targetLabel: data.sales_date,
         hotelId: data.hotel_id, before: todayRecord || undefined, after: data,
       })
+      notifyRole('hotel_manager', { module: 'revenue', title: `本日の売上が${todayRecord ? '更新' : '登録'}されました: ¥${Number(data.total_revenue).toLocaleString()}` })
     }
     return { data, error }
   }
@@ -753,6 +806,7 @@ export function useNightAudit(hotelId) {
         action: 'night_audit_closed', category: 'hotel_ops', description: '日次締めを実行',
         targetTable: 'night_audits', targetId: data.id, targetLabel: data.audit_date, hotelId, after: data,
       })
+      notifyRole('hotel_manager', { module: 'night-audit', title: `本日の締め処理が完了しました: ¥${Number(data.total_revenue).toLocaleString()}` })
     }
     return { data, error }
   }

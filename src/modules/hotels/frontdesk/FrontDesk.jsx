@@ -29,7 +29,7 @@ const EMPTY_ROOM = { room_number: '', floor: '' }
 export default function FrontDesk() {
   const hotel = useCurrentHotel()
   const { rooms, loading: roomsLoading, error: roomsError, refresh: refreshRooms, add: addRoom, setRoomStatus } = useRooms(hotel?.hotelId)
-  const { stays, loading: staysLoading, error: staysError, refresh: refreshStays, add, checkIn, checkOut } = useStays(hotel?.hotelId)
+  const { stays, loading: staysLoading, error: staysError, refresh: refreshStays, add, checkIn, checkOut, cancelStay, extendStay } = useStays(hotel?.hotelId)
   const canEdit = usePermission('front', 'edit')
 
   const [roomModal, setRoomModal] = useState(null)
@@ -37,6 +37,8 @@ export default function FrontDesk() {
   const [roomAddModal, setRoomAddModal] = useState(false)
   const [roomForm, setRoomForm] = useState(EMPTY_ROOM)
   const [form, setForm] = useState(EMPTY_STAY)
+  const [extendModal, setExtendModal] = useState(null)
+  const [extendDate, setExtendDate] = useState('')
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(null)
   const showToast = (m, t = 'success') => { setToast({ message: m, type: t }); setTimeout(() => setToast(null), 3000) }
@@ -55,6 +57,22 @@ export default function FrontDesk() {
     const { error } = await checkOut(stay)
     if (error) showToast('チェックアウトに失敗しました: ' + error.message, 'error')
     else showToast(`${stay.guest_name}様がチェックアウトしました`)
+  }
+  // HotelOS Foundation v1.0是正: stays.statusのCHECK制約には元から
+  // cancelledが含まれていたが(migration 018)、設定するUIがどこにも
+  // 無かった。チェックイン前(reserved)の予約のみ対象とする。
+  const doCancelStay = async (stay) => {
+    if (!window.confirm(`${stay.guest_name}様の予約をキャンセルしますか？`)) return
+    const { error } = await cancelStay(stay)
+    if (error) showToast('キャンセルに失敗しました: ' + error.message, 'error')
+    else showToast('予約をキャンセルしました')
+  }
+  const saveExtend = async () => {
+    if (!extendDate) return showToast('延長後のチェックアウト日を選択してください', 'error')
+    const { error } = await extendStay(extendModal, extendDate)
+    if (error) return showToast('延長に失敗しました: ' + error.message, 'error')
+    showToast(`${extendModal.guest_name}様の宿泊を延長しました`)
+    setExtendModal(null)
   }
   const changeRoomStatus = async (status) => {
     const { error } = await setRoomStatus(roomModal.id, status)
@@ -155,7 +173,12 @@ export default function FrontDesk() {
                     <div style={{ fontSize: 13, fontWeight: 600, color: DASH.textMain }}>{s.guest_name}様</div>
                     <div style={{ fontSize: 11, color: DASH.textFaint }}>{s.rooms?.room_number ? `${s.rooms.room_number}号室・` : ''}{s.adults}名{s.children ? `+子${s.children}` : ''}</div>
                   </div>
-                  {canEdit && <Btn onClick={() => doCheckIn(s)} icon="ti-door-enter" label="チェックイン" color={DASH.brandNavy} sm />}
+                  {canEdit && (
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <Btn onClick={() => doCancelStay(s)} icon="ti-x" label="キャンセル" color={DASH.textFaint} sm outline />
+                      <Btn onClick={() => doCheckIn(s)} icon="ti-door-enter" label="チェックイン" color={DASH.brandNavy} sm />
+                    </div>
+                  )}
                 </div>
               ))}
             </AsyncBoundary>
@@ -169,7 +192,12 @@ export default function FrontDesk() {
                     <div style={{ fontSize: 13, fontWeight: 600, color: DASH.textMain }}>{s.guest_name}様</div>
                     <div style={{ fontSize: 11, color: DASH.textFaint }}>{s.rooms?.room_number ? `${s.rooms.room_number}号室` : ''}</div>
                   </div>
-                  {canEdit && <Btn onClick={() => doCheckOut(s)} icon="ti-door-exit" label="チェックアウト" color={DASH.orange} sm />}
+                  {canEdit && (
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <Btn onClick={() => { setExtendModal(s); setExtendDate(s.checkout_date) }} icon="ti-calendar-plus" label="延長" color={DASH.textFaint} sm outline />
+                      <Btn onClick={() => doCheckOut(s)} icon="ti-door-exit" label="チェックアウト" color={DASH.orange} sm />
+                    </div>
+                  )}
                 </div>
               ))}
             </AsyncBoundary>
@@ -229,6 +257,15 @@ export default function FrontDesk() {
             <DarkField label="大人" type="number" value={form.adults} onChange={v => setForm({ ...form, adults: Number(v) || 1 })} />
             <DarkField label="子供" type="number" value={form.children} onChange={v => setForm({ ...form, children: Number(v) || 0 })} />
           </div>
+        </Modal>
+      )}
+
+      {extendModal && (
+        <Modal dark title={`${extendModal.guest_name}様の宿泊を延長`} icon="ti-calendar-plus" onClose={() => setExtendModal(null)} onSave={saveExtend} saving={saving} width={380}>
+          <div style={{ fontSize: 11, color: DASH.textFaint, marginBottom: 10, lineHeight: 1.6 }}>
+            延長すると清掃担当へ通知され、本日のチェックアウト予定から外れます。
+          </div>
+          <DarkField label="新しいチェックアウト予定日" type="date" value={extendDate} onChange={setExtendDate} required />
         </Modal>
       )}
 
