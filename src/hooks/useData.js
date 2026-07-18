@@ -814,6 +814,72 @@ export function useNightAudit(hotelId) {
   return { history, todayAudit, loading, error, refresh, closeDay }
 }
 
+// ── 運用アラート(migration 025) — 清掃未完了・朝食/夕食未提供・
+// 締め忘れの4種類。サーバー側スケジューラ(pg_cron等)はこの
+// プロジェクトでの利用実績・動作保証を確認できないため採用せず、
+// 既にrealtime購読済みのデータ(呼び出し元のPropertyHub.jsxが
+// 集計済みの件数)と現在時刻を突き合わせる方式にした。
+// operational_alerts_logのUNIQUE制約(hotel_id, alert_type,
+// alert_date)がガードのため、複数スタッフが同時にPropertyHubを
+// 開いていても二重送信されない。
+// 制約(正直に明記): 該当時刻を過ぎた瞬間にPropertyHubを開いている
+// ブラウザが1つも無ければ、その時点では発火しない — 次に誰かが
+// PropertyHubを開いた時点で(条件がまだ真であれば)発火する。
+const ALERT_THRESHOLDS = {
+  cleaning_incomplete: { hour: 13, minute: 0 },
+  breakfast_unserved:  { hour: 9,  minute: 0 },
+  dinner_unserved:      { hour: 20, minute: 0 },
+  night_audit_missing:  { hour: 23, minute: 30 },
+}
+
+function isPastAlertThreshold(alertType) {
+  const t = ALERT_THRESHOLDS[alertType]
+  const now = new Date()
+  return now.getHours() > t.hour || (now.getHours() === t.hour && now.getMinutes() >= t.minute)
+}
+
+async function fireAlertOnce(hotelId, alertType, notify) {
+  const alertDate = new Date().toISOString().slice(0, 10)
+  const { error } = await supabase.from('operational_alerts_log').insert({ hotel_id: hotelId, alert_type: alertType, alert_date: alertDate })
+  if (error) {
+    if (error.code !== '23505') console.error('[operational_alerts] log insert failed:', error)
+    return // 23505 = UNIQUE制約違反 = 本日分は既に通知済み(正常系、何もしない)
+  }
+  await notify()
+}
+
+export function useOperationalAlertCheck({ hotelId, dirtyRoomsCount, breakfastUnservedCount, dinnerUnservedCount, hasTodaySales, hasTodayAudit }) {
+  useEffect(() => {
+    if (!hotelId) return
+    const check = () => {
+      if (dirtyRoomsCount > 0 && isPastAlertThreshold('cleaning_incomplete')) {
+        fireAlertOnce(hotelId, 'cleaning_incomplete', () =>
+          notifyRole('cleaning', { module: 'cleaning', title: `清掃未完了: ${dirtyRoomsCount}部屋が清掃前のままです` }))
+      }
+      if (breakfastUnservedCount > 0 && isPastAlertThreshold('breakfast_unserved')) {
+        fireAlertOnce(hotelId, 'breakfast_unserved', () =>
+          notifyRole('breakfast', { module: 'breakfast', title: `朝食未提供: ${breakfastUnservedCount}組が未提供です` }))
+      }
+      if (dinnerUnservedCount > 0 && isPastAlertThreshold('dinner_unserved')) {
+        fireAlertOnce(hotelId, 'dinner_unserved', () =>
+          notifyRole('dinner', { module: 'dinner', title: `夕食未提供: ${dinnerUnservedCount}組が未提供です` }))
+      }
+      if (!hasTodayAudit && isPastAlertThreshold('night_audit_missing')) {
+        fireAlertOnce(hotelId, 'night_audit_missing', () =>
+          notifyRole('hotel_manager', {
+            module: 'night-audit',
+            title: hasTodaySales ? '本日の締め処理がまだ実行されていません' : '本日の売上未入力・締め未実行です',
+          }))
+      }
+    }
+    check()
+    // 時刻のみで条件が変わる(データが動かなくても13:00を過ぎた瞬間に
+    // 真になる)ため、5分間隔で再評価する。
+    const interval = setInterval(check, 5 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [hotelId, dirtyRoomsCount, breakfastUnservedCount, dinnerUnservedCount, hasTodaySales, hasTodayAudit])
+}
+
 // ── 駐車場(migration 021) — parking_spotsが駐車位置そのもの(rooms
 // 相当)、parking_usagesが宿泊者の駐車利用(stays相当)。区画は同時刻
 // 1台が前提のため、rooms/staysと異なり利用登録の時点で区画を

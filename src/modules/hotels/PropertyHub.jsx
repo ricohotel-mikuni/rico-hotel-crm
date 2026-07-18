@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useUnreadCounts } from '../../hooks/useNotifications'
 import { useHotelWeather } from '../../hooks/useHotelWeather'
-import { useRooms, useStays, useMealService, useParkingSpots, useDailySales, useNightAudit } from '../../hooks/useData'
+import { useRooms, useStays, useMealService, useParkingSpots, useDailySales, useNightAudit, useOperationalAlertCheck } from '../../hooks/useData'
 import { useCurrentHotel } from './HotelContext'
 import { useBrand } from '../../branding/BrandContext'
 import ModuleLauncher from '../../ui/ModuleLauncher'
@@ -128,6 +128,18 @@ export default function PropertyHub() {
   const dinnerServed = dinnerRoster.filter(r => r.service?.served).length
   const parkingVacant = parkingSpots.filter(s => s.status === 'vacant').length
   const occupancyRate = rooms.length ? Math.round((rooms.filter(r => r.status === 'occupied').length / rooms.length) * 100) : 0
+
+  // 運用アラート(HotelOS Foundation v1.0) — 既に集計済みのKPI値を
+  // そのまま渡すだけ(新たな購読は発生しない)。しきい値は承認済み:
+  // 清掃13:00・朝食9:00・夕食20:00・締め23:30。
+  useOperationalAlertCheck({
+    hotelId: hotel?.hotelId,
+    dirtyRoomsCount: dirtyRooms,
+    breakfastUnservedCount: breakfastRoster.length - breakfastServed,
+    dinnerUnservedCount: dinnerRoster.length - dinnerServed,
+    hasTodaySales: !!todaySales,
+    hasTodayAudit: !!todayAudit,
+  })
 
   const rating = dailyPick(RATINGS, 2)
   const quickMenuModules = MODULES.filter(m => QUICK_MENU_IDS.includes(m.id))
