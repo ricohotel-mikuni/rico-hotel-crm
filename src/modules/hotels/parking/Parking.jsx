@@ -13,14 +13,16 @@ const EMPTY_FORM = { stay_id: '', vehicle_type: '普通', license_plate: '', che
 const dtStr = (iso) => iso ? new Date(iso).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''
 const dStr = (d) => d ? new Date(d).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' }) : ''
 
-// 駐車場(承認済み提案書「駐車場管理モジュール再設計 Rev.2」)—
-// 添付フロアプラン(リコホテル三国の実配置)をCSS Grid+SVGで再現した
-// コンポーネント。位置・色・番号・矢印・建物内配置は添付図から直接
-// 書き起こしており、変更していない。区画の種別(spot_type)・表示順
-// (zone_order)はDBデータ(migration 026)から取得するため、他ホテルは
-// 別のシードデータを投入するだけでこの画面をそのまま再利用できる
-// (フロアプランの"外枠"=建物・ランドリー等の装飾要素のみリコホテル
-// 三国固有としてこのファイルに残している)。
+// 駐車場(承認済み提案書「駐車場管理モジュール再設計 Rev.3 — 案内図
+// トレース版」)— 添付の実駐車場案内図(白地・黒枠・単色塗り分けの
+// 掲示物)を、色・行列構造・ピクトグラム・矢印までそのまま書き起こす
+// 方針で実装。HotelOSのダークカード/角丸/ネイビーは診断図の中には
+// 一切使わず、案内図そのものの見た目を保つ(周辺のヘッダー/KPIのみ
+// 通常のDesign System)。区画の種別(spot_type)・番号はDBデータ
+// (migration 026)から取得するが、案内図の"外枠"配置自体はこの建物
+// 固有の描画のため、リコホテル三国の実際の番号(spot_number)で直接
+// 位置を指定している — 他ホテルは別レイアウトのコンポーネントを
+// 用意する前提(spot_type/zone_orderのデータ構造自体は使い回せる)。
 export default function Parking() {
   const hotel = useCurrentHotel()
   const { spots, loading: spotsLoading, error: spotsError, refresh: refreshSpots } = useParkingSpots(hotel?.hotelId)
@@ -38,14 +40,16 @@ export default function Parking() {
   const activeUsageBySpot = {}
   usages.filter(u => u.status === 'active').forEach(u => { activeUsageBySpot[u.spot_id] = u })
 
+  const byNum = (num) => spots.find(s => s.spot_number === num)
   const byType = (type) => spots.filter(s => s.spot_type === type)
   const occupiedCount = spots.filter(s => s.status === 'occupied').length
   const vacantCount = spots.filter(s => s.status === 'vacant').length
   const utilization = spots.length ? Math.round((occupiedCount / spots.length) * 100) : 0
   const guestOptions = stays.filter(s => ['reserved', 'checked_in'].includes(s.status))
 
-  const openStart = (spot) => { if (!canEdit || spot.status !== 'vacant') return; setForm(EMPTY_FORM); setStartSpot(spot) }
-  const openEnd = (spot) => { if (!canEdit || spot.status !== 'occupied') return; setEndTarget({ spot, usage: activeUsageBySpot[spot.id] }) }
+  const openStart = (spot) => { if (!spot || !canEdit || spot.status !== 'vacant') return; setForm(EMPTY_FORM); setStartSpot(spot) }
+  const openEnd = (spot) => { if (!spot || !canEdit || spot.status !== 'occupied') return; setEndTarget({ spot, usage: activeUsageBySpot[spot.id] }) }
+  const onTileClick = (spot) => spot && (spot.status === 'vacant' ? openStart(spot) : openEnd(spot))
 
   const saveStart = async () => {
     if (!form.stay_id) return showToast('宿泊者を選択してください', 'error')
@@ -65,6 +69,8 @@ export default function Parking() {
     setEndTarget(null)
   }
 
+  const companySpot = byType('company')[0]
+
   return (
     <DarkPage>
       <div style={{ marginBottom: 16 }}>
@@ -83,62 +89,94 @@ export default function Parking() {
         loading={spotsLoading || usagesLoading} error={spotsError || usagesError}
         onRetry={() => { refreshSpots(); refreshUsages() }} skeleton={<TableSkeleton rows={6} columns={4} />}
       >
-        <div className="pk-floorplan">
-          <div className="pk-box pk-laundry">
-            <div className="pk-laundry-icons"><span /><span /><span /><span /></div>
-            <div>投幣式洗濯機<br />coin laundry</div>
-          </div>
+        {/* 案内図トレース(承認済みRev.3) — 白地・黒枠・添付図の色 */}
+        <div className="pk-frame">
+          <div className="pk-frame-title">駐車場のご案内　１台　1000円　先着順となります。ご予約は出来ません。</div>
 
-          <ParkingZone title="小型・コンパクトカー優先" color={DASH.gold} tint="245,197,24" spots={byType('compact').concat(byType('company'))} usageMap={activeUsageBySpot} canEdit={canEdit} onOpenStart={openStart} onOpenEnd={openEnd} area="pk-zone-compact" />
-
-          <div className="pk-box pk-bikefree">
-            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke={DASH.gold} strokeWidth="1.6"><circle cx="7" cy="18" r="2.3" /><circle cx="17" cy="18" r="2.3" /><path d="M7 18l3-8h6l2.5 4M10 10h5" /></svg>
-            <div>無料駐輪場<br />自転車</div>
-          </div>
-
-          <div className="pk-box pk-disabled">
-            <div className="pk-no-entry" />
-            <div className="pk-zone-label" style={{ color: DASH.alert }}>● 身障者優先駐車スペース</div>
-            <div className="pk-car-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
-              {byType('disabled').map(spot => (
-                <ParkingSpotTile key={spot.id} spot={spot} usage={activeUsageBySpot[spot.id]} canEdit={canEdit} disabledRing onClick={() => spot.status === 'vacant' ? openStart(spot) : openEnd(spot)} />
-              ))}
+          <div className="pk-lot">
+            <div className="pk-g pk-laundry">
+              <div className="pk-washers"><span /><span /><span /><span /></div>
+              投幣式洗濯機　coin laundry　コインランドリー
             </div>
+
+            <div className="pk-g pk-zone-y1">
+              <div className="pk-zone-row">
+                <PkTile spot={byNum('⑫')} usage={activeUsageBySpot[byNum('⑫')?.id]} onClick={onTileClick} canEdit={canEdit} />
+                <PkTile spot={byNum('⑪')} usage={activeUsageBySpot[byNum('⑪')?.id]} onClick={onTileClick} canEdit={canEdit} />
+              </div>
+            </div>
+
+            <div className="pk-g pk-bikefree">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="1.7"><circle cx="7" cy="18" r="2.3" /><circle cx="17" cy="18" r="2.3" /><path d="M7 18l3-8h6l2.5 4M10 10h5" /></svg>
+              無料駐車スペース<br />自転車
+            </div>
+
+            <div className="pk-g pk-disabled">
+              <div className="pk-disabled-cars"><PkTile spot={byNum('⑭')} usage={activeUsageBySpot[byNum('⑭')?.id]} onClick={onTileClick} canEdit={canEdit} /></div>
+              <div className="pk-disabled-cars">
+                <PkTile spot={byNum('⑮')} usage={activeUsageBySpot[byNum('⑮')?.id]} onClick={onTileClick} canEdit={canEdit} />
+                <div className="pk-no-entry" />
+              </div>
+              <div className="pk-disabled-label">身障者優先<br />駐車スペース</div>
+            </div>
+
+            <div className="pk-g pk-zone-y2">
+              <div className="pk-zone-row">
+                <PkTile spot={byNum('⑬')} usage={activeUsageBySpot[byNum('⑬')?.id]} onClick={onTileClick} canEdit={canEdit} />
+                <PkTile spot={companySpot} usage={activeUsageBySpot[companySpot?.id]} onClick={onTileClick} canEdit={canEdit} isCompany />
+                <PkTile spot={byNum('⑨')} usage={activeUsageBySpot[byNum('⑨')?.id]} onClick={onTileClick} canEdit={canEdit} />
+              </div>
+            </div>
+
+            <div className="pk-g pk-arrow-l1"><ArrowUp /></div>
+            <div className="pk-g pk-restroom">
+              <div className="pk-badge pk-women"><svg viewBox="0 0 24 24" fill="#fff"><circle cx="12" cy="6" r="3.4" /><path d="M12 10c-4 0-6 3-6 7v5h12v-5c0-4-2-7-6-7z" /></svg></div>
+              <div className="pk-badge pk-men"><svg viewBox="0 0 24 24" fill="#fff"><circle cx="12" cy="6" r="3.4" /><path d="M8 10h8l1 12H7z" /></svg></div>
+            </div>
+            <div className="pk-g pk-zone-blue">
+              <div className="pk-zone-col">
+                <PkTile spot={byNum('⑧')} usage={activeUsageBySpot[byNum('⑧')?.id]} onClick={onTileClick} canEdit={canEdit} />
+                <PkTile spot={byNum('⑦')} usage={activeUsageBySpot[byNum('⑦')?.id]} onClick={onTileClick} canEdit={canEdit} />
+                <PkTile spot={byNum('⑥')} usage={activeUsageBySpot[byNum('⑥')?.id]} onClick={onTileClick} canEdit={canEdit} />
+              </div>
+            </div>
+
+            <div className="pk-g pk-arrow-l2"><ArrowLeft /></div>
+            <div className="pk-g pk-elevator">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3C8A3C" strokeWidth="1.8"><circle cx="12" cy="6" r="1.6" /><path d="M12 8v5m0 0l-3 7m3-7l3 7M8 11h8" /></svg>
+              <div>エレベーター<br />電梯<br />elevator</div>
+            </div>
+
+            <div className="pk-g pk-arrow-l3"><ArrowUp /></div>
+            <div className="pk-g pk-zone-green">
+              <div className="pk-zone-col">
+                <PkTile spot={byNum('⑤')} usage={activeUsageBySpot[byNum('⑤')?.id]} onClick={onTileClick} canEdit={canEdit} />
+                <PkTile spot={byNum('④')} usage={activeUsageBySpot[byNum('④')?.id]} onClick={onTileClick} canEdit={canEdit} />
+                <PkTile spot={byNum('③')} usage={activeUsageBySpot[byNum('③')?.id]} onClick={onTileClick} canEdit={canEdit} />
+                <PkTile spot={byNum('②')} usage={activeUsageBySpot[byNum('②')?.id]} onClick={onTileClick} canEdit={canEdit} />
+              </div>
+            </div>
+
+            <div className="pk-g pk-front">フロント　front desk</div>
+            <div className="pk-g pk-restaurant">レストラン　餐廳<br />restaurant</div>
+
+            <div className="pk-g pk-entrance"><div className="pk-entrance-label">入口</div></div>
+            <div className="pk-g pk-zone-pink">
+              <div className="pk-zone-row">
+                <div className="pk-vcaption">バイク優先駐車スペース</div>
+                <PkTile spot={byNum('①')} usage={activeUsageBySpot[byNum('①')?.id]} onClick={onTileClick} canEdit={canEdit} />
+              </div>
+            </div>
+
+            <div className="pk-g pk-arrow-b"><ArrowUp big /></div>
+            <div className="pk-g pk-smoke">
+              <div className="pk-smoke-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2E7D32" strokeWidth="1.8"><path d="M2 12h16M14 8c0 2 2 2 2 4M18 8c0 2 2 2 2 4" /></svg></div>
+              <div className="pk-smoke-label">禁煙エリア<br />SMOKING AREA</div>
+            </div>
+            <div className="pk-g pk-vending">植木<br />自動販売機<br />vending machine</div>
           </div>
 
-          <ParkingZone title="大型車優先スペース" color={DASH.blue} tint="58,109,255" spots={byType('large')} usageMap={activeUsageBySpot} canEdit={canEdit} onOpenStart={openStart} onOpenEnd={openEnd} area="pk-zone-large" cols={3} />
-
-          <div className="pk-arrow"><svg viewBox="0 0 24 24" width="22" height="40" fill="none" stroke={DASH.gold} strokeWidth="2.2" opacity=".8"><path d="M12 3v18M6 9l6-6 6 6" /></svg></div>
-          <div className="pk-box pk-bldg-rest">
-            <div className="pk-rm"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="12" cy="7" r="3" /><path d="M6 21v-2a6 6 0 0112 0v2" /></svg>WOMEN</div>
-            <div className="pk-rm"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="12" cy="7" r="3" /><path d="M6 21v-2a6 6 0 0112 0v2" /></svg>MEN</div>
-          </div>
-
-          <ParkingZone title="普通車優先スペース" color={DASH.green} tint="34,197,94" spots={byType('regular')} usageMap={activeUsageBySpot} canEdit={canEdit} onOpenStart={openStart} onOpenEnd={openEnd} area="pk-zone-regular" cols={4} />
-
-          <div className="pk-arrow"><svg viewBox="0 0 24 24" width="22" height="40" fill="none" stroke={DASH.gold} strokeWidth="2.2" opacity=".8"><path d="M12 3v18M6 9l6-6 6 6" /></svg></div>
-          <div className="pk-box pk-bldg-elev">
-            <div className="pk-rm" style={{ flex: 1 }}><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" style={{ display: 'block', margin: '0 auto 3px' }}><rect x="6" y="3" width="12" height="18" rx="1.5" /></svg>エレベーター</div>
-            <div className="pk-rm" style={{ flex: 1 }}><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" style={{ display: 'block', margin: '0 auto 3px' }}><circle cx="12" cy="6" r="1.5" /><path d="M12 8v5m0 0l-3 7m3-7l3 7M8 11h8" /></svg>車椅子対応</div>
-          </div>
-
-          <div className="pk-box pk-bldg-front" style={{ gridArea: 'pk-bldg-front' }}>フロント<br />front desk</div>
-          <div className="pk-box pk-bldg-food" style={{ gridArea: 'pk-bldg-food' }}>レストラン<br />restaurant</div>
-
-          <div className="pk-box pk-entrance">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke={DASH.gold} strokeWidth="2.2"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
-            <div style={{ fontSize: 12, fontWeight: 800, color: DASH.gold, letterSpacing: 1 }}>入口 ENTRANCE</div>
-          </div>
-          <ParkingZone title="バイク優先スペース" color={DASH.purple} tint="169,112,255" spots={byType('bike')} usageMap={activeUsageBySpot} canEdit={canEdit} onOpenStart={openStart} onOpenEnd={openEnd} area="pk-zone-bike" cols={4} />
-
-          <div className="pk-box pk-smoke">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M2 12h16M14 8c0 2 2 2 2 4M18 8c0 2 2 2 2 4" /></svg>
-            喫煙所
-          </div>
-          <div className="pk-box pk-vending">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.6"><rect x="4" y="9" width="16" height="9" rx="1.5" /><path d="M8 9V6a4 4 0 018 0v3" /></svg>
-            植木・自動販売機
-          </div>
+          <div className="pk-frame-note">※ 番号は現地案内図に忠実(⑩は現地案内図にも存在しないため欠番)。クリックで利用登録・終了ができます。</div>
         </div>
       </AsyncBoundary>
 
@@ -175,7 +213,7 @@ export default function Parking() {
       {endTarget && (
         <Modal title={`${endTarget.spot.spot_number} の利用終了`} icon="ti-player-stop" onClose={() => setEndTarget(null)} onSave={confirmEnd} saveLabel="終了する(空車に戻す)" width={360}>
           <div style={{ textAlign: 'center', padding: '10px 0 4px' }}>
-            <svg width="40" height="60" viewBox="0 0 40 70" style={{ margin: '0 auto 12px', display: 'block' }} className="pk-car-icon st-occupied"><use href="#pk-car-icon-symbol" /></svg>
+            <svg width="30" height="48" viewBox="0 0 26 42" style={{ margin: '0 auto 12px', display: 'block' }}><use href="#pk-trace-car" className="pk-tc-occupied" /></svg>
             {endTarget.usage?.stays?.guest_name && (
               <div style={{ fontSize: 13, fontWeight: 700, color: DASH.textMain, marginBottom: 4 }}>
                 {endTarget.usage.stays.rooms?.room_number ? `${endTarget.usage.stays.rooms.room_number}号室 ` : ''}{endTarget.usage.stays.guest_name}様
@@ -189,132 +227,120 @@ export default function Parking() {
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
 
       {/* 車アイコン(上から見た形)を1回だけ定義して使い回す。<use>の
-          参照先へはCSSカスタムプロパティ経由でのみ色を渡せる(通常の
-          子孫セレクタはshadow相当の複製ツリーへ届かないため)。 */}
+          参照先へはCSSカスタムプロパティ経由でのみ色を渡せる。 */}
       <svg width="0" height="0" style={{ position: 'absolute' }}>
-        <symbol id="pk-car-icon-symbol" viewBox="0 0 40 70">
-          <rect x="3" y="3" width="34" height="64" rx="15" fill="var(--car-body, #E8ECF3)" stroke="var(--car-stroke, #C7D0E0)" strokeWidth="1.6" />
-          <rect x="9" y="12" width="22" height="15" rx="4" fill="var(--car-window, #A9B4C9)" />
-          <rect x="9" y="43" width="22" height="15" rx="4" fill="var(--car-window, #A9B4C9)" />
+        <symbol id="pk-trace-car" viewBox="0 0 26 42">
+          <rect x="2" y="2" width="22" height="38" rx="8" fill="var(--tc-body, #F2F4F7)" stroke="var(--tc-stroke, #999)" strokeWidth="1.3" />
+          <rect x="6" y="7" width="14" height="9" rx="2.5" fill="var(--tc-window, #9FB4CE)" />
+          <rect x="6" y="25" width="14" height="9" rx="2.5" fill="var(--tc-window, #9FB4CE)" />
         </symbol>
       </svg>
 
       <style>{`
-        .pk-floorplan {
-          background: ${DASH.surface1}; border: 1px solid ${DASH.border}; border-radius: 14px; padding: 16px;
-          display: grid; grid-template-columns: 100px 200px 90px 1fr; gap: 8px;
-          grid-template-areas:
-            "pk-laundry  pk-laundry   .    pk-zone-compact"
-            "pk-bikefree pk-disabled  .    pk-zone-compact"
-            "pk-bikefree pk-disabled  .    pk-zone-compact"
-            "pk-arrow1   pk-bldg-rest .    pk-zone-large"
-            "pk-arrow1   pk-bldg-rest .    pk-zone-large"
-            "pk-arrow1   pk-bldg-elev .    pk-zone-large"
-            ".           pk-bldg-front . pk-zone-regular"
-            ".           pk-bldg-food .  pk-zone-regular"
-            ".           pk-bldg-food .  pk-zone-regular"
-            "pk-entrance pk-entrance  pk-zone-bike pk-zone-bike"
-            ".           .            pk-smoke     pk-vending";
-        }
-        @media (max-width: 900px) {
-          .pk-floorplan { grid-template-columns: 1fr; grid-template-areas:
-            "pk-laundry" "pk-bikefree" "pk-disabled" "pk-bldg-rest" "pk-bldg-elev" "pk-bldg-front" "pk-bldg-food"
-            "pk-zone-compact" "pk-zone-large" "pk-zone-regular" "pk-zone-bike" "pk-entrance" "pk-smoke" "pk-vending"; }
-          .pk-arrow { display: none; }
-        }
-        .pk-box { background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 10px; padding: 9px 10px; font-size: 10.5px; color: ${DASH.textFaint}; }
-        .pk-laundry { grid-area: pk-laundry; display: flex; align-items: center; gap: 8px; }
-        .pk-laundry-icons { display: flex; gap: 4px; }
-        .pk-laundry-icons span { width: 20px; height: 20px; border-radius: 5px; border: 1.5px solid ${DASH.textFaint}; }
-        .pk-bikefree { grid-area: pk-bikefree; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 4px; }
-        .pk-disabled { grid-area: pk-disabled; background: rgba(255,138,122,.08); border: 1.5px solid rgba(255,138,122,.5); border-radius: 10px; padding: 8px; position: relative; }
-        .pk-no-entry { position: absolute; top: 6px; right: 8px; width: 16px; height: 16px; border-radius: 50%; border: 2px solid ${DASH.alert}; }
-        .pk-no-entry::before { content: ''; position: absolute; inset: 2px; background: linear-gradient(45deg, transparent 46%, ${DASH.alert} 48%, ${DASH.alert} 52%, transparent 54%); }
-        .pk-arrow { grid-area: pk-arrow1; display: flex; align-items: center; justify-content: center; }
-        .pk-bldg-rest { grid-area: pk-bldg-rest; display: flex; gap: 6px; }
-        .pk-bldg-elev { grid-area: pk-bldg-elev; display: flex; gap: 6px; }
-        .pk-rm { flex: 1; text-align: center; }
-        .pk-bldg-front { background: rgba(212,175,55,.08); border-color: rgba(212,175,55,.35); }
-        .pk-entrance { grid-area: pk-entrance; background: linear-gradient(180deg, rgba(212,175,55,.14), rgba(212,175,55,.02)); border: 1.5px dashed rgba(212,175,55,.55); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
-        .pk-smoke { grid-area: pk-smoke; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
-        .pk-vending { grid-area: pk-vending; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .pk-frame { background: #FFFFFF; border-radius: 6px; padding: 16px; }
+        .pk-frame-title { font-size: 12px; color: #111; margin-bottom: 10px; }
+        .pk-frame-note { font-size: 9.5px; color: #555; margin-top: 8px; }
 
-        .pk-zone-label { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 800; letter-spacing: .4px; margin-bottom: 8px; }
-        .pk-car-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; }
-
-        .pk-spot { position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; }
-        .pk-spot.editable { cursor: pointer; }
-        .pk-spot-car { width: 46px; height: 68px; position: relative; }
-        .pk-spot-car .pk-car-icon { width: 100%; height: 100%; display: block; }
-        .pk-spot-badge {
-          position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
-          width: 17px; height: 17px; border-radius: 50%; background: ${DASH.card}; border: 1.4px solid ${DASH.textFaint};
-          display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; color: ${DASH.textMain}; z-index: 3;
+        .pk-lot {
+          border: 2px solid #111; position: relative; display: grid; gap: 0;
+          grid-template-columns: minmax(96px,108px) minmax(140px,168px) minmax(46px,66px) 1fr;
+          grid-template-rows: 54px 54px 54px 54px 54px 54px 50px 50px 44px 74px 44px;
+          font-size: 10px; color: #111;
         }
-        .pk-spot.occupied .pk-spot-badge { border-color: ${DASH.gold}; }
-        .pk-spot-info { font-size: 7.5px; color: ${DASH.textFaint}; text-align: center; line-height: 1.3; max-width: 70px; }
-        .pk-spot-info b { color: ${DASH.textSub}; display: block; font-weight: 700; }
+        .pk-lot .pk-g { border: 1px solid #333; overflow: hidden; }
 
-        .pk-spot .pk-tooltip {
+        .pk-laundry   { grid-column: 1 / 3; grid-row: 1; padding: 5px 7px; background: #fff; }
+        .pk-zone-y1   { grid-column: 4; grid-row: 1 / 3; background: #FFF200; }
+        .pk-bikefree  { grid-column: 1; grid-row: 2 / 4; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 3px; padding: 4px; }
+        .pk-disabled  { grid-column: 2; grid-row: 2 / 5; border: 2.5px solid #E53935; background: #FBE4D0; display: flex; flex-direction: column; padding: 4px; gap: 2px; }
+        .pk-zone-y2   { grid-column: 4; grid-row: 3; background: #FFF200; }
+        .pk-arrow-l1  { grid-column: 1; grid-row: 4; display: flex; align-items: center; justify-content: center; }
+        .pk-restroom  { grid-column: 2; grid-row: 5; display: flex; align-items: center; gap: 6px; padding: 4px 6px; }
+        .pk-zone-blue { grid-column: 4; grid-row: 4 / 7; background: #AEE0F5; }
+        .pk-arrow-l2  { grid-column: 1; grid-row: 5; display: flex; align-items: center; justify-content: center; }
+        .pk-elevator  { grid-column: 2; grid-row: 6; display: flex; align-items: center; gap: 6px; padding: 4px 6px; }
+        .pk-arrow-l3  { grid-column: 1; grid-row: 6; display: flex; align-items: center; justify-content: center; }
+        .pk-zone-green{ grid-column: 4; grid-row: 7 / 10; background: #A8E6A0; }
+        .pk-front     { grid-column: 1 / 3; grid-row: 7; display: flex; align-items: center; padding: 6px 10px; background: #fff; }
+        .pk-restaurant{ grid-column: 1 / 3; grid-row: 8 / 10; display: flex; align-items: center; padding: 6px 10px; background: #fff; }
+        .pk-entrance  { grid-column: 1 / 3; grid-row: 10; display: flex; align-items: center; justify-content: center; }
+        .pk-zone-pink { grid-column: 3 / 5; grid-row: 10; background: #F2C9E0; }
+        .pk-arrow-b   { grid-column: 1 / 3; grid-row: 11; display: flex; align-items: center; justify-content: center; }
+        .pk-smoke     { grid-column: 3; grid-row: 11; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+        .pk-vending   { grid-column: 4; grid-row: 11; background: #A8E6A0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 2px; }
+
+        @media (max-width: 820px) {
+          .pk-lot { grid-template-columns: 1fr 1fr; grid-template-rows: auto; }
+          .pk-lot .pk-g { grid-column: auto !important; grid-row: auto !important; min-height: 60px; }
+          .pk-arrow-l1, .pk-arrow-l2, .pk-arrow-l3, .pk-arrow-b { display: none !important; }
+        }
+
+        .pk-washers { display: flex; gap: 3px; margin-bottom: 2px; }
+        .pk-washers span { flex: 1; height: 18px; border: 1.3px solid #111; }
+
+        .pk-badge { width: 22px; height: 22px; border-radius: 3px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .pk-women { background: #C0392B; }
+        .pk-men { background: #2E5FA3; }
+        .pk-badge svg { width: 14px; height: 14px; }
+
+        .pk-no-entry { width: 15px; height: 15px; border-radius: 50%; border: 2px solid #C0392B; position: relative; flex-shrink: 0; }
+        .pk-no-entry::before { content: ''; position: absolute; inset: 1.5px; background: linear-gradient(45deg, transparent 45%, #C0392B 47%, #C0392B 53%, transparent 55%); }
+        .pk-disabled-cars { display: flex; align-items: center; gap: 6px; flex: 1; justify-content: center; }
+        .pk-disabled-label { font-size: 8px; color: #C0392B; font-weight: 700; text-align: center; line-height: 1.3; }
+
+        .pk-zone-row { display: flex; align-items: center; justify-content: center; gap: 6px; height: 100%; flex-wrap: nowrap; padding: 2px; }
+        .pk-zone-col { display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; height: 100%; padding: 2px; }
+        .pk-vcaption { writing-mode: vertical-rl; font-size: 9px; font-weight: 800; letter-spacing: 1px; flex-shrink: 0; }
+
+        .pk-entrance-label { font-size: 12px; font-weight: 800; color: #111; }
+        .pk-smoke-icon { width: 22px; height: 22px; border: 1.5px solid #2E7D32; border-radius: 3px; display: flex; align-items: center; justify-content: center; }
+        .pk-smoke-label { font-size: 6.5px; text-align: center; }
+
+        .pk-tile { display: flex; flex-direction: column; align-items: center; gap: 1px; flex-shrink: 0; }
+        .pk-tile.clickable { cursor: pointer; }
+        .pk-tile-car { width: 24px; height: 38px; position: relative; }
+        .pk-tile-car svg { width: 100%; height: 100%; display: block; }
+        .pk-tile-num { font-size: 8px; font-weight: 800; color: #111; }
+        .pk-tile-num.gold { color: ${DASH.gold}; }
+        .pk-tile-num.red { color: #C0392B; }
+
+        .pk-tile-wrap { position: relative; }
+        .pk-tooltip {
           display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
           background: ${DASH.card}; border: 1px solid ${DASH.border}; border-radius: 10px; padding: 10px 12px;
-          width: 178px; box-shadow: 0 10px 30px rgba(0,0,0,.35); z-index: 30; text-align: left;
+          width: 178px; box-shadow: 0 10px 30px rgba(0,0,0,.35); z-index: 30; text-align: left; font-size: 10.5px;
         }
-        .pk-spot:hover .pk-tooltip { display: block; }
-        .pk-tt-row { display: flex; justify-content: space-between; font-size: 10.5px; padding: 2px 0; gap: 8px; }
+        .pk-tile-wrap:hover .pk-tooltip { display: block; }
+        .pk-tt-row { display: flex; justify-content: space-between; padding: 2px 0; gap: 8px; }
         .pk-tt-row span:first-child { color: ${DASH.textFaint}; flex-shrink: 0; }
         .pk-tt-row span:last-child { color: ${DASH.textMain}; font-weight: 600; text-align: right; }
 
-        .st-vacant   { --car-body: #E8ECF3; --car-stroke: #C7D0E0; --car-window: #A9B4C9; }
-        .st-occupied { --car-body: #0B0D12; --car-stroke: ${DASH.gold}; --car-window: #2A2E38; }
-        .st-company  { --car-body: #E85DC0; --car-stroke: #C23FA0; --car-window: #F3A6DC; }
-        .disabled-ring { --car-stroke: #3A6DFF; }
+        .pk-tc-vacant   { --tc-body: #F2F4F7; --tc-stroke: #999; --tc-window: #9FB4CE; }
+        .pk-tc-occupied { --tc-body: #111318; --tc-stroke: ${DASH.gold}; --tc-window: #333; }
+        .pk-tc-company  { --tc-body: #E8299A; --tc-stroke: #A81C6E; --tc-window: #F5A9D8; }
       `}</style>
     </DarkPage>
   )
 }
 
-function ParkingZone({ title, color, spots, usageMap, canEdit, onOpenStart, onOpenEnd, area, cols = 5 }) {
-  return (
-    <div className="pk-box" style={{ gridArea: area, background: `rgba(${zoneRgbOf(color)},.08)`, borderColor: `rgba(${zoneRgbOf(color)},.3)` }}>
-      <div className="pk-zone-label" style={{ color }}>● {title}</div>
-      <div className="pk-car-grid" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
-        {spots.map(spot => (
-          <ParkingSpotTile
-            key={spot.id} spot={spot} usage={usageMap[spot.id]} canEdit={canEdit}
-            onClick={() => spot.status === 'vacant' ? onOpenStart(spot) : onOpenEnd(spot)}
-          />
-        ))}
-      </div>
-    </div>
-  )
+function ArrowUp({ big }) {
+  return <svg viewBox="0 0 24 40" width={big ? 20 : 16} height={big ? 34 : 28} fill="none" stroke="#111" strokeWidth="3"><path d="M12 38V4M4 12l8-8 8 8" /></svg>
+}
+function ArrowLeft() {
+  return <svg viewBox="0 0 40 24" width="28" height="18" fill="none" stroke="#111" strokeWidth="3"><path d="M38 12H4M12 4l-8 8 8 8" /></svg>
 }
 
-// DASHトークンはvar(--ds-*)参照のため、rgba()の元になるRGB値をJS側で
-// 別途保持する(このファイル内の装飾用途のみ、DASHの値自体は変更しない)。
-function zoneRgbOf(color) {
-  if (color === DASH.gold) return '212,175,55'
-  if (color === DASH.blue) return '58,109,255'
-  if (color === DASH.green) return '34,197,94'
-  if (color === DASH.purple) return '169,112,255'
-  return '138,150,172'
-}
-
-function ParkingSpotTile({ spot, usage, canEdit, disabledRing, onClick }) {
+function PkTile({ spot, usage, canEdit, isCompany, onClick }) {
+  if (!spot) return null
   const isOccupied = spot.status === 'occupied'
-  const isCompany = spot.spot_type === 'company'
-  const stateClass = isCompany ? 'st-company' : (isOccupied ? 'st-occupied' : 'st-vacant')
   const clickable = canEdit && (spot.status === 'vacant' || spot.status === 'occupied')
+  const stateClass = isCompany ? 'pk-tc-company' : (isOccupied ? 'pk-tc-occupied' : 'pk-tc-vacant')
+  const numClass = isCompany ? 'red' : (isOccupied ? 'gold' : '')
   return (
-    <div className={`pk-spot ${isOccupied ? 'occupied' : ''} ${clickable ? 'editable' : ''}`} onClick={clickable ? onClick : undefined}>
-      <div className="pk-spot-car">
-        <div className="pk-spot-badge">{isCompany ? '社' : spot.spot_number}</div>
-        <svg className={`pk-car-icon ${stateClass} ${disabledRing ? 'disabled-ring' : ''}`} viewBox="0 0 40 70"><use href="#pk-car-icon-symbol" /></svg>
-      </div>
-      <div className="pk-spot-info">
-        {isOccupied && usage
-          ? <><b>{usage.stays?.rooms?.room_number ? `${usage.stays.rooms.room_number}号室` : ''}</b>{usage.stays?.guest_name}</>
-          : (isCompany ? '社用車' : '空車')}
+    <div className="pk-tile-wrap">
+      <div className={`pk-tile ${clickable ? 'clickable' : ''}`} onClick={clickable ? () => onClick(spot) : undefined}>
+        <div className="pk-tile-car"><svg viewBox="0 0 26 42"><use href="#pk-trace-car" className={stateClass} /></svg></div>
+        <div className={`pk-tile-num ${numClass}`}>{isCompany ? '社用' : spot.spot_number}</div>
       </div>
       {isOccupied && usage && (
         <div className="pk-tooltip">
