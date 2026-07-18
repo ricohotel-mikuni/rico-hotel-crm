@@ -137,6 +137,7 @@ export function useMyNotifications(limit = 50) {
     supabase.from('notification_reads')
       .upsert({ notification_id: notificationId, employee_id: employeeId }, { onConflict: 'notification_id,employee_id' })
       .then(({ error }) => { if (error) console.error('[useMyNotifications] markRead failed:', error) })
+      .catch(e => console.error('[useMyNotifications] markRead threw:', e))
   }, [employeeId])
 
   const markAllRead = useCallback(() => {
@@ -146,6 +147,7 @@ export function useMyNotifications(limit = 50) {
     supabase.from('notification_reads')
       .upsert(unread.map(n => ({ notification_id: n.id, employee_id: employeeId })), { onConflict: 'notification_id,employee_id' })
       .then(({ error }) => { if (error) console.error('[useMyNotifications] markAllRead failed:', error) })
+      .catch(e => console.error('[useMyNotifications] markAllRead threw:', e))
   }, [employeeId, items])
 
   const unreadCount = items.filter(n => !n.readByMe).length

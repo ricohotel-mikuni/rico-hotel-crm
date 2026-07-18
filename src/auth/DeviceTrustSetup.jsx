@@ -35,24 +35,36 @@ export default function DeviceTrustSetup({ onDone }) {
     let cancelled = false
     async function init() {
       if (!user) { onDone(); return }
-      const { data: emp } = await supabase.from('employees').select('id, full_name').eq('user_id', user.id).maybeSingle()
-      if (!emp) { onDone(); return }
-      const { data: dir } = await supabase.from('v_employee_directory').select('department_name, position').eq('id', emp.id).maybeSingle()
-      if (cancelled) return
-      const full = { employee_id: emp.id, full_name: emp.full_name, department_name: dir?.department_name || '', position: dir?.position || '' }
-      setEmployee(full)
+      try {
+        const { data: emp } = await supabase.from('employees').select('id, full_name').eq('user_id', user.id).maybeSingle()
+        if (!emp) { onDone(); return }
+        const { data: dir } = await supabase.from('v_employee_directory').select('department_name, position').eq('id', emp.id).maybeSingle()
+        if (cancelled) return
+        const full = { employee_id: emp.id, full_name: emp.full_name, department_name: dir?.department_name || '', position: dir?.position || '' }
+        setEmployee(full)
 
-      const existing = findRosterEntry(emp.id)
-      if (existing) {
-        // この端末は既に信頼済み — register_trusted_device を再実行して
-        // 30日有効期限だけスライドさせる(表示名等が変わっていれば更新)
-        upsertRosterEntry(full)
-        supabase.rpc('register_trusted_device', { p_device_id: getDeviceId(), p_device_label: guessDeviceLabel() })
-          .then(({ error }) => { if (error) console.error('[DeviceTrustSetup] expiry refresh failed:', error) })
-        onDone()
-        return
+        const existing = findRosterEntry(emp.id)
+        if (existing) {
+          // この端末は既に信頼済み — register_trusted_device を再実行して
+          // 30日有効期限だけスライドさせる(表示名等が変わっていれば更新)
+          upsertRosterEntry(full)
+          supabase.rpc('register_trusted_device', { p_device_id: getDeviceId(), p_device_label: guessDeviceLabel() })
+            .then(({ error }) => { if (error) console.error('[DeviceTrustSetup] expiry refresh failed:', error) })
+            .catch(e => console.error('[DeviceTrustSetup] expiry refresh threw:', e))
+          onDone()
+          return
+        }
+        setStage('prompt')
+      } catch (e) {
+        // 安定化是正(2026-07-18): try/catchが無く、ここでの例外(ネット
+        // ワーク瞬断等)がUnhandled Promise Rejectionになるだけでなく、
+        // stage:'checking'のまま永久にスピナーが固まり、パスワード
+        // ログイン直後の画面遷移が止まって見える不具合になっていた。
+        // 端末信頼登録は必須機能ではないため、失敗時は安全側に倒して
+        // そのままダッシュボードへ進める(縮退動作)。
+        console.error('[DeviceTrustSetup] init failed:', e)
+        if (!cancelled) onDone()
       }
-      setStage('prompt')
     }
     init()
     return () => { cancelled = true }

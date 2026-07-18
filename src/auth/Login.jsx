@@ -38,6 +38,7 @@ export default function Login({ notice, onLoggedIn }) {
       sessionStorage.setItem(JUST_PASSWORD_SIGNED_IN_KEY, '1')
       supabase.rpc('record_password_login', { p_device_id: getDeviceId() })
         .then(({ error }) => { if (error) console.error('[Login] record_password_login failed:', error) })
+        .catch(e => console.error('[Login] record_password_login threw:', e))
       // パスワードでの認証はPINより強い証明なので、このタブでは
       // 改めてPINロックを要求しない(次回起動時は通常どおりロックされる)。
       unlock()

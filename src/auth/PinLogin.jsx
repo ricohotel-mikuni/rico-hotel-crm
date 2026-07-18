@@ -57,63 +57,75 @@ export default function PinLogin({ onUnlocked, onUsePassword }) {
 
   const pickUser = (u) => { setActiveUser(u); setFailCount(0); setPinMsg(''); setShakeToken(null); setStage('pin') }
 
+  // 安定化是正(2026-07-18): try/catchが無く、verify_employee_pin RPCや
+  // 後続のgetSession/employees照会が例外を投げる(ネットワーク瞬断等)
+  // とUnhandled Promise Rejectionになるだけでなく、setBusy(false)が
+  // 呼ばれずPINパッドが「busy」のまま操作不能に固まっていた(PINログ
+  // インが反応しなくなる不具合の実際の原因になり得る)。
   const handlePinComplete = async (pin) => {
     if (!activeUser) return
     setBusy(true)
     setPinMsg('')
-    const { data, error } = await supabase.rpc('verify_employee_pin', {
-      p_employee_id: activeUser.employee_id, p_device_id: getDeviceId(), p_pin: pin,
-    })
-    setBusy(false)
+    try {
+      const { data, error } = await supabase.rpc('verify_employee_pin', {
+        p_employee_id: activeUser.employee_id, p_device_id: getDeviceId(), p_pin: pin,
+      })
+      setBusy(false)
 
-    if (error) { setPinMsg('通信エラーが発生しました。もう一度お試しください'); setShakeToken(Date.now()); return }
+      if (error) { setPinMsg('通信エラーが発生しました。もう一度お試しください'); setShakeToken(Date.now()); return }
 
-    if (data?.ok) {
-      // このブラウザに今実際に生きているSupabaseセッションが、選んだ
-      // 本人のものかを確認する。共有端末で複数人がrosterに載っている
-      // 場合、PINが合っていても「今のセッションの持ち主」と選んだ人が
-      // 違えば、unlock()では別人のセッションを見せてしまう(このタブは
-      // 一度に1人分のセッションしか保持していないため、まだPINだけで
-      // 別人へ安全に切り替える手段が無い) — その場合は安全側に倒し、
-      // パスワードでの再ログインを求める。
-      const { data: { session } } = await supabase.auth.getSession()
-      const { data: liveEmp } = session?.user
-        ? await supabase.from('employees').select('id').eq('user_id', session.user.id).maybeSingle()
-        : { data: null }
+      if (data?.ok) {
+        // このブラウザに今実際に生きているSupabaseセッションが、選んだ
+        // 本人のものかを確認する。共有端末で複数人がrosterに載っている
+        // 場合、PINが合っていても「今のセッションの持ち主」と選んだ人が
+        // 違えば、unlock()では別人のセッションを見せてしまう(このタブは
+        // 一度に1人分のセッションしか保持していないため、まだPINだけで
+        // 別人へ安全に切り替える手段が無い) — その場合は安全側に倒し、
+        // パスワードでの再ログインを求める。
+        const { data: { session } } = await supabase.auth.getSession()
+        const { data: liveEmp } = session?.user
+          ? await supabase.from('employees').select('id').eq('user_id', session.user.id).maybeSingle()
+          : { data: null }
 
-      if (!liveEmp || liveEmp.id !== activeUser.employee_id) {
-        onUsePassword(`${activeUser.full_name}様としてこの端末を使うには、一度パスワードでログインしてください。`)
+        if (!liveEmp || liveEmp.id !== activeUser.employee_id) {
+          onUsePassword(`${activeUser.full_name}様としてこの端末を使うには、一度パスワードでログインしてください。`)
+          return
+        }
+
+        setStage('success')
+        // セッションはApp.jsx側で既に生きている — ロックを外すだけでよい。
+        setTimeout(onUnlocked, 550)
         return
       }
 
-      setStage('success')
-      // セッションはApp.jsx側で既に生きている — ロックを外すだけでよい。
-      setTimeout(onUnlocked, 550)
-      return
-    }
+      if (data?.reason === 'locked') {
+        const secs = Math.max(1, Math.ceil((new Date(data.locked_until).getTime() - Date.now()) / 1000))
+        setLockSeconds(secs)
+        setStage('locked')
+        return
+      }
 
-    if (data?.reason === 'locked') {
-      const secs = Math.max(1, Math.ceil((new Date(data.locked_until).getTime() - Date.now()) / 1000))
-      setLockSeconds(secs)
-      setStage('locked')
-      return
-    }
+      if (data?.reason === 'device_expired') {
+        removeRosterEntry(activeUser.employee_id)
+        onUsePassword('この端末の信頼登録は30日間利用が無かったため期限切れになりました。もう一度パスワードでログインしてください。')
+        return
+      }
 
-    if (data?.reason === 'device_expired') {
-      removeRosterEntry(activeUser.employee_id)
-      onUsePassword('この端末の信頼登録は30日間利用が無かったため期限切れになりました。もう一度パスワードでログインしてください。')
-      return
-    }
+      if (data?.reason === 'device_not_trusted' || data?.reason === 'not_enrolled') {
+        removeRosterEntry(activeUser.employee_id)
+        onUsePassword('この端末ではPINログインを利用できません。パスワードでログインしてください。')
+        return
+      }
 
-    if (data?.reason === 'device_not_trusted' || data?.reason === 'not_enrolled') {
-      removeRosterEntry(activeUser.employee_id)
-      onUsePassword('この端末ではPINログインを利用できません。パスワードでログインしてください。')
-      return
+      setFailCount(data?.failed_attempts ?? failCount + 1)
+      setPinMsg(`PINが正しくありません（失敗 ${data?.failed_attempts ?? failCount + 1}/5）`)
+      setShakeToken(Date.now())
+    } catch (e) {
+      console.error('[PinLogin] handlePinComplete failed:', e)
+      setBusy(false)
+      setPinMsg('通信エラーが発生しました。もう一度お試しください')
+      setShakeToken(Date.now())
     }
-
-    setFailCount(data?.failed_attempts ?? failCount + 1)
-    setPinMsg(`PINが正しくありません（失敗 ${data?.failed_attempts ?? failCount + 1}/5）`)
-    setShakeToken(Date.now())
   }
 
   if (roster.length === 0) return null

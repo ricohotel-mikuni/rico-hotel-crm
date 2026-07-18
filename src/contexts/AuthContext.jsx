@@ -41,9 +41,17 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     // Get initial session
+    // 安定化是正(2026-07-18): .catchが無く、getSession()が例外を投げる
+    // (ネットワーク瞬断・破損したlocalStorageトークン等)とUnhandled
+    // Promise Rejectionになるだけでなく、setLoading(false)が永久に
+    // 呼ばれずアプリ起動時のローディング画面から進めなくなっていた
+    // (ログイン画面すら表示されない=「何も起きない」ように見える)。
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       if (session?.user) fetchProfile(session.user.id)
+      setLoading(false)
+    }).catch(e => {
+      console.error('[AuthContext] getSession failed:', e)
       setLoading(false)
     })
 
@@ -64,16 +72,30 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe()
   }, [fetchProfile])
 
+  // 安定化是正(2026-07-18): @supabase/auth-jsのsignInWithPassword()は
+  // AuthError以外の例外(生のネットワークエラー等)をcatchせずthrowし
+  // 直す実装になっている(node_modules/@supabase/auth-js/src/
+  // GoTrueClient.tsのsignInWithPassword実装で確認)。ここにtry/catchが
+  // 無いと、呼び出し元のLogin.jsx handleSubmit()にもtry/catchが無い
+  // ためUnhandled Promise Rejectionになり、かつsetLoading(false)が
+  // 呼ばれずログインボタンが「ログイン中…」のまま固まる。
   const signIn = async (email, password) => {
     setError(null)
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      setError(error.message === 'Invalid login credentials'
-        ? 'メールアドレスまたはパスワードが正しくありません'
-        : error.message)
-      return { error }
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) {
+        setError(error.message === 'Invalid login credentials'
+          ? 'メールアドレスまたはパスワードが正しくありません'
+          : error.message)
+        return { error }
+      }
+      return { data }
+    } catch (e) {
+      console.error('[AuthContext] signIn threw:', e)
+      const msg = '通信エラーが発生しました。もう一度お試しください'
+      setError(msg)
+      return { error: msg }
     }
-    return { data }
   }
 
   // 正真正銘のサインアウト — Supabaseセッションを実際に破棄する。
@@ -89,8 +111,19 @@ export function AuthProvider({ children }) {
     // 「呼ぶが待たない」方式に統一し、監査ログ送信の遅延・失敗が
     // ログアウト本体を絶対にブロックしないようにする。
     supabase.rpc('record_logout').catch(e => console.error('[AuthContext] record_logout failed:', e))
-    const { error } = await supabase.auth.signOut()
-    if (error) console.error('[AuthContext] signOut error:', error)
+    // 安定化是正(2026-07-18): supabase.auth.signOut()もgetSession()/
+    // signInWithPassword()と同じGoTrueClient内部パスを通るため、
+    // ストレージ破損等でthrowし得る(_useSessionにcatchが無い実装を
+    // node_modules側で確認済み)。ここにtry/catchが無いと、呼び出し元
+    // (App.jsx/ProfileMenu.jsx)はsignOut()をawaitしないfire-and-forget
+    // 呼び出しのため、Unhandled Promise Rejectionになり、かつ
+    // setUser(null)等が実行されずログアウトが画面上で完了しない。
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) console.error('[AuthContext] signOut error:', error)
+    } catch (e) {
+      console.error('[AuthContext] signOut threw:', e)
+    }
     setUser(null)
     setProfile(null)
     setLocked(true)

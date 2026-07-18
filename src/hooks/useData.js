@@ -56,6 +56,19 @@ export function useTable(table, query = null, realtimeTable = table) {
   const [error, setError] = useState(null)
   const { user } = useAuth()
   const channelRef = useRef(null)
+  // 安定化是正(2026-07-18): チャンネル名が(realtimeKey, user.id)だけ
+  // で決まっていたため、同じテーブルを購読する複数のフックインスタンス
+  // が同じページ上に同時にマウントされると(例: PropertyHubが
+  // useMealService(hotelId,'breakfast')とuseMealService(hotelId,
+  // 'dinner')を同時に呼び、どちらも内部でuseTable('stays', ...)・
+  // useTable('meal_services', ...)を同一realtimeKeyで呼ぶ)、
+  // チャンネル名が完全に衝突し、Supabaseの「cannot add postgres_changes
+  // callbacks after subscribe()」エラーでクラッシュしていた(過去に
+  // useMyNotifications()で一度発見・修正済みの既知の不具合パターンが、
+  // 朝食/夕食モジュール追加で別のフックに再発したもの)。全フック
+  // インスタンスに固有のsuffixを付け、テーブル・ユーザーが同じでも
+  // 衝突しないようにする。
+  const instanceId = useRef(Math.random().toString(36).slice(2)).current
   const realtimeTables = Array.isArray(realtimeTable) ? realtimeTable : [realtimeTable]
   const realtimeKey = realtimeTables.join(',')
 
@@ -91,7 +104,7 @@ export function useTable(table, query = null, realtimeTable = table) {
     // Realtime subscription — one channel, subscribed to every table in
     // realtimeTables, so any of them changing (this tab, another tab,
     // another browser/device) refreshes without F5 or navigating away.
-    let channel = supabase.channel(`realtime:${realtimeKey}:${user.id}`)
+    let channel = supabase.channel(`realtime:${realtimeKey}:${user.id}:${instanceId}`)
     realtimeTables.forEach(t => {
       channel = channel.on('postgres_changes', { event: '*', schema: 'public', table: t }, () => load())
     })
