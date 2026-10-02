@@ -1,13 +1,15 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { usePermissions } from '../../permissions/PermissionContext'
 import { useUnreadCounts, useMyNotifications } from '../../hooks/useNotifications'
-import { useApprovalRequests, useClients, useContracts } from '../../hooks/useData'
+import { useApprovalRequests, useClients, useContracts, useExternalLinks } from '../../hooks/useData'
 import HubShell from '../../layout/HubShell'
 import { daiGreeting } from '../../ai/daiGreeting'
 import { COMPANY_MODULES } from './registry'
 import { DASH } from '../../lib/designSystem'
 import { DarkPage, TodayCard, TodayCardTitle, KpiGrid, KpiCell, ChartGrid, ChartCard, DarkPanel } from '../../ui/DesignSystemKit'
+import { Toast } from '../../ui'
 
 // 拠点ダッシュボードで確立したDesign System v1.0(docs/ui-design-system.md、
 // ERP開発憲章第37条)の第1弾展開先(会社ホーム)。TodayCard/KpiGrid/
@@ -71,6 +73,65 @@ const TODO_ITEMS = [
   { label: '新規営業先のフォロー', priority: '中', color: DASH.gold },
 ]
 
+// ── 外部サービスのクイックアクセス(承認済み提案書「Phase1: 外部
+// サービスへのワンクリックアクセス」) — URLはexternal_linksテーブル
+// (migration 031)から読み、コードにハードコードしない。key に無い
+// サービスが将来increaseしても壊れないよう、未知のkeyには汎用の
+// 外部リンクアイコンを出す(アイコンはkey固定、サービス名(label)は
+// 管理画面で自由に変更できる)。
+const EXTERNAL_LINK_STYLE = {
+  dropbox:    { color: '#0061FE', icon: (<path d="M7 3L2 6.5L7 10L12 6.5L7 3Z M17 3L12 6.5L17 10L22 6.5L17 3Z M2 13.5L7 17L12 13.5L7 10L2 13.5Z M17 10L12 13.5L17 17L22 13.5L17 10Z M7 18L12 21.5L17 18L12 14.5L7 18Z" fill="#0061FE" />) },
+  hotelsmart: { color: DASH.gold,  icon: (<path d="M4 21V9L12 3L20 9V21H14V15H10V21H4Z" stroke={DASH.gold} strokeWidth="1.6" strokeLinejoin="round" fill="none" />) },
+  line:       { color: '#06C755', icon: (<path d="M12 3C6.5 3 2 6.6 2 11c0 3.9 3.5 7.2 8.3 7.9-.1.5-.6 1.9-.7 2.2 0 0-.1.4.2.5.3.1.6 0 .6 0 .3-.1 3-2 4.2-2.9 5.5-.6 7.4-4 7.4-7.7 0-4.4-4.5-8-10-8Z" fill="#06C755" />) },
+}
+const DEFAULT_LINK_STYLE = { color: DASH.textFaint, icon: (<path d="M14 3h7v7M10 14 21 3M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5" stroke={DASH.textFaint} strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />) }
+
+function QuickAccessRow({ links, onMissingUrl }) {
+  const visible = links.filter(l => l.is_visible)
+  if (visible.length === 0) return null
+  return (
+    <div style={{ marginBottom: 24 }}>
+      <div style={{ fontSize: 11, color: DASH.gold, fontWeight: 700, letterSpacing: 2.5, marginBottom: 10 }}>クイックアクセス</div>
+      <div className="qa-row">
+        {visible.map(link => {
+          const style = EXTERNAL_LINK_STYLE[link.key] || DEFAULT_LINK_STYLE
+          const configured = !!link.url
+          const handleClick = () => {
+            if (!configured) return onMissingUrl(link.label)
+            window.open(link.url, '_blank', 'noopener,noreferrer')
+          }
+          return (
+            <button key={link.id} className="qa-btn" onClick={handleClick} style={{ cursor: 'pointer' }}>
+              <span className="qa-icon" style={{ background: `color-mix(in srgb, ${style.color} 16%, transparent)` }}>
+                <svg viewBox="0 0 24 24" width="22" height="22">{style.icon}</svg>
+              </span>
+              <span style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: DASH.textMain }}>{link.label}を開く</div>
+                <div style={{ fontSize: 10.5, color: configured ? DASH.textFaint : DASH.alert, fontWeight: configured ? 400 : 700 }}>
+                  {configured ? '↗ 新しいタブで開きます' : 'URL未設定(管理センターで設定してください)'}
+                </div>
+              </span>
+            </button>
+          )
+        })}
+      </div>
+      <style>{`
+        .qa-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+        @media (max-width: 760px) { .qa-row { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 480px) { .qa-row { grid-template-columns: 1fr; } }
+        .qa-btn {
+          display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 14px;
+          border: 1px solid ${DASH.border}; background: ${DASH.card}; box-shadow: ${DASH.cardShadow};
+          font-family: inherit; transition: border-color .15s, transform .1s; text-align: left;
+        }
+        .qa-btn:active { transform: scale(.985); }
+        @media (hover: hover) and (pointer: fine) { .qa-btn:hover { border-color: ${DASH.gold}; } }
+        .qa-icon { width: 42px; height: 42px; border-radius: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+      `}</style>
+    </div>
+  )
+}
+
 export default function Portal() {
   const navigate = useNavigate()
   const { profile } = useAuth()
@@ -80,6 +141,8 @@ export default function Portal() {
   const { unreadCount } = useMyNotifications()
   const { clients } = useClients()
   const { contracts } = useContracts()
+  const { links: externalLinks } = useExternalLinks()
+  const [linkNotice, setLinkNotice] = useState(null)
 
   const pendingApprovals = requests.filter(r => r.status === 'pending').length
   const newClientsToday = clients.filter(c => isToday(c.created_at)).length
@@ -113,6 +176,8 @@ export default function Portal() {
             {daiGreeting()}{profile?.full_name ? ` ${profile.full_name}さん` : ''}
           </div>
         </TodayCard>
+
+        <QuickAccessRow links={externalLinks} onMissingUrl={(label) => setLinkNotice(`${label}のURLが設定されていません。管理センター ＞ 外部サービス設定から登録してください。`)} />
 
         <KpiGrid>
           {kpis.map((k, i) => (
@@ -191,6 +256,7 @@ export default function Portal() {
           }
         `}</style>
       </DarkPage>
+      {linkNotice && <Toast message={linkNotice} type="info" onClose={() => setLinkNotice(null)} />}
     </HubShell>
   )
 }

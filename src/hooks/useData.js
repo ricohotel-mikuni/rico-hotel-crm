@@ -430,6 +430,25 @@ export function useCompanies() {
   return { companies, loading, error, refresh, add, update, remove }
 }
 
+// ── 外部サービス設定(承認済み提案書「Phase1: 外部サービスへの
+// ワンクリックアクセス」、migration 031) — Dropbox/ホテルスマート/
+// 公式LINEへのリンクをURLハードコードせずDBで管理する。3件固定の
+// 編集のみを今回のPhaseの範囲とし、行の追加/削除UIは作らない
+// (将来Freee等を増やす場合は別途migrationで行を増やす想定)。
+export function useExternalLinks() {
+  const { user } = useAuth()
+  const { data: links, loading, error, refresh } = useTable(
+    'external_links', (q) => q.select('*').order('sort_order')
+  )
+  const update = async (id, form) => {
+    const { data: before } = await supabase.from('external_links').select('*').eq('id', id).maybeSingle()
+    const { data, error } = await supabase.from('external_links').update({ ...form, updated_by: user?.id }).eq('id', id).select().single()
+    if (!error) logAudit({ action: 'external_link_updated', category: 'user', description: '外部サービス設定を変更', targetTable: 'external_links', targetId: id, targetLabel: data.label, before, after: data })
+    return { data, error }
+  }
+  return { links, loading, error, refresh, update }
+}
+
 // ── 統合ホテル管理(承認済み提案書「統合ホテル管理モジュール」) ──
 // ホテルは locations(拠点の共通基底、type='hotel') と hotels(1:1拡張、
 // 客室数等) の組。将来1,000施設規模のSaaS展開を前提に、画面①

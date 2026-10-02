@@ -7,6 +7,7 @@ import AdminCenter from './AdminCenter'
 import AdminAuditLog from './AdminAuditLog'
 import AdminHotelManagement from './AdminHotelManagement'
 import AdminCommonMasters from './AdminCommonMasters'
+import AdminExternalServices from './AdminExternalServices'
 import AdminCompanies from './AdminCompanies'
 import { ADMIN_MODULES } from './registry'
 
@@ -37,6 +38,7 @@ export default function AdminApp() {
         <Route path="companies/*" element={<AdminCompanies />} />
         <Route path="hotel-management/*" element={<AdminHotelManagement />} />
         <Route path="common-masters/*" element={<AdminCommonMasters />} />
+        <Route path="external-services/*" element={<AdminExternalServices />} />
         {ADMIN_MODULES.filter(m => m.status !== 'active').map(m => (
           <Route key={m.id} path={`${m.path.replace(/^\//, '')}/*`} element={<ComingSoon module={m} bare />} />
         ))}
