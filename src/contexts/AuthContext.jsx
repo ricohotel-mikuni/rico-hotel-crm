@@ -84,10 +84,18 @@ export function AuthProvider({ children }) {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) {
-        setError(error.message === 'Invalid login credentials'
+        // 是正(2026-10-03、React #31 "Objects are not valid as a React
+        // child"): 以前は`return { error }`でSupabaseのAuthErrorオブジェ
+        // クトをそのまま返していた。呼び出し元(Login.jsx)がこれを
+        // localErrorに格納しJSXで直接描画しており、オブジェクトは
+        // Reactの子要素として無効なため、ログイン失敗時に必ずクラッシュ
+        // していた(ErrorBoundaryが「予期しないエラーが発生しました」を
+        // 表示)。文字列(message)を返すよう統一する。
+        const message = error.message === 'Invalid login credentials'
           ? 'メールアドレスまたはパスワードが正しくありません'
-          : error.message)
-        return { error }
+          : error.message
+        setError(message)
+        return { error: message }
       }
       return { data }
     } catch (e) {
