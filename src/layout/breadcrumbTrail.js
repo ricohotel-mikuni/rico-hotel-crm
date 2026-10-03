@@ -86,6 +86,16 @@ export function buildBreadcrumbs(pathname) {
     return crumbs
   }
 
+  // 業務日報(承認済み提案書「リコホテル三国を日常業務の入口に整理
+  // する+業務日報の新設」)— 社員・業務委託共通、会社全体の機能
+  // (/employees・/approvalsと同じ絶対パスの扱い)。
+  if (pathname.startsWith('/work-report')) {
+    const lp = lastPropertyCrumb()
+    if (lp) crumbs.push(lp)
+    crumbs.push({ icon: 'ti-clipboard-text', label: '業務日報', path: '/work-report' })
+    return crumbs
+  }
+
   const mod = COMPANY_MODULES.find(m => m.path !== '/' && pathname.startsWith(m.path))
   if (mod) crumbs.push({ label: mod.label, path: mod.path })
   return crumbs

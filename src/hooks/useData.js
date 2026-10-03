@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useCurrentCompany } from '../contexts/CompanyContext'
 import { pushNotification, notifyRole } from './useNotifications'
+import { today } from '../lib/constants'
 
 // Safari/WebKit takes far longer than Chromium to give up on a request over
 // a bad connection (observed 7s+ just to fail DNS resolution, vs near-instant
@@ -1255,4 +1256,197 @@ export function useUsers() {
   }
 
   return { users, loading, error, refresh, updateRole }
+}
+
+// ── 業務日報(work_reports、migration 032) ──
+// 既存のdaily_reports(営業の訪問記録専用、001)とは別のテーブル。
+// 2026-10-03改訂(今回のご依頼「システム構成の整理」②): 区分(営業/
+// 通常業務)は社員属性から自動判定せず、入力する本人がその場で選ぶ
+// 方式に変更した。項目は固定の列を持たずcontent(jsonb)に格納する
+// ため、区分ごとの項目差異もmigration不要でフロント側の対応だけで
+// 済む。
+export const WORK_REPORT_CATEGORY_LABELS = { sales: '営業', general: '通常業務' }
+
+// 本人用: 氏名・日付は自動設定、区分(営業/通常業務)はその場で選ぶ。
+// 選んだ区分の「本日分」既存日報があれば読み込む(上書き編集)。
+export function useMyWorkReportForm(date = today()) {
+  const { user } = useAuth()
+  const [state, setState] = useState({
+    loading: true, employeeId: null, employeeName: '', category: 'general', report: null, notFound: false,
+  })
+
+  const fetchReport = useCallback(async (employeeId, category) => {
+    const { data } = await supabase.from('work_reports').select('*')
+      .eq('employee_id', employeeId).eq('report_date', date).eq('category', category).maybeSingle()
+    return data
+  }, [date])
+
+  const load = useCallback(async () => {
+    if (!user) { setState(s => ({ ...s, loading: false })); return }
+    const { data: emp } = await supabase.from('employees').select('id, full_name').eq('user_id', user.id).maybeSingle()
+    if (!emp) { setState(s => ({ ...s, loading: false, notFound: true })); return }
+    const report = await fetchReport(emp.id, 'general')
+    setState({ loading: false, employeeId: emp.id, employeeName: emp.full_name, category: 'general', report, notFound: false })
+  }, [user?.id, fetchReport])
+
+  useEffect(() => { load() }, [load])
+
+  // 区分を切り替えた時、その区分の本日分日報を読み直す(無ければ
+  // 新規入力状態になる)。
+  const selectCategory = useCallback(async (category) => {
+    if (!state.employeeId) return
+    const report = await fetchReport(state.employeeId, category)
+    setState(s => ({ ...s, category, report }))
+  }, [state.employeeId, fetchReport])
+
+  const submit = async (content) => {
+    if (!state.employeeId) return { error: '社員情報が見つかりません' }
+    const { data, error } = await supabase.from('work_reports')
+      .upsert(
+        { employee_id: state.employeeId, report_date: date, category: state.category, content, created_by: user.id },
+        { onConflict: 'employee_id,report_date,category' },
+      )
+      .select().single()
+    if (!error) setState(s => ({ ...s, report: data }))
+    return { data, error }
+  }
+
+  return { ...state, date, submit, selectCategory, refresh: load }
+}
+
+// 自分が過去に登録した日報の一覧(最新順)。RLS(work_reports_select_
+// own_or_admin)により、管理者以外は自分の分だけが返る。
+export function useMyWorkReportHistory(limit = 30) {
+  const { data, loading, error, refresh } = useTable(
+    'work_reports',
+    (q) => q.select('*, employees(full_name)').order('report_date', { ascending: false }).limit(limit),
+    'work_reports',
+  )
+  return { reports: data, loading, error, refresh }
+}
+
+// 管理者用: 全スタッフの日報一覧(日付・区分で絞り込み可)。
+export function useAllWorkReports({ date = '', category = '' } = {}) {
+  const [reports, setReports] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    let q = supabase.from('work_reports').select('*, employees(full_name)').order('report_date', { ascending: false })
+    if (date) q = q.eq('report_date', date)
+    if (category) q = q.eq('category', category)
+    const { data, error } = await q
+    if (error) console.error('[useAllWorkReports] fetch failed:', error)
+    setReports(data ?? [])
+    setLoading(false)
+  }, [date, category])
+
+  useEffect(() => { load() }, [load])
+
+  return { reports, loading, refresh: load }
+}
+
+// ── リネン管理(linen_items/linen_transactions、migration 034) ──
+// 添付Excel「ホテルリネン_入出庫月次在庫管理」の構成(リネンマスタ/
+// 日々の入出庫/月次在庫)を参考にする。月次在庫はstored列にせず、
+// マスタのopening_stock(期首在庫)+その月までの全トランザクション
+// から都度計算する(値のズレ・食い違いを避けるため)。
+export function useLinenItems() {
+  const { data: items, loading, error, refresh } = useTable(
+    'linen_items', (q) => q.select('*').is('deleted_at', null).order('code'),
+  )
+  const add = async (form) => {
+    const { data, error } = await supabase.from('linen_items').insert(form).select().single()
+    return { data, error }
+  }
+  const update = async (id, form) => {
+    const { data, error } = await supabase.from('linen_items').update(form).eq('id', id).select().single()
+    return { data, error }
+  }
+  return { items, loading, error, refresh, add, update }
+}
+
+export function useLinenTransactions(month = today().slice(0, 7)) {
+  const { user } = useAuth()
+  const { data: transactions, loading, error, refresh } = useTable(
+    'linen_transactions',
+    (q) => q.select('*, linen_items(code, name, size, unit), employees(full_name)').order('txn_date', { ascending: false }),
+    'linen_transactions',
+  )
+
+  const add = async ({ itemId, txnDate, type, quantity, note = '' }) => {
+    const { data: emp } = await supabase.from('employees').select('id').eq('user_id', user.id).maybeSingle()
+    const { data, error } = await supabase.from('linen_transactions').insert({
+      item_id: itemId, txn_date: txnDate, type, quantity, note, employee_id: emp?.id ?? null, created_by: user.id,
+    }).select().single()
+    return { data, error }
+  }
+
+  // 月次在庫 = 期首在庫 + (システム開始からその月末までの)入庫 - 出庫 -
+  // 廃棄 - 破損。指定したmonth('YYYY-MM')の月初・月末時点の在庫と、
+  // その月単体の入出庫数を算出する。
+  const monthlySummary = (items) => {
+    const [y, m] = month.split('-').map(Number)
+    const monthStart = `${month}-01`
+    const monthEndDate = new Date(y, m, 0).getDate()
+    const monthEnd = `${month}-${String(monthEndDate).padStart(2, '0')}`
+
+    return items.map(item => {
+      const upToPrevMonth = transactions.filter(t => t.item_id === item.id && t.txn_date < monthStart)
+      const withinMonth = transactions.filter(t => t.item_id === item.id && t.txn_date >= monthStart && t.txn_date <= monthEnd)
+      const net = (list) => list.reduce((sum, t) => sum + (t.type === 'in' ? t.quantity : -t.quantity), 0)
+      const openingStock = item.opening_stock + net(upToPrevMonth)
+      const inQty = withinMonth.filter(t => t.type === 'in').reduce((s, t) => s + t.quantity, 0)
+      const outQty = withinMonth.filter(t => t.type === 'out').reduce((s, t) => s + t.quantity, 0)
+      const discardQty = withinMonth.filter(t => t.type === 'discard').reduce((s, t) => s + t.quantity, 0)
+      const damageQty = withinMonth.filter(t => t.type === 'damage').reduce((s, t) => s + t.quantity, 0)
+      const closingStock = openingStock + inQty - outQty - discardQty - damageQty
+      return {
+        item, openingStock, inQty, outQty, discardQty, damageQty, closingStock,
+        needsReorder: closingStock <= item.reorder_point,
+      }
+    })
+  }
+
+  return { transactions, loading, error, refresh, add, monthlySummary, month }
+}
+
+// ── 備品管理(supply_items/supply_transactions、migration 034) ──
+// リネンと同じ考え方だが、current_stockを直接保持する方式(DBトリガー
+// が入出庫のINSERT時に自動更新する、migration 034参照)。
+export function useSupplyItems() {
+  const { data: items, loading, error, refresh } = useTable(
+    'supply_items', (q) => q.select('*').is('deleted_at', null).order('code'),
+  )
+  const add = async (form) => {
+    const { data, error } = await supabase.from('supply_items').insert(form).select().single()
+    return { data, error }
+  }
+  const update = async (id, form) => {
+    const { data, error } = await supabase.from('supply_items').update(form).eq('id', id).select().single()
+    return { data, error }
+  }
+  return { items, loading, error, refresh, add, update }
+}
+
+export function useSupplyTransactions() {
+  const { user } = useAuth()
+  const { data: transactions, loading, error, refresh } = useTable(
+    'supply_transactions',
+    (q) => q.select('*, supply_items(code, name, unit), employees(full_name)').order('txn_date', { ascending: false }).limit(100),
+    'supply_transactions',
+  )
+
+  const add = async ({ itemId, txnDate, type, quantity, note = '' }) => {
+    const { data: emp } = await supabase.from('employees').select('id').eq('user_id', user.id).maybeSingle()
+    const { data, error } = await supabase.from('supply_transactions').insert({
+      item_id: itemId, txn_date: txnDate, type, quantity, note, employee_id: emp?.id ?? null, created_by: user.id,
+    }).select().single()
+    // current_stockの更新はDBトリガー(apply_supply_transaction)が
+    // 行うため、ここではrefreshだけでよい。
+    if (!error) refresh()
+    return { data, error }
+  }
+
+  return { transactions, loading, error, refresh, add }
 }

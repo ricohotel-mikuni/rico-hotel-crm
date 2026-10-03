@@ -13,6 +13,7 @@ import EmployeeDirectory from './modules/employees/EmployeeDirectory'
 import EmployeeProfile from './modules/employees/EmployeeProfile'
 import ApprovalCenter from './modules/approvals/ApprovalCenter'
 import AdminApp from './modules/admin/AdminApp'
+import WorkReportForm from './modules/workReports/WorkReportForm'
 import ComingSoon from './modules/ComingSoon'
 import DaiChat from './ai/DaiChat'
 
@@ -66,6 +67,9 @@ export default function App() {
     <>
       <Routes>
         <Route path="/" element={<Portal />} />
+        {/* 業務日報 — 社員・業務委託共通、会社全体の機能(/employees・
+            /approvalsと同じ絶対パス)。 */}
+        <Route path="/work-report" element={<WorkReportForm />} />
         <Route path="/hotels/*" element={<HotelsApp />} />
         <Route path="/employees" element={<EmployeeDirectory />} />
         <Route path="/employees/:id" element={<EmployeeProfile />} />

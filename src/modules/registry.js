@@ -19,7 +19,6 @@
 // 追加しても既存表示には影響しない。
 export const MODULES = [
   { id: 'sales',       label: '営業管理',         icon: 'ti-building-store', path: '/sales',       status: 'active', notifiable: true,  color: '#3A6DFF', desc: '営業先・案件・契約・成果報酬の管理' },
-  { id: 'front',       label: 'フロント',         icon: 'ti-key',            path: '/front',       status: 'active', notifiable: true,  color: '#FFC107', desc: 'チェックイン・チェックアウト・客室状況' },
   { id: 'cleaning',    label: '清掃',             icon: 'ti-sparkles',       path: '/cleaning',    status: 'active', notifiable: true,  color: '#4CD964', desc: '客室清掃の状況管理' },
   { id: 'breakfast',   label: '朝食',             icon: 'ti-coffee',         path: '/breakfast',   status: 'active', notifiable: true,  color: '#FFC107', desc: '朝食対象者・提供状況の管理(メニュー・在庫・発注・原価は将来拡張)' },
   { id: 'dinner',      label: '夕食',             icon: 'ti-tools-kitchen-2', path: '/dinner',     status: 'active', notifiable: true,  color: '#F59E0B', desc: '夕食対象者・提供状況の管理(メニュー・在庫・発注・原価は将来拡張)' },
@@ -28,6 +27,8 @@ export const MODULES = [
   { id: 'night-audit', label: '日次締め',         icon: 'ti-lock',          path: '/night-audit', status: 'active', notifiable: true,  color: '#8A96AC', desc: '当日売上の確認・締め処理・締め履歴の記録' },
   { id: 'maintenance', label: '設備',             icon: 'ti-tools',          path: '/maintenance', status: 'soon',   notifiable: true,  color: '#8A96AC', desc: '設備の修繕・故障対応の記録' },
   { id: 'shifts',      label: 'シフト管理',       icon: 'ti-calendar-time',  path: '/shifts',      status: 'soon',   notifiable: true,  color: '#FFC107', desc: 'スタッフの勤務シフト作成・管理' },
+  { id: 'linen',       label: 'リネン管理',       icon: 'ti-wash',           path: '/linen',       status: 'active', notifiable: false, color: '#3A6DFF', desc: 'リネン(シーツ・タオル等)の入出庫・月次在庫管理' },
+  { id: 'supplies',    label: '備品管理',         icon: 'ti-package',       path: '/supplies',    status: 'active', notifiable: false, color: '#8A96AC', desc: '備品の入出庫・在庫管理' },
   { id: 'payments',    label: '入金管理',         icon: 'ti-building-bank',  path: '/payments',    status: 'soon',   notifiable: true,  color: '#B366FF', desc: '入金・売掛金の記録と消込' },
   { id: 'cashier',     label: 'キャッシャーレポート', icon: 'ti-report-money', path: '/cashier',    status: 'soon',   notifiable: true,  color: '#B366FF', desc: '日次売上・レジ精算の集計' },
   { id: 'purchase',    label: '購入申請',         icon: 'ti-shopping-cart',  path: '/purchase',    status: 'soon',   notifiable: true,  color: '#4CD964', desc: '備品・消耗品の購入申請と承認' },

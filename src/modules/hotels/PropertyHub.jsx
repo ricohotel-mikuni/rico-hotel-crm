@@ -48,7 +48,7 @@ const RATINGS = [
 // クイックメニューに出す項目(承認済み提案書Ver.7⑦) — MODULES全体では
 // なく、日常的によく使う9項目だけの厳選版。サイドバーは引き続き
 // MODULES全項目を網羅しているため、ここに出ない項目も導線を失わない。
-const QUICK_MENU_IDS = ['front', 'cleaning', 'breakfast', 'dinner', 'parking', 'maintenance', 'shifts', 'payments', 'cashier']
+const QUICK_MENU_IDS = ['cleaning', 'breakfast', 'dinner', 'parking', 'maintenance', 'shifts', 'payments', 'cashier']
 
 // 拠点ホーム(リコホテル三国、/hotels/rico-mikuni)
 //

@@ -18,6 +18,8 @@ import { MODULES } from '../registry'
 import { buildPropertyNavGroups } from './propertyNav'
 import { useHotelBySlug } from '../../hooks/useData'
 import { HotelProvider } from './HotelContext'
+import LinenManagement from './linen/LinenManagement'
+import SuppliesManagement from './supplies/SuppliesManagement'
 
 // ホテル事業 — mounted at /hotels/* by the top-level App router.
 // "/" lists every property; each property gets its own brand-switched
@@ -47,6 +49,8 @@ function HotelProperty() {
           <Routes>
             <Route path="/" element={<PropertyHub />} />
             <Route path="sales/*" element={<SalesApp />} />
+            {/* フロントは今回メニューから削除(2026-10-03)。導線は無いが
+                ルート自体は残す(DB・コンポーネントを削除しない方針)。 */}
             <Route path="front/*" element={<FrontDesk />} />
             <Route path="cleaning/*" element={<Housekeeping />} />
             <Route path="breakfast/*" element={<Breakfast />} />
@@ -54,6 +58,8 @@ function HotelProperty() {
             <Route path="dinner/*" element={<Dinner />} />
             <Route path="revenue/*" element={<Revenue />} />
             <Route path="night-audit/*" element={<NightAudit />} />
+            <Route path="linen/*" element={<LinenManagement />} />
+            <Route path="supplies/*" element={<SuppliesManagement />} />
             {MODULES.filter(m => m.status !== 'active').map(m => (
               <Route key={m.id} path={`${m.path.replace(/^\//, '')}/*`} element={<ComingSoon module={m} bare />} />
             ))}
