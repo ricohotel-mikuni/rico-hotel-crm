@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useUnreadCounts } from '../../hooks/useNotifications'
 import { useHotelWeather } from '../../hooks/useHotelWeather'
-import { useRooms, useStays, useMealService, useParkingSpots, useDailySales, useNightAudit, useOperationalAlertCheck } from '../../hooks/useData'
+import { useRooms, useMealService, useDailySales, useNightAudit, useOperationalAlertCheck } from '../../hooks/useData'
 import { useCurrentHotel } from './HotelContext'
 import { useBrand } from '../../branding/BrandContext'
 import ModuleLauncher from '../../ui/ModuleLauncher'
-import { DarkPage, AnalyzingCard, TodayCard, TodayCardTitle, KpiGrid, KpiCell, DarkPanel, ChartGrid, ChartCard } from '../../ui/DesignSystemKit'
+import { DarkPage, AnalyzingCard, TodayCard, TodayCardTitle, DarkPanel } from '../../ui/DesignSystemKit'
 import { dailyPick } from '../../ai/daiGreeting'
 import { describeWeatherCode, weatherComment } from '../../ai/weatherInsight'
 import { MODULES } from '../registry'
@@ -50,43 +50,21 @@ const RATINGS = [
 // MODULES全項目を網羅しているため、ここに出ない項目も導線を失わない。
 const QUICK_MENU_IDS = ['front', 'cleaning', 'breakfast', 'dinner', 'parking', 'maintenance', 'shifts', 'payments', 'cashier']
 
-// グラフ(HotelOS Design System v1.0 §6.3、標準レイアウト HERO→KPI→
-// グラフ→AI提案→ToDo→クイックメニュー)— フロント/清掃等が未実装のため
-// 裏付けとなる実データが無く、KPIグリッドと同様「ダミー」表示とする
-// (AI開発憲章第12条)。対応モジュール実装後、順次実データへ切り替える。
-const REVENUE_TREND = [
-  { label: '6/1', value: 420000 }, { label: '6/8', value: 465000 }, { label: '6/15', value: 501000 },
-  { label: '6/22', value: 480000 }, { label: '6/29', value: 548000 },
-]
-const OCCUPANCY_TREND = [
-  { label: '6/1', value: 78 }, { label: '6/8', value: 82 }, { label: '6/15', value: 88 },
-  { label: '6/22', value: 85 }, { label: '6/29', value: 92 },
-]
-const ADR_TREND = [
-  { label: '6/1', value: 14200 }, { label: '6/8', value: 14500 }, { label: '6/15', value: 15100 },
-  { label: '6/22', value: 14800 }, { label: '6/29', value: 15600 },
-]
-const REVPAR_TREND = [
-  { label: '6/1', value: 11076 }, { label: '6/8', value: 11890 }, { label: '6/15', value: 13288 },
-  { label: '6/22', value: 12580 }, { label: '6/29', value: 14352 },
-]
-
-// 拠点ホーム(リコホテル三国、/hotels/rico-mikuni)— Design System v1.0
-// (docs/ui-design-system.md、ERP開発憲章第十一章)の基準画面そのもの。
-// src/ui/DesignSystemKit.jsx の共有部品(DarkPage/TodayCard/KpiGrid/
-// DarkPanel等)を直接組み立てて作る — 他画面(会社ホーム・営業管理等)は
-// この画面が使っているのと同じ部品を再利用することで世界観を統一する
-// (独自にdiv+インラインスタイルで「似たもの」を作り直さない、という
-// 明示的な方針)。既存の持続的サイドバー(HotelsApp.jsx の SidebarShell
-// + buildPropertyNavGroups)をそのまま使うため、新しいナビゲーションは
-// 増やしていない(ERP開発憲章第7条・第8条)。
+// 拠点ホーム(リコホテル三国、/hotels/rico-mikuni)
 //
-// 下記のKPI(売上・稼働率・チェックイン等)は、フロント/清掃/朝食/
-// 夕食/駐車場/売上管理の全モジュール実装(HotelOS Phase 1)により
-// 全て実データの裏付けを持つ。AI開発憲章第12条の「実データが無い
-// 指標にはdummyを明示する」要件は、対象となるKPIが無くなったため
-// 現時点では該当なし(将来、新しいdummy KPIを追加する場合はこの
-// コメント・末尾の注記を復活させること)。
+// 2026-10-03是正: ホテルスマートと重複するホテル運営KPI(売上推移・
+// 稼働率推移・ADR・RevPAR・チェックイン/チェックアウト・清掃待ち・
+// 駐車場・朝食/夕食提供・締め状況)を表示から外した。ホテルスマート
+// 側で管理するため。KpiGrid/ChartGridのJSXと、それ専用のダミー
+// トレンドデータ(REVENUE_TREND等)・集計値(todayCheckins等)を削除。
+// 駐車場/宿泊データの取得(useParkingSpots/useStays)もこの表示でしか
+// 使っていなかったため、合わせて取得をやめた。
+//
+// 運用アラート機能(清掃未完了・朝食/夕食未提供・締め忘れ、migration
+// 025)は画面表示とは独立した機能のため、計算・呼び出しは変更して
+// いない(dirtyRooms/breakfastServed/dinnerServedは引き続き
+// useOperationalAlertCheckへ渡す)。NEO TODAY(天気)・AIお知らせ/提案・
+// 今日やるべきこと・クイックメニューも変更していない。
 export default function PropertyHub() {
   const navigate = useNavigate()
   const { profile } = useAuth()
@@ -96,10 +74,8 @@ export default function PropertyHub() {
   const weather = useHotelWeather()
   const hotel = useCurrentHotel()
   const { rooms } = useRooms(hotel?.hotelId)
-  const { stays } = useStays(hotel?.hotelId)
   const { roster: breakfastRoster } = useMealService(hotel?.hotelId, 'breakfast')
   const { roster: dinnerRoster } = useMealService(hotel?.hotelId, 'dinner')
-  const { spots: parkingSpots } = useParkingSpots(hotel?.hotelId)
   const { todayRecord: todaySales } = useDailySales(hotel?.hotelId)
   const { todayAudit } = useNightAudit(hotel?.hotelId)
 
@@ -108,32 +84,13 @@ export default function PropertyHub() {
     return () => clearTimeout(t)
   }, [])
 
-  // フロント/清掃/朝食/夕食/駐車場/売上管理モジュール実装(HotelOS
-  // Phase 1)により、全KPIが実データの裏付けを持つ。「チェックイン/
-  // チェックアウト」は本日を予定日とする宿泊件数(実施済みかは問わ
-  // ない予定ベースの日次件数)、「清掃待ち」はrooms.status=
-  // 'vacant_dirty'の実件数、「朝食提供」「夕食提供」はuseMealService
-  // (本日チェックイン中の滞在からstaysベースで算出)のうちserved=
-  // trueの組数、「駐車場・空車」はparking_spots.status='vacant'の
-  // 実件数、「稼働率」はrooms.status='occupied'の実件数/全室数、
-  // 「本日の売上」はdaily_sales(migration 023)のtoday分。金額は
-  // 宿泊・提供件数からの自動計算(=推測)ではなく、フロント/支配人が
-  // 締め時点の実額を手入力した値のみを表示する(未入力の日は
-  // 「未入力」と表示、捏造しない)。
-  const todayStr = new Date().toISOString().slice(0, 10)
-  const todayCheckins = stays.filter(s => s.checkin_date === todayStr).length
-  const todayCheckouts = stays.filter(s => s.checkout_date === todayStr).length
   const dirtyRooms = rooms.filter(r => r.status === 'vacant_dirty').length
   const breakfastServed = breakfastRoster.filter(r => r.service?.served).length
   const dinnerServed = dinnerRoster.filter(r => r.service?.served).length
-  const parkingVacant = parkingSpots.filter(s => s.status === 'vacant').length
-  const parkingOccupied = parkingSpots.filter(s => s.status === 'occupied').length
-  const parkingUtilization = parkingSpots.length ? Math.round((parkingOccupied / parkingSpots.length) * 100) : 0
-  const occupancyRate = rooms.length ? Math.round((rooms.filter(r => r.status === 'occupied').length / rooms.length) * 100) : 0
 
-  // 運用アラート(HotelOS Foundation v1.0) — 既に集計済みのKPI値を
-  // そのまま渡すだけ(新たな購読は発生しない)。しきい値は承認済み:
-  // 清掃13:00・朝食9:00・夕食20:00・締め23:30。
+  // 運用アラート(HotelOS Foundation v1.0) — 画面表示とは独立した機能
+  // のため変更していない。しきい値は承認済み: 清掃13:00・朝食9:00・
+  // 夕食20:00・締め23:30。
   useOperationalAlertCheck({
     hotelId: hotel?.hotelId,
     dirtyRoomsCount: dirtyRooms,
@@ -204,41 +161,6 @@ export default function PropertyHub() {
             .neo-weather-comment { font-size: 11.5px; color: ${DASH.textSub}; line-height: 1.55; }
           `}</style>
         </TodayCard>
-      )}
-
-      {!analyzing && (
-        <KpiGrid>
-          <KpiCell
-            icon="ti-chart-line" color={DASH.gold} label="本日の売上+稼働率"
-            value={todaySales ? `¥${Number(todaySales.total_revenue).toLocaleString()}` : '未入力'}
-            sub={`稼働率 ${occupancyRate}%`}
-            onClick={() => navigate(`${brand.homePath}/revenue`)}
-          />
-          <KpiCell icon="ti-door-enter" color={DASH.green} label="チェックイン" value={todayCheckins} unit="件" onClick={() => navigate(`${brand.homePath}/front`)} />
-          <KpiCell icon="ti-door-exit" color={DASH.purple} label="チェックアウト" value={todayCheckouts} unit="件" onClick={() => navigate(`${brand.homePath}/front`)} />
-          <KpiCell icon="ti-brush" color={DASH.orange} label="清掃待ち" value={`${dirtyRooms} / ${rooms.length}`} unit="部屋" onClick={() => navigate(`${brand.homePath}/cleaning`)} />
-          <KpiCell icon="ti-car" color={DASH.blue} label="駐車場" value={`${parkingOccupied} / ${parkingSpots.length}`} sub={`利用率${parkingUtilization}%・空車${parkingVacant}`} onClick={() => navigate(`${brand.homePath}/parking`)} />
-          <KpiCell icon="ti-coffee" color={DASH.green} label="朝食提供" value={`${breakfastServed} / ${breakfastRoster.length}`} unit="組" onClick={() => navigate(`${brand.homePath}/breakfast`)} />
-          <KpiCell icon="ti-tools-kitchen-2" color={DASH.orange} label="夕食提供" value={`${dinnerServed} / ${dinnerRoster.length}`} unit="組" onClick={() => navigate(`${brand.homePath}/dinner`)} />
-          <KpiCell
-            icon="ti-lock" color={todayAudit ? DASH.green : DASH.textFaint} label="本日の締め状況"
-            value={todayAudit ? '締め済み' : '未締め'}
-            sub={todayAudit ? new Date(todayAudit.closed_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : ''}
-            onClick={() => navigate(`${brand.homePath}/night-audit`)}
-          />
-        </KpiGrid>
-      )}
-      <div style={{ fontSize: 11, color: DASH.textFaint, marginBottom: 24 }}>
-        ※ チェックイン・チェックアウト・清掃待ち・朝食提供・駐車場・夕食提供・売上+稼働率・締め状況・天気は全て実データです(売上はフロント/支配人による日次手入力、未入力の日は「未入力」と表示されます)。
-      </div>
-
-      {!analyzing && (
-        <ChartGrid>
-          <ChartCard title="売上推移" data={REVENUE_TREND} color={DASH.gold} unit="円" dummy />
-          <ChartCard title="稼働率推移" data={OCCUPANCY_TREND} color={DASH.blue} unit="%" dummy />
-          <ChartCard title="ADR(平均客室単価)" data={ADR_TREND} color={DASH.green} unit="円" dummy />
-          <ChartCard title="RevPAR" data={REVPAR_TREND} color={DASH.purple} unit="円" dummy />
-        </ChartGrid>
       )}
 
       <div className="dai-today-grid" style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: 20, marginBottom: 30 }}>
