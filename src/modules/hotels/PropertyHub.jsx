@@ -1,16 +1,11 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { useUnreadCounts } from '../../hooks/useNotifications'
 import { useHotelWeather } from '../../hooks/useHotelWeather'
 import { useRooms, useMealService, useDailySales, useNightAudit, useOperationalAlertCheck } from '../../hooks/useData'
 import { useCurrentHotel } from './HotelContext'
-import { useBrand } from '../../branding/BrandContext'
-import ModuleLauncher from '../../ui/ModuleLauncher'
 import { DarkPage, AnalyzingCard, TodayCard, TodayCardTitle, DarkPanel } from '../../ui/DesignSystemKit'
 import { dailyPick } from '../../ai/daiGreeting'
 import { describeWeatherCode, weatherComment } from '../../ai/weatherInsight'
-import { MODULES } from '../registry'
 import { DASH } from '../../lib/designSystem'
 
 // 優先度「低」を追加(承認済み提案書「拠点ダッシュボードUI改善 Ver.7」⑥)。
@@ -45,11 +40,6 @@ const RATINGS = [
   { stars: 5, note: '今日は全体的に落ち着いた一日になりそうです。' },
 ]
 
-// クイックメニューに出す項目(承認済み提案書Ver.7⑦) — MODULES全体では
-// なく、日常的によく使う9項目だけの厳選版。サイドバーは引き続き
-// MODULES全項目を網羅しているため、ここに出ない項目も導線を失わない。
-const QUICK_MENU_IDS = ['cleaning', 'breakfast', 'dinner', 'parking', 'maintenance', 'shifts', 'payments', 'cashier']
-
 // 拠点ホーム(リコホテル三国、/hotels/rico-mikuni)
 //
 // 2026-10-03是正: ホテルスマートと重複するホテル運営KPI(売上推移・
@@ -60,16 +50,17 @@ const QUICK_MENU_IDS = ['cleaning', 'breakfast', 'dinner', 'parking', 'maintenan
 // 駐車場/宿泊データの取得(useParkingSpots/useStays)もこの表示でしか
 // 使っていなかったため、合わせて取得をやめた。
 //
+// 2026-10-04是正: クイックメニュー(ModuleLauncherのカード一覧)を
+// 画面下部から廃止した。各モジュールへの導線はサイドバーに一本化
+// する(propertyNav.js参照)。モジュール自体・ルートは削除していない。
+//
 // 運用アラート機能(清掃未完了・朝食/夕食未提供・締め忘れ、migration
 // 025)は画面表示とは独立した機能のため、計算・呼び出しは変更して
 // いない(dirtyRooms/breakfastServed/dinnerServedは引き続き
 // useOperationalAlertCheckへ渡す)。NEO TODAY(天気)・AIお知らせ/提案・
-// 今日やるべきこと・クイックメニューも変更していない。
+// 今日やるべきことは変更していない。
 export default function PropertyHub() {
-  const navigate = useNavigate()
   const { profile } = useAuth()
-  const brand = useBrand()
-  const unread = useUnreadCounts()
   const [analyzing, setAnalyzing] = useState(true)
   const weather = useHotelWeather()
   const hotel = useCurrentHotel()
@@ -101,7 +92,6 @@ export default function PropertyHub() {
   })
 
   const rating = dailyPick(RATINGS, 2)
-  const quickMenuModules = MODULES.filter(m => QUICK_MENU_IDS.includes(m.id))
 
   return (
     <DarkPage>
@@ -201,9 +191,6 @@ export default function PropertyHub() {
           .dai-today-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
-
-      <div style={{ fontSize: 11, color: DASH.gold, fontWeight: 700, letterSpacing: 2.5, marginBottom: 12 }}>クイックメニュー</div>
-      <ModuleLauncher modules={quickMenuModules} unreadCounts={unread} onSelect={m => navigate(m.absolute ? m.path : brand.homePath + m.path)} />
     </DarkPage>
   )
 }
